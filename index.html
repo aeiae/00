@@ -1617,10 +1617,10 @@
                     loadConfig();
                     let files = [];
                     const json = await loadFilesFromJson();
-                    如果 (json && json.长度) 文件 = json;
-                    否则 文件 = 加载手动文件();
-                    如果 (文件.长度) {
-                        所有文件 = 文件;
+                    if (json && json.length) files = json;
+                    else files = loadManualFiles();
+                    if (files.length) {
+                        allFiles = files;
                         mergeConfig(files);
                         filteredFiles = getVisibleFiles();
                         renderFiles(filteredFiles);
