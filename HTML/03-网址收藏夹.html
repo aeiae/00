@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>网址收藏夹</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<style>
+/* ============ CSS Variables & Reset ============ */
+:root {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --card-hover: #f8f9ff;
+  --border: #e2e5ec;
+  --border-light: #eef0f4;
+  --text: #1a1d28;
+  --text2: #6b7280;
+  --text3: #9ca3af;
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+  --accent2: #4f46e5;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; color: var(--accent2); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ============ Main Layout ============ */
+#mainApp { display: block; }
+.header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,.03);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-left h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+.header-left .logo { font-size: 24px; }
+.header-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all .2s;
+  white-space: nowrap;
+  font-family: inherit;
+  touch-action: manipulation;
+  min-height: 38px;
+}
+.btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent); color: #fff;
+}
+.btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-sm { padding: 4px 10px; font-size: 12px; min-height: 32px; }
+
+/* 新增：链接按钮透明无背景，仅图标 */
+.btn-link {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text3) !important;
+  padding: 4px 6px;
+  min-height: auto;
+  font-size: 14px;
+  box-shadow: none;
+}
+.btn-link:hover {
+  color: var(--accent) !important;
+  background: transparent !important;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Search & Toolbar */
+.toolbar {
+  padding: 16px 24px 0;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.search-input {
+  flex: 1; min-width: 200px; padding: 10px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text); font-size: 14px;
+  outline: none; transition: .3s;
+  min-height: 44px;
+}
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+.search-input::placeholder { color: var(--text3); }
+
+/* View mode switcher */
+.view-switch {
+  display: flex; gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+.view-btn {
+  width: 38px; height: 38px;
+  border: none; background: transparent;
+  border-radius: 6px;
+  cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: .2s; color: var(--text3);
+  touch-action: manipulation;
+}
+.view-btn:hover { color: var(--text); background: var(--card); }
+.view-btn.active { background: var(--accent); color: #fff; }
+
+/* Sort indicator */
+.sort-info {
+  font-size: 12px; color: var(--text3);
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Category Tabs */
+.cat-tabs {
+  display: flex; gap: 6px; padding: 12px 24px 0;
+  overflow-x: auto; flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+  padding: 8px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  cursor: pointer; font-size: 14px;
+  white-space: nowrap;
+  transition: .2s;
+  color: var(--text2);
+  touch-action: manipulation;
+  min-height: 38px;
+  display: flex; align-items: center;
+}
+.cat-tab:hover { border-color: var(--accent); color: var(--accent); }
+.cat-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ======== GRID VIEW ======== */
+.bm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  padding: 16px 24px 40px;
+}
+.bm-grid .bm-card {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: all .2s;
+  position: relative;
+  display: flex; flex-direction: column;
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+.bm-grid .bm-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+.bm-grid .bm-card .bm-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 10px;
+  overflow: hidden; color: var(--accent); font-weight: 600;
+  flex-shrink: 0;
+}
+.bm-grid .bm-card .bm-icon img { width: 22px; height: 22px; border-radius: 4px; }
+.bm-grid .bm-card h3 {
+  font-size: 14px; font-weight: 600;
+  margin-bottom: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-grid .bm-card .bm-url {
+  font-size: 12px; color: var(--text3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 8px;
+}
+.bm-grid .bm-card .bm-cat {
+  font-size: 11px; color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 8px; border-radius: 50px;
+  display: inline-block; margin-bottom: 8px;
+  width: fit-content;
+  flex-shrink: 0;
+}
+.bm-grid .bm-card .bm-note {
+  font-size: 12px; color: var(--text2); margin-bottom: 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-grid .bm-card .bm-actions {
+  display: flex; gap: 5px; margin-top: auto;
+  flex-shrink: 0;
+}
+.bm-grid .bm-card .drag-handle {
+  position: absolute; top: 8px; right: 8px;
+  cursor: grab; color: var(--text3); font-size: 14px;
+  opacity: 0; transition: .2s; padding: 4px;
+}
+.bm-grid .bm-card:hover .drag-handle { opacity: 1; }
+
+/* ======== LIST VIEW ======== */
+.bm-list {
+  padding: 16px 24px 40px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.bm-list .bm-item {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all .2s;
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+.bm-list .bm-item:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.bm-list .bm-item .drag-handle {
+  cursor: grab; color: var(--text3); font-size: 16px;
+  opacity: 0; transition: .2s; flex-shrink: 0;
+}
+.bm-list .bm-item:hover .drag-handle { opacity: 1; }
+.bm-list .bm-item .bm-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; overflow: hidden;
+  color: var(--accent); font-weight: 600;
+}
+.bm-list .bm-item .bm-icon img { width: 20px; height: 20px; border-radius: 3px; }
+.bm-list .bm-item .bm-info {
+  flex: 1; min-width: 0;
+}
+.bm-list .bm-item h3 {
+  font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-list .bm-item .bm-meta {
+  font-size: 12px; color: var(--text3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; margin-top: 2px;
+}
+.bm-list .bm-item .bm-meta .bm-cat-sm {
+  font-size: 11px; color: var(--accent);
+  background: var(--accent-light);
+  padding: 1px 6px; border-radius: 50px;
+  flex-shrink: 0;
+}
+.bm-list .bm-item .bm-actions {
+  display: flex; gap: 4px; flex-shrink: 0;
+}
+
+/* ======== COMPACT LIST VIEW ======== */
+.bm-compact {
+  padding: 16px 24px 40px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.bm-compact .bm-item {
+  background: var(--card);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px;
+  transition: all .15s;
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+.bm-compact .bm-item:hover {
+  background: var(--accent-light);
+  border-color: var(--border);
+}
+.bm-compact .bm-item .drag-handle {
+  cursor: grab; color: var(--text3); font-size: 12px;
+  opacity: 0; transition: .2s; flex-shrink: 0;
+}
+.bm-compact .bm-item:hover .drag-handle { opacity: 1; }
+.bm-compact .bm-item .bm-icon {
+  width: 24px; height: 24px;
+  border-radius: 5px;
+  background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0; overflow: hidden;
+  color: var(--accent); font-weight: 600;
+}
+.bm-compact .bm-item .bm-icon img { width: 16px; height: 16px; border-radius: 2px; }
+.bm-compact .bm-item .bm-info {
+  flex: 1; min-width: 0;
+}
+.bm-compact .bm-item h3 {
+  font-size: 13px; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-compact .bm-item .bm-meta {
+  font-size: 11px; color: var(--text3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-compact .bm-item .bm-actions {
+  display: flex; gap: 3px; flex-shrink: 0;
+}
+
+/* ======== LARGE CARD VIEW ======== */
+.bm-large {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  padding: 16px 24px 40px;
+}
+.bm-large .bm-card {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 22px;
+  transition: all .2s;
+  position: relative;
+  display: flex; flex-direction: column;
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+.bm-large .bm-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+.bm-large .bm-card .bm-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent-light), #e0e7ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 14px;
+  overflow: hidden; color: var(--accent); font-weight: 600;
+  flex-shrink: 0;
+}
+.bm-large .bm-card .bm-icon img { width: 28px; height: 28px; border-radius: 6px; }
+.bm-large .bm-card h3 {
+  font-size: 16px; font-weight: 600;
+  margin-bottom: 6px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bm-large .bm-card .bm-url {
+  font-size: 12px; color: var(--text3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 10px;
+}
+.bm-large .bm-card .bm-cat {
+  font-size: 11px; color: var(--accent);
+  background: var(--accent-light);
+  padding: 3px 10px; border-radius: 50px;
+  display: inline-block; margin-bottom: 10px;
+  width: fit-content;
+  flex-shrink: 0;
+}
+.bm-large .bm-card .bm-note {
+  font-size: 13px; color: var(--text2); margin-bottom: 12px;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.bm-large .bm-card .bm-actions {
+  display: flex; gap: 6px; margin-top: auto;
+  flex-shrink: 0;
+}
+.bm-large .bm-card .drag-handle {
+  position: absolute; top: 12px; right: 12px;
+  cursor: grab; color: var(--text3); font-size: 14px;
+  opacity: 0; transition: .2s; padding: 4px;
+}
+.bm-large .bm-card:hover .drag-handle { opacity: 1; }
+
+/* Drag ghost */
+.sortable-ghost { opacity: 0.4; }
+.sortable-chosen { box-shadow: var(--shadow-lg) !important; }
+.sortable-drag { opacity: 0.9; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,.3);
+  backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%; max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  animation: fadeUp .3s ease;
+  box-shadow: var(--shadow-lg);
+}
+.modal h2 {
+  font-size: 20px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.modal label {
+  display: block; font-size: 13px;
+  color: var(--text2); margin-bottom: 6px; margin-top: 14px;
+}
+.modal input, .modal select, .modal textarea {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text); font-size: 14px;
+  outline: none; transition: .3s;
+  font-family: inherit;
+  min-height: 44px;
+}
+.modal input:focus, .modal select:focus, .modal textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+}
+.modal textarea { resize: vertical; min-height: 80px; }
+.modal-actions {
+  display: flex; gap: 10px; margin-top: 24px;
+  justify-content: flex-end;
+}
+.modal .close-x {
+  position: absolute; top: 16px; right: 20px;
+  font-size: 22px; cursor: pointer; color: var(--text3);
+  background: none; border: none;
+}
+.modal .close-x:hover { color: var(--text); }
+
+/* Settings sections */
+.settings-section {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 16px;
+  background: var(--bg);
+}
+.settings-section h3 {
+  font-size: 15px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.settings-section .desc {
+  font-size: 12px; color: var(--text2); margin-top: 8px;
+}
+
+/* Status badge */
+.sync-status {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 50px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.sync-status.ok { background: var(--success-light); color: var(--success); }
+.sync-status.err { background: var(--danger-light); color: var(--danger); }
+.sync-status.loading { background: var(--warning-light); color: var(--warning); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--card); border: 1px solid var(--border);
+  padding: 12px 24px; border-radius: 12px;
+  font-size: 14px; z-index: 9999;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp .3s ease;
+  display: none;
+  color: var(--text);
+}
+.toast.show { display: block; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--text2);
+}
+.empty-state .em-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state p { font-size: 14px; }
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 768px) {
+  .header { padding: 10px 16px; }
+  .header-actions { width: 100%; justify-content: flex-start; overflow-x: auto; }
+  .toolbar { padding: 12px 16px 0; flex-direction: column; align-items: stretch; }
+  .search-input { min-width: 100%; }
+  .view-switch { align-self: flex-start; }
+  .cat-tabs { padding: 10px 16px 0; }
+
+  /* 网格 & 大卡片：单列，防止高度过长 */
+  .bm-grid,
+  .bm-large {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    padding: 12px 16px 30px;
+  }
+
+  .bm-grid .bm-card {
+    padding: 14px;
+    max-width: 100%;
+    max-height: 320px;
+    overflow: hidden;
+  }
+  .bm-grid .bm-card .bm-note {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.2em;
+  }
+  .bm-grid .bm-card .bm-url {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bm-grid .bm-card h3 { font-size: 15px; }
+  .bm-grid .bm-card .bm-cat { font-size: 12px; }
+
+  .bm-large .bm-card {
+    padding: 18px;
+    max-width: 100%;
+    max-height: 380px;
+    overflow: hidden;
+  }
+  .bm-large .bm-card .bm-note {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.4em;
+  }
+  .bm-large .bm-card .bm-url {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bm-large .bm-card h3 { font-size: 17px; }
+  .bm-large .bm-card .bm-cat { font-size: 12px; }
+
+  .bm-list, .bm-compact { padding: 12px 16px 30px; }
+
+  .bm-grid .bm-card .drag-handle,
+  .bm-list .bm-item .drag-handle,
+  .bm-compact .bm-item .drag-handle,
+  .bm-large .bm-card .drag-handle {
+    opacity: 1;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 40px;
+  }
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 34px;
+  }
+  .btn-link {
+    padding: 4px 6px;
+    min-height: auto;
+  }
+  .view-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .modal {
+    padding: 20px;
+    max-width: 100%;
+    margin: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-left h1 { font-size: 18px; }
+  .bm-grid .bm-card { padding: 12px; max-height: 280px; }
+  .bm-large .bm-card { padding: 14px; max-height: 340px; }
+  .bm-grid .bm-card h3 { font-size: 14px; }
+  .bm-large .bm-card h3 { font-size: 16px; }
+  .bm-grid .bm-card .bm-url,
+  .bm-large .bm-card .bm-url { font-size: 12px; }
+  .bm-grid .bm-card .bm-cat,
+  .bm-large .bm-card .bm-cat { font-size: 11px; }
+  .cat-tab { font-size: 13px; padding: 6px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== MAIN APP (直接显示，无锁屏) ==================== -->
+<div id="mainApp">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <span class="logo">📑</span>
+      <h1>网址收藏夹</h1>
+      <span id="syncBadge" class="sync-status" style="display:none;"></span>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="openAddModal()">➕ 添加</button>
+      <button class="btn" onclick="openModal('importExportModal')">📦 导入/导出</button>
+      <button class="btn" onclick="openModal('syncModal')">☁️ 同步</button>
+      <button class="btn" onclick="openModal('settingsModal')">⚙️ 设置</button>
+    </div>
+  </div>
+
+  <!-- Toolbar: Search + View Switch -->
+  <div class="toolbar">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索书签..." oninput="renderBookmarks()">
+    <div class="view-switch">
+      <button class="view-btn active" data-view="grid" title="网格视图" onclick="switchView('grid')">▦</button>
+      <button class="view-btn" data-view="list" title="列表视图" onclick="switchView('list')">☰</button>
+      <button class="view-btn" data-view="compact" title="紧凑列表" onclick="switchView('compact')">≡</button>
+      <button class="view-btn" data-view="large" title="大卡片" onclick="switchView('large')">▣</button>
+    </div>
+    <div class="sort-info" id="sortInfo">💡 拖拽排序</div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="cat-tabs" id="catTabs"></div>
+
+  <!-- Bookmark Container -->
+  <div id="bmContainer"></div>
+</div>
+
+<!-- ==================== ADD/EDIT MODAL ==================== -->
+<div class="modal-overlay" id="addEditModal">
+  <div class="modal" style="position:relative;">
+    <button class="close-x" onclick="closeModal('addEditModal')">&times;</button>
+    <h2 id="addEditTitle">➕ 添加书签</h2>
+    <input type="hidden" id="editId">
+    <label>名称</label>
+    <input type="text" id="bmName" placeholder="例如：Google">
+    <label>网址</label>
+    <input type="url" id="bmUrl" placeholder="https://www.google.com">
+    <label>分类</label>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="bmCat" placeholder="例如：常用工具" style="flex:1;">
+      <button class="btn btn-sm" onclick="showCatSelect()" title="选择已有分类">📂</button>
+    </div>
+    <div id="catSelectBox" style="display:none;margin-top:8px;">
+      <select id="bmCatSelect" onchange="document.getElementById('bmCat').value=this.value;document.getElementById('catSelectBox').style.display='none';">
+      </select>
+    </div>
+    <label>备注（可选）</label>
+    <textarea id="bmNote" placeholder="添加备注..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('addEditModal')">取消</button>
+      <button class="btn btn-accent" onclick="saveBookmark()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== IMPORT/EXPORT MODAL ==================== -->
+<div class="modal-overlay" id="importExportModal">
+  <div class="modal" style="position:relative;">
+    <button class="close-x" onclick="closeModal('importExportModal')">&times;</button>
+    <h2>📦 导入 / 导出书签</h2>
+
+    <div class="settings-section">
+      <h3>📥 导入浏览器书签</h3>
+      <p class="desc">支持从 Chrome / Edge / Firefox / Safari 等浏览器导出的 HTML 书签文件（Netscape Bookmark 格式）。将正确识别文件夹层级。</p>
+      <label style="margin-top:12px;">选择 HTML 书签文件</label>
+      <input type="file" id="importFile" accept=".html,.htm" style="margin-top:6px;">
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-accent" onclick="importHTML()">📥 导入书签</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);margin:0;">
+          <input type="checkbox" id="importMerge" checked style="width:auto;"> 合并（不覆盖现有数据）
+        </label>
+      </div>
+      <div id="importLog" style="margin-top:10px;font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto;"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>📤 导出书签</h3>
+      <p class="desc">导出为浏览器可识别的 HTML 书签文件，可直接导入到任何浏览器。</p>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-accent" onclick="exportHTML()">📤 导出为 HTML</button>
+        <button class="btn" onclick="exportJSON()">📋 导出为 JSON（备份）</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>📥 从 JSON 恢复</h3>
+      <p class="desc">从之前导出的 JSON 备份文件恢复书签。</p>
+      <label style="margin-top:12px;">选择 JSON 文件</label>
+      <input type="file" id="importJsonFile" accept=".json" style="margin-top:6px;">
+      <div style="margin-top:12px;">
+        <button class="btn btn-accent" onclick="importJSON()">📥 导入 JSON</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('importExportModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SYNC MODAL ==================== -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal" style="position:relative;">
+    <button class="close-x" onclick="closeModal('syncModal')">&times;</button>
+    <h2>☁️ GitHub 书签同步</h2>
+    <p class="desc" style="color:var(--text2);font-size:13px;margin-bottom:16px;">
+      使用 GitHub Gist 实现跨设备书签同步。请填写以下信息，保存后每次打开页面将自动从云端加载书签。
+    </p>
+
+    <div class="settings-section">
+      <h3>🔑 GitHub 配置</h3>
+      <label>GitHub Token <span style="font-size:11px;color:var(--text2);">（需要 gist 权限）</span></label>
+      <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      <div class="desc">前往 <a href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a> 创建，勾选 <b>gist</b> 权限</div>
+
+      <label>Gist ID <span style="font-size:11px;color:var(--text2);">（留空将自动创建）</span></label>
+      <input type="text" id="ghGistId" placeholder="例如：a1b2c3d4e5f6g7h8">
+      <div class="desc">创建后会自动填入 Gist ID，用于后续同步</div>
+
+      <label>文件名</label>
+      <input type="text" id="ghFileName" value="bookmarks.json" placeholder="bookmarks.json">
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-accent" onclick="saveSyncConfig()">💾 保存配置</button>
+      <button class="btn" onclick="syncDownload()">📥 从云端下载</button>
+      <button class="btn" onclick="syncUpload()">📤 上传到云端</button>
+      <button class="btn btn-danger" onclick="clearSyncConfig()">🗑️ 清除配置</button>
+    </div>
+
+    <div id="syncLog" style="margin-top:16px;font-size:12px;color:var(--text2);max-height:120px;overflow-y:auto;"></div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('syncModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS MODAL ==================== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="position:relative;">
+    <button class="close-x" onclick="closeModal('settingsModal')">&times;</button>
+    <h2>⚙️ 设置</h2>
+
+    <div class="settings-section">
+      <h3>🔐 修改密码</h3>
+      <p class="desc">当前版本已取消密码锁，此功能保留但不再使用。</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>🗑️ 数据管理</h3>
+      <p class="desc">清除所有本地书签数据（此操作不可恢复，建议先导出备份）。</p>
+      <div style="margin-top:12px;">
+        <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除所有书签</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>ℹ️ 关于</h3>
+      <p class="desc">
+        网址收藏夹 v3.0<br>
+        数据存储于浏览器 localStorage<br>
+        支持 GitHub Gist 云端同步<br>
+        支持 HTML/JSON 导入导出<br>
+        支持拖拽排序 & 多种视图<br>
+        点击卡片/行直接打开链接<br>
+        点击 🔗 按钮复制链接并打开
+      </p>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('settingsModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======================== DATA LAYER ========================
+const STORAGE_KEY = 'bm_bookmarks';
+const CONFIG_KEY = 'bm_config';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadConfig() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveConfig(cfg) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+// 不再需要密码
+
+// ======================== TOAST ========================
+function showToast(msg, duration) {
+  duration = duration || 2500;
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ======================== MODAL ========================
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+});
+
+// ======================== VIEW MODE ========================
+let currentView = loadConfig().viewMode || 'grid';
+
+function switchView(view) {
+  currentView = view;
+  const cfg = loadConfig();
+  cfg.viewMode = view;
+  saveConfig(cfg);
+
+  document.querySelectorAll('.view-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+
+  renderBookmarks();
+}
+
+// ======================== CATEGORY ========================
+let activeCategory = '全部';
+
+function getCategories() {
+  const data = loadData();
+  const cats = new Set();
+  data.forEach(b => { if (b.category) cats.add(b.category); });
+  return ['全部', ...Array.from(cats).sort()];
+}
+
+function renderCatTabs() {
+  const cats = getCategories();
+  const container = document.getElementById('catTabs');
+  container.innerHTML = cats.map(c =>
+    `<div class="cat-tab${c === activeCategory ? ' active' : ''}" onclick="switchCat('${c.replace(/'/g, "\\'")}')">${escapeHtml(c)}</div>`
+  ).join('');
+}
+
+function switchCat(cat) {
+  activeCategory = cat;
+  renderCatTabs();
+  renderBookmarks();
+}
+
+function showCatSelect() {
+  const cats = getCategories().filter(c => c !== '全部');
+  const sel = document.getElementById('bmCatSelect');
+  sel.innerHTML = '<option value="">-- 选择分类 --</option>' +
+    cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  document.getElementById('catSelectBox').style.display = 'block';
+}
+
+// ======================== BOOKMARKS CRUD ========================
+function openAddModal() {
+  document.getElementById('addEditTitle').textContent = '➕ 添加书签';
+  document.getElementById('editId').value = '';
+  document.getElementById('bmName').value = '';
+  document.getElementById('bmUrl').value = '';
+  document.getElementById('bmCat').value = activeCategory === '全部' ? '' : activeCategory;
+  document.getElementById('bmNote').value = '';
+  document.getElementById('catSelectBox').style.display = 'none';
+  openModal('addEditModal');
+}
+
+function openEditModal(id) {
+  const data = loadData();
+  const bm = data.find(b => b.id === id);
+  if (!bm) return;
+  document.getElementById('addEditTitle').textContent = '✏️ 编辑书签';
+  document.getElementById('editId').value = id;
+  document.getElementById('bmName').value = bm.name || '';
+  document.getElementById('bmUrl').value = bm.url || '';
+  document.getElementById('bmCat').value = bm.category || '';
+  document.getElementById('bmNote').value = bm.note || '';
+  document.getElementById('catSelectBox').style.display = 'none';
+  openModal('addEditModal');
+}
+
+function saveBookmark() {
+  const id = document.getElementById('editId').value;
+  const name = document.getElementById('bmName').value.trim();
+  let url = document.getElementById('bmUrl').value.trim();
+  const category = document.getElementById('bmCat').value.trim() || '未分类';
+  const note = document.getElementById('bmNote').value.trim();
+
+  if (!name) { showToast('❌ 请填写名称'); return; }
+  if (!url) { showToast('❌ 请填写网址'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  let data = loadData();
+
+  if (id) {
+    const idx = data.findIndex(b => b.id === id);
+    if (idx >= 0) {
+      data[idx] = { ...data[idx], name, url, category, note, updated: Date.now() };
+    }
+    showToast('✅ 书签已更新');
+  } else {
+    data.push({
+      id: 'bm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      name, url, category, note,
+      sort: data.length,
+      created: Date.now(),
+      updated: Date.now()
+    });
+    showToast('✅ 书签已添加');
+  }
+
+  saveData(data);
+  closeModal('addEditModal');
+  renderAll();
+}
+
+function deleteBookmark(id, event) {
+  event.stopPropagation();
+  if (!confirm('确定删除该书签吗？')) return;
+  let data = loadData();
+  data = data.filter(b => b.id !== id);
+  saveData(data);
+  showToast('🗑️ 已删除');
+  renderAll();
+}
+
+// ======================== 复制链接并跳转 ========================
+function openAndCopy(url, event) {
+  event.stopPropagation();
+  if (!url) return;
+  // 复制链接到剪贴板
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('📋 链接已复制');
+    }).catch(() => {
+      // 降级方案
+      fallbackCopy(url);
+    });
+  } else {
+    fallbackCopy(url);
+  }
+  // 打开链接
+  window.open(url, '_blank');
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 链接已复制');
+  } catch (e) {
+    showToast('❌ 复制失败');
+  }
+  document.body.removeChild(ta);
+}
+
+// ======================== RENDERING ========================
+function getFilteredBookmarks() {
+  const data = loadData();
+  const query = (document.getElementById('searchInput').value || '').toLowerCase();
+
+  let filtered = data;
+  if (activeCategory !== '全部') {
+    filtered = filtered.filter(b => b.category === activeCategory);
+  }
+  if (query) {
+    filtered = filtered.filter(b =>
+      (b.name || '').toLowerCase().includes(query) ||
+      (b.url || '').toLowerCase().includes(query) ||
+      (b.category || '').toLowerCase().includes(query) ||
+      (b.note || '').toLowerCase().includes(query)
+    );
+  }
+
+  filtered.sort((a, b) => {
+    const sa = a.sort !== undefined ? a.sort : 999999;
+    const sb = b.sort !== undefined ? b.sort : 999999;
+    if (sa !== sb) return sa - sb;
+    return (b.created || 0) - (a.created || 0);
+  });
+
+  return filtered;
+}
+
+function openBookmark(url, event) {
+  if (event) event.stopPropagation();
+  if (url) window.open(url, '_blank');
+}
+
+function renderBookmarks() {
+  const filtered = getFilteredBookmarks();
+  const container = document.getElementById('bmContainer');
+
+  if (filtered.length === 0) {
+    const query = (document.getElementById('searchInput').value || '').trim();
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="em-icon">📭</div>
+        <p>${query ? '未找到匹配的书签' : '还没有书签，点击"添加"开始收藏吧！'}</p>
+      </div>`;
+    return;
+  }
+
+  if (currentView === 'grid') {
+    renderGridView(filtered, container);
+  } else if (currentView === 'list') {
+    renderListView(filtered, container);
+  } else if (currentView === 'compact') {
+    renderCompactView(filtered, container);
+  } else if (currentView === 'large') {
+    renderLargeView(filtered, container);
+  }
+
+  initSortable();
+}
+
+function getDomain(url) {
+  try { return new URL(url).hostname; }
+  catch { return ''; }
+}
+
+// 通用卡片模板（用于 grid 和 large）
+function createBookmarkCardHTML(b, actionsHTML) {
+  const domain = getDomain(b.url);
+  const favicon = `https://favicon.im/${domain}`;
+  const initial = (b.name || '?')[0].toUpperCase();
+
+  return `
+    <div class="bm-card" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+      <span class="drag-handle" title="拖拽排序">⠿</span>
+      <div class="bm-icon">
+        <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
+      </div>
+      <div class="bm-cat">${escapeHtml(b.category || '未分类')}</div>
+      <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
+      <div class="bm-url" title="${escapeHtml(b.url)}">${escapeHtml(b.url)}</div>
+      ${b.note ? `<div class="bm-note" title="${escapeHtml(b.note)}">${escapeHtml(b.note)}</div>` : ''}
+      <div class="bm-actions" onclick="event.stopPropagation();">
+        ${actionsHTML}
+      </div>
+    </div>
+  `;
+}
+
+function renderGridView(items, container) {
+  container.innerHTML = `<div class="bm-grid" id="sortableList">
+    ${items.map(b => {
+      const actions = `
+        <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}'); event.stopPropagation();" title="编辑">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+      `;
+      return createBookmarkCardHTML(b, actions);
+    }).join('')}
+  </div>`;
+}
+
+function renderListView(items, container) {
+  container.innerHTML = `<div class="bm-list" id="sortableList">
+    ${items.map(b => {
+      const domain = getDomain(b.url);
+      const favicon = `https://favicon.im/${domain}`;
+      const initial = (b.name || '?')[0].toUpperCase();
+      return `
+      <div class="bm-item" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+        <span class="drag-handle" title="拖拽排序">⠿</span>
+        <div class="bm-icon">
+          <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
+        </div>
+        <div class="bm-info">
+          <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
+          <div class="bm-meta">
+            <span class="bm-cat-sm">${escapeHtml(b.category || '未分类')}</span>
+            <span title="${escapeHtml(b.url)}">${escapeHtml(b.url)}</span>
+          </div>
+        </div>
+        <div class="bm-actions" onclick="event.stopPropagation();">
+          <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
+          <button class="btn btn-sm" onclick="openEditModal('${b.id}')" title="编辑">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderCompactView(items, container) {
+  container.innerHTML = `<div class="bm-compact" id="sortableList">
+    ${items.map(b => {
+      const domain = getDomain(b.url);
+      const favicon = `https://favicon.im/${domain}`;
+      const initial = (b.name || '?')[0].toUpperCase();
+      return `
+      <div class="bm-item" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+        <span class="drag-handle" title="拖拽排序">⠿</span>
+        <div class="bm-icon">
+          <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
+        </div>
+        <div class="bm-info">
+          <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
+          <div class="bm-meta" title="${escapeHtml(b.url)}">${escapeHtml(b.category || '未分类')} · ${escapeHtml(domain)}</div>
+        </div>
+        <div class="bm-actions" onclick="event.stopPropagation();">
+          <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
+          <button class="btn btn-sm" onclick="openEditModal('${b.id}')" title="编辑">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderLargeView(items, container) {
+  container.innerHTML = `<div class="bm-large" id="sortableList">
+    ${items.map(b => {
+      const actions = `
+        <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗 打开</button>
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}'); event.stopPropagation();" title="编辑">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+      `;
+      return createBookmarkCardHTML(b, actions);
+    }).join('')}
+  </div>`;
+}
+
+function renderAll() {
+  renderCatTabs();
+  renderBookmarks();
+}
+
+// ======================== SORTABLE (DRAG & DROP) ========================
+let sortableInstance = null;
+
+function initSortable() {
+  const el = document.getElementById('sortableList');
+  if (!el) return;
+
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
+
+  const handle = (currentView === 'grid' || currentView === 'large') ? '.drag-handle' : '.drag-handle';
+
+  sortableInstance = new Sortable(el, {
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    handle: handle,
+    delay: 0,
+    delayOnTouchOnly: false,
+    touchStartThreshold: 3,
+    onEnd: function(evt) {
+      const items = el.querySelectorAll('[data-id]');
+      const newOrder = Array.from(items).map(el => el.dataset.id);
+      const data = loadData();
+      newOrder.forEach((id, index) => {
+        const bm = data.find(b => b.id === id);
+        if (bm) bm.sort = index;
+      });
+      saveData(data);
+      showToast('✅ 排序已保存');
+    }
+  });
+}
+
+// ======================== HELPERS ========================
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ======================== IMPORT HTML ========================
+function importHTML() {
+  const fileInput = document.getElementById('importFile');
+  const file = fileInput.files[0];
+  if (!file) { showToast('❌ 请选择 HTML 书签文件'); return; }
+
+  const merge = document.getElementById('importMerge').checked;
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const html = e.target.result;
+    const bookmarks = parseNetscapeBookmarks(html);
+
+    if (bookmarks.length === 0) {
+      showToast('⚠️ 未解析到任何书签');
+      document.getElementById('importLog').innerHTML = '<div style="color:var(--danger);">❌ 未解析到书签，请检查文件格式</div>';
+      return;
+    }
+
+    let data = merge ? loadData() : [];
+    const existingUrls = new Set(data.map(b => b.url));
+    let added = 0;
+    const catStats = {};
+
+    bookmarks.forEach(bm => {
+      if (merge && existingUrls.has(bm.url)) return;
+      data.push({
+        id: 'bm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + added,
+        name: bm.name,
+        url: bm.url,
+        category: bm.category || '未分类',
+        note: '',
+        sort: data.length,
+        created: bm.addDate || Date.now(),
+        updated: Date.now()
+      });
+      added++;
+      const cat = bm.category || '未分类';
+      catStats[cat] = (catStats[cat] || 0) + 1;
+    });
+
+    saveData(data);
+    renderAll();
+
+    let logHtml = `<div style="color:var(--success);font-weight:600;margin-bottom:8px;">✅ 成功导入 ${added} 个书签（共解析 ${bookmarks.length} 个）</div>`;
+    logHtml += '<div style="margin-bottom:4px;font-weight:500;">分类统计：</div>';
+    Object.keys(catStats).sort().forEach(cat => {
+      logHtml += `<div style="padding-left:8px;">📁 ${escapeHtml(cat)}: ${catStats[cat]} 个</div>`;
+    });
+    document.getElementById('importLog').innerHTML = logHtml;
+    showToast(`✅ 成功导入 ${added} 个书签`);
+    fileInput.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+function parseNetscapeBookmarks(html) {
+  const results = [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const topDL = doc.querySelector('dl');
+  if (!topDL) return results;
+
+  parseDL(topDL, [], results);
+  return results;
+}
+
+function parseDL(dl, folderPath, results) {
+  const children = dl.children;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child.tagName === 'DT') {
+      const h3 = child.querySelector(':scope > h3');
+      const a = child.querySelector(':scope > a');
+
+      if (h3) {
+        const folderName = h3.textContent.trim();
+        const newPath = [...folderPath, folderName];
+        let subDL = child.querySelector(':scope > dl');
+        if (!subDL) {
+          let next = child.nextElementSibling;
+          while (next && next.tagName !== 'DL' && next.tagName !== 'DT') {
+            next = next.nextElementSibling;
+          }
+          if (next && next.tagName === 'DL') {
+            subDL = next;
+          }
+        }
+        if (subDL) {
+          parseDL(subDL, newPath, results);
+        }
+      } else if (a) {
+        const url = a.getAttribute('href');
+        const name = a.textContent.trim();
+        if (url && name) {
+          const addDateAttr = a.getAttribute('add_date');
+          const addDate = addDateAttr ? parseInt(addDateAttr) * 1000 : Date.now();
+          const category = folderPath.length > 0 ? folderPath[folderPath.length - 1] : '未分类';
+          results.push({ name, url, category, addDate });
+        }
+      }
+    } else if (child.tagName === 'DL') {
+      parseDL(child, folderPath, results);
+    }
+  }
+}
+
+// ======================== EXPORT HTML ========================
+function exportHTML() {
+  const data = loadData();
+  if (data.length === 0) { showToast('⚠️ 没有书签可导出'); return; }
+
+  const groups = {};
+  data.forEach(b => {
+    const cat = b.category || '未分类';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(b);
+  });
+
+  let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file.
+     It will be read and overwritten.
+     DO NOT EDIT! -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+`;
+
+  Object.keys(groups).sort().forEach(cat => {
+    html += `    <DT><H3 ADD_DATE="${Math.floor(Date.now()/1000)}" LAST_MODIFIED="${Math.floor(Date.now()/1000)}">${escapeHtml(cat)}</H3>\n`;
+    html += `    <DL><p>\n`;
+    groups[cat].forEach(b => {
+      const ts = Math.floor((b.created || Date.now()) / 1000);
+      html += `        <DT><A HREF="${escapeHtml(b.url)}" ADD_DATE="${ts}">${escapeHtml(b.name)}</A>\n`;
+    });
+    html += `    </DL><p>\n`;
+  });
+
+  html += `</DL><p>`;
+
+  downloadFile('bookmarks_' + formatDate(new Date()) + '.html', html, 'text/html');
+  showToast('✅ HTML 书签文件已导出');
+}
+
+function exportJSON() {
+  const data = loadData();
+  if (data.length === 0) { showToast('⚠️ 没有书签可导出'); return; }
+  const json = JSON.stringify(data, null, 2);
+  downloadFile('bookmarks_backup_' + formatDate(new Date()) + '.json', json, 'application/json');
+  showToast('✅ JSON 备份已导出');
+}
+
+function importJSON() {
+  const fileInput = document.getElementById('importJsonFile');
+  const file = fileInput.files[0];
+  if (!file) { showToast('❌ 请选择 JSON 文件'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Invalid format');
+
+      let count = 0;
+      imported.forEach(item => {
+        if (item.url && item.name) {
+          if (!item.id) item.id = 'bm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + count;
+          if (!item.category) item.category = '未分类';
+          if (!item.created) item.created = Date.now();
+          if (item.sort === undefined) item.sort = count;
+          item.updated = Date.now();
+          count++;
+        }
+      });
+
+      saveData(imported.filter(i => i.url && i.name));
+      renderAll();
+      showToast(`✅ 从 JSON 恢复了 ${count} 个书签`);
+      fileInput.value = '';
+    } catch(err) {
+      showToast('❌ JSON 文件格式错误: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type: type + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function formatDate(d) {
+  return d.getFullYear() + '' +
+    String(d.getMonth()+1).padStart(2,'0') + '' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+// ======================== GITHUB SYNC ========================
+function loadSyncConfig() {
+  const cfg = loadConfig();
+  return {
+    token: cfg.ghToken || '',
+    gistId: cfg.ghGistId || '',
+    fileName: cfg.ghFileName || 'bookmarks.json'
+  };
+}
+
+const _origOpenModal = openModal;
+openModal = function(id) {
+  if (id === 'syncModal') {
+    const cfg = loadSyncConfig();
+    document.getElementById('ghToken').value = cfg.token;
+    document.getElementById('ghGistId').value = cfg.gistId;
+    document.getElementById('ghFileName').value = cfg.fileName;
+  }
+  document.getElementById(id).classList.add('show');
+};
+
+function saveSyncConfig() {
+  const token = document.getElementById('ghToken').value.trim();
+  const gistId = document.getElementById('ghGistId').value.trim();
+  const fileName = document.getElementById('ghFileName').value.trim() || 'bookmarks.json';
+
+  if (!token) { showToast('❌ 请填写 GitHub Token'); return; }
+
+  const cfg = loadConfig();
+  cfg.ghToken = token;
+  cfg.ghGistId = gistId;
+  cfg.ghFileName = fileName;
+  saveConfig(cfg);
+  showToast('✅ 同步配置已保存');
+  syncLog('配置已保存。');
+}
+
+function clearSyncConfig() {
+  if (!confirm('确定清除同步配置吗？')) return;
+  const cfg = loadConfig();
+  delete cfg.ghToken;
+  delete cfg.ghGistId;
+  delete cfg.ghFileName;
+  saveConfig(cfg);
+  document.getElementById('ghToken').value = '';
+  document.getElementById('ghGistId').value = '';
+  document.getElementById('ghFileName').value = 'bookmarks.json';
+  showToast('🗑️ 同步配置已清除');
+}
+
+function syncLog(msg) {
+  const el = document.getElementById('syncLog');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<div>[${time}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setSyncBadge(text, type) {
+  const badge = document.getElementById('syncBadge');
+  badge.style.display = 'inline-flex';
+  badge.className = 'sync-status ' + type;
+  badge.textContent = text;
+  if (type !== 'loading') {
+    setTimeout(() => { badge.style.display = 'none'; }, 5000);
+  }
+}
+
+async function syncUpload() {
+  const cfg = loadSyncConfig();
+  if (!cfg.token) { showToast('❌ 请先配置 GitHub Token'); return; }
+
+  setSyncBadge('上传中...', 'loading');
+  syncLog('开始上传书签到 GitHub Gist...');
+
+  const data = loadData();
+  const content = JSON.stringify(data, null, 2);
+  const fileName = cfg.fileName || 'bookmarks.json';
+
+  try {
+    if (cfg.gistId) {
+      const resp = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'token ' + cfg.token,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          files: { [fileName]: { content: content } }
+        })
+      });
+
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + (await resp.text()));
+      syncLog('✅ 已更新 Gist: ' + cfg.gistId);
+      setSyncBadge('✅ 已上传', 'ok');
+      showToast('✅ 书签已上传到云端');
+    } else {
+      const resp = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'token ' + cfg.token,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          description: 'Browser Bookmarks Sync',
+          public: false,
+          files: { [fileName]: { content: content } }
+        })
+      });
+
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + (await resp.text()));
+      const result = await resp.json();
+
+      const appCfg = loadConfig();
+      appCfg.ghGistId = result.id;
+      saveConfig(appCfg);
+      document.getElementById('ghGistId').value = result.id;
+
+      syncLog('✅ 已创建新 Gist: ' + result.id);
+      setSyncBadge('✅ 已创建并上传', 'ok');
+      showToast('✅ Gist 已创建，书签已上传！');
+    }
+  } catch(err) {
+    syncLog('❌ 上传失败: ' + err.message);
+    setSyncBadge('❌ 上传失败', 'err');
+    showToast('❌ 上传失败: ' + err.message);
+  }
+}
+
+async function syncDownload() {
+  const cfg = loadSyncConfig();
+  if (!cfg.token) { showToast('❌ 请先配置 GitHub Token'); return; }
+  if (!cfg.gistId) { showToast('❌ 请先配置 Gist ID'); return; }
+
+  setSyncBadge('下载中...', 'loading');
+  syncLog('开始从 GitHub Gist 下载书签...');
+
+  try {
+    const resp = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+      headers: {
+        'Authorization': 'token ' + cfg.token,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + (await resp.text()));
+    const result = await resp.json();
+
+    const fileName = cfg.fileName || 'bookmarks.json';
+    const fileData = result.files[fileName];
+    if (!fileData) throw new Error('文件 "' + fileName + '" 不存在于 Gist 中');
+
+    const cloudData = JSON.parse(fileData.content);
+    if (!Array.isArray(cloudData)) throw new Error('数据格式无效');
+
+    const localData = loadData();
+    const merged = mergeBookmarks(localData, cloudData);
+    saveData(merged);
+
+    renderAll();
+    syncLog(`✅ 下载成功，共 ${merged.length} 个书签（云端 ${cloudData.length} 个）`);
+    setSyncBadge('✅ 已同步', 'ok');
+    showToast(`✅ 同步完成，共 ${merged.length} 个书签`);
+  } catch(err) {
+    syncLog('❌ 下载失败: ' + err.message);
+    setSyncBadge('❌ 同步失败', 'err');
+    showToast('❌ 下载失败: ' + err.message);
+  }
+}
+
+function mergeBookmarks(local, cloud) {
+  const map = new Map();
+  local.forEach(b => map.set(b.id, b));
+  cloud.forEach(b => {
+    const existing = map.get(b.id);
+    if (existing) {
+      if ((b.updated || 0) > (existing.updated || 0)) {
+        map.set(b.id, b);
+      }
+    } else {
+      map.set(b.id, b);
+    }
+  });
+  return Array.from(map.values());
+}
+
+async function autoSyncOnLoad() {
+  renderAll();
+
+  const cfg = loadSyncConfig();
+  if (!cfg.token || !cfg.gistId) return;
+
+  setSyncBadge('自动同步中...', 'loading');
+
+  try {
+    const resp = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+      headers: {
+        'Authorization': 'token ' + cfg.token,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const result = await resp.json();
+
+    const fileName = cfg.fileName || 'bookmarks.json';
+    const fileData = result.files[fileName];
+    if (!fileData) throw new Error('文件不存在');
+
+    const cloudData = JSON.parse(fileData.content);
+    if (!Array.isArray(cloudData)) throw new Error('格式无效');
+
+    const localData = loadData();
+    const merged = mergeBookmarks(localData, cloudData);
+
+    saveData(merged);
+    renderAll();
+
+    if (localData.length > 0) {
+      await autoUpload(merged, cfg);
+    }
+
+    setSyncBadge(`✅ 已同步 (${merged.length})`, 'ok');
+  } catch(err) {
+    setSyncBadge('⚠️ 同步失败', 'err');
+    console.warn('Auto sync failed:', err);
+  }
+}
+
+async function autoUpload(data, cfg) {
+  try {
+    const content = JSON.stringify(data, null, 2);
+    await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'token ' + cfg.token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({
+        files: { [cfg.fileName || 'bookmarks.json']: { content } }
+      })
+    });
+  } catch(e) {
+    console.warn('Auto upload failed:', e);
+  }
+}
+
+// ======================== DATA MANAGEMENT ========================
+function clearAllData() {
+  if (!confirm('⚠️ 确定要清除所有书签吗？此操作不可恢复！\n建议先导出备份。')) return;
+  if (!confirm('⚠️ 再次确认：这将删除您所有的书签数据！')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderAll();
+  showToast('🗑️ 所有书签已清除');
+}
+
+// ======================== INIT ========================
+document.querySelectorAll('.view-btn').forEach(b => {
+  b.classList.toggle('active', b.dataset.view === currentView);
+});
+
+renderAll();
+setTimeout(autoSyncOnLoad, 500);
+
+</script>
+</body>
+</html>
