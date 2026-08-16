@@ -1,0 +1,2608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" id="viewportMeta" content="width=1280, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
+    <title>工作日报</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1e3c72;
+            --accent: #0d9488;
+            --danger: #e74c3c;
+            --warn: #f39c12;
+            --success: #27ae60;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            -webkit-tap-highlight-color: transparent
+        }
+        body {
+            background: #f0f2f5;
+            font-size: 14px;
+            color: #333
+        }
+
+        /* ===== 登录页 ===== */
+        #loginPage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 20px;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: unset !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box;
+        }
+        body.desktop-mode #loginPage {
+            min-width: unset !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 20px !important;
+            overflow-x: hidden !important;
+        }
+        .login-box {
+            background: #fff;
+            padding: 35px 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: min(420px, calc(100% - 40px));
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .3);
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
+        body.desktop-mode .login-box {
+            max-width: min(420px, calc(100% - 40px)) !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+            padding: 35px 30px !important;
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--primary);
+            font-size: 22px
+        }
+        .login-box label {
+            display: block;
+            margin: 12px 0 5px;
+            color: #555;
+            font-size: 14px
+        }
+        .login-box input {
+            width: 100%;
+            padding: 14px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 17px;
+            cursor: pointer;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+        .login-box button:hover {
+            background: #2a5298
+        }
+        #loginErr {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+            min-height: 18px
+        }
+        @media (max-width: 480px) {
+            .login-box { padding: 25px 20px; max-width: calc(100% - 20px); }
+            .login-box h2 { font-size: 20px; margin-bottom: 20px; }
+            .login-box input { padding: 16px 12px; font-size: 17px; }
+            .login-box button { padding: 16px; font-size: 18px; }
+            .login-box label { font-size: 15px; margin-top: 14px; }
+            body.desktop-mode .login-box { max-width: calc(100% - 20px) !important; padding: 25px 20px !important; }
+        }
+        @media (max-width: 360px) {
+            .login-box { padding: 20px 15px; max-width: calc(100% - 10px); }
+            .login-box h2 { font-size: 18px; }
+            .login-box input { padding: 14px 10px; font-size: 16px; }
+            .login-box button { padding: 14px; font-size: 16px; }
+            body.desktop-mode .login-box { max-width: calc(100% - 10px) !important; padding: 20px 15px !important; }
+        }
+        @media (min-width: 768px) {
+            .login-box { max-width: 420px; padding: 40px 35px; }
+            body.desktop-mode .login-box { max-width: 420px !important; padding: 40px 35px !important; }
+        }
+
+        /* ===== 主页 ===== */
+        #mainPage {
+            display: none;
+            min-height: 100vh;
+            flex-direction: column
+        }
+        .topbar {
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+        .topbar h1 {
+            font-size: 17px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+        .topbar .right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            flex: 1 1 auto;
+            justify-content: flex-end;
+        }
+        .topbar .right button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: opacity .2s;
+            flex: 0 0 auto;
+            touch-action: manipulation;
+            min-height: 34px;
+        }
+        .topbar .right button:hover { opacity: .85 }
+        .topbar .right button:active { transform: scale(.96) }
+        .btn-upload { background: var(--success); color: #fff }
+        .btn-download { background: #3498db; color: #fff }
+        .btn-log { background: var(--accent); color: #fff }
+        .btn-set { background: var(--warn); color: #fff }
+        .btn-desktop { background: #8e44ad; color: #fff }
+        .btn-disabled { opacity: .5; cursor: not-allowed !important }
+
+        /* ===== 统计面板 ===== */
+        .stats-bar {
+            background: #fff;
+            padding: 8px 15px;
+            border-bottom: 1px solid #e5e5e5;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #666
+        }
+        .stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: #f5f7fa;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8
+        }
+        .stat-item .num { font-weight: bold; color: var(--primary); font-size: 13px }
+        .stat-item.cloud .num { color: #3498db }
+        .stat-item.local .num { color: var(--success) }
+        .stat-sep { color: #ddd; font-size: 16px }
+        #syncStatusBadge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold
+        }
+        .badge-ok { background: #e8f8f0; color: var(--success); border: 1px solid #b7e4c7 }
+        .badge-warn { background: #fef9e7; color: var(--warn); border: 1px solid #f9e79f }
+        .badge-err { background: #fdedec; color: var(--danger); border: 1px solid #f5b7b1 }
+        .badge-loading { background: #eaf2f8; color: #3498db; border: 1px solid #aed6f1 }
+        #lastUpdate { font-size: 11px; color: #999 }
+
+        .toolbar {
+            background: #fff;
+            padding: 10px 15px;
+            border-bottom: 1px solid #e5e5e5;
+            flex-shrink: 0
+        }
+        .filter-row {
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px
+        }
+        .filter-row .lab { font-weight: bold; margin-right: 4px; color: #333; white-space: nowrap; font-size: 13px }
+        .fbtn {
+            padding: 5px 12px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all .2s;
+            touch-action: manipulation;
+            min-height: 32px;
+        }
+        .fbtn.active { background: var(--primary); color: #fff; border-color: var(--primary) }
+        .search-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .search-row input {
+            flex: 1 1 180px;
+            padding: 9px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            min-height: 40px;
+        }
+        .search-row button {
+            padding: 9px 16px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            touch-action: manipulation;
+            min-height: 40px;
+        }
+
+        .tabs {
+            padding: 10px 15px 0;
+            background: #fff;
+            flex-shrink: 0;
+            display: flex;
+            gap: 8px
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            background: #f5f5f5;
+            font-size: 14px;
+            touch-action: manipulation;
+        }
+        .tab.active { background: #fff; font-weight: bold; color: var(--primary); border-bottom: 1px solid #fff; margin-bottom: -1px; z-index: 1 }
+
+        .content {
+            padding: 15px;
+            flex: 1;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch
+        }
+
+        /* ===== 表格基础样式（桌面） ===== */
+        table {
+            border-collapse: collapse;
+            background: #fff;
+            table-layout: fixed;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 14px;
+            vertical-align: middle;
+            overflow: visible;
+            word-break: break-word;
+            white-space: normal;
+        }
+        th {
+            background: var(--primary);
+            color: #fff;
+            position: relative;
+            user-select: none;
+            font-weight: 500;
+            text-align: center !important;
+        }
+        #dailyTable th:nth-child(1), #dailyTable td:nth-child(1) { width: 12%; text-align: center; }
+        #dailyTable th:nth-child(2), #dailyTable td:nth-child(2) { width: 8%; text-align: center; }
+        #dailyTable th:nth-child(3), #dailyTable td:nth-child(3) { width: 50%; text-align: left; }
+        #dailyTable th:nth-child(4), #dailyTable td:nth-child(4) { width: 30%; text-align: left; }
+        #weeklyTable th:nth-child(1), #weeklyTable td:nth-child(1) { width: 18%; text-align: center; }
+        #weeklyTable th:nth-child(2), #weeklyTable td:nth-child(2) { width: 52%; text-align: left; }
+        #weeklyTable th:nth-child(3), #weeklyTable td:nth-child(3) { width: 30%; text-align: left; }
+
+        td[contenteditable="true"] {
+            cursor: text;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 32px;
+            line-height: 1.5;
+            outline: 1px dashed transparent;
+            transition: outline-color .25s;
+        }
+        td[contenteditable="true"]:hover { outline-color: rgba(13, 148, 136, 0.35); }
+        td[contenteditable="true"]:focus { background: #fffbe6; outline: 2px solid var(--warn); outline-color: var(--warn); }
+        td.touch-cell {
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        td.touch-cell.editing {
+            cursor: text;
+            user-select: text;
+            -webkit-user-select: text;
+            background: #fffbe6;
+            outline: 2px solid var(--warn);
+        }
+
+        tr.weekend td.datecell { color: var(--danger) }
+        .empty-tip { text-align: center !important; color: #999; padding: 40px 20px }
+
+        td.cell-selected { background: #d6eaff !important; outline: 1px solid #3498db !important; }
+
+        .col-resize {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            cursor: col-resize;
+            z-index: 2
+        }
+        .col-resize:hover, .col-resize.dragging { background: rgba(255, 255, 255, .45) }
+
+        /* ===== 弹窗 ===== */
+        .modal-mask {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+            z-index: 99;
+            align-items: center;
+            justify-content: center;
+            padding: 20px
+        }
+        .modal {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            border-radius: 10px;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column
+        }
+        .modal h3 { margin-bottom: 18px; color: var(--primary); font-size: 18px }
+        .modal label { display: block; margin: 12px 0 4px; font-size: 14px; color: #555 }
+        .modal input[type=text], .modal input[type=password] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px
+        }
+        .modal .btns {
+            margin-top: 22px;
+            text-align: right;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px
+        }
+        .modal .btns button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            touch-action: manipulation;
+        }
+        .btn-ok { background: var(--primary); color: #fff }
+        .btn-cancel { background: #ddd; color: #333 }
+
+        .set-item {
+            padding: 14px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .set-item span { font-size: 14px; flex: 1; min-width: 120px; }
+        .set-item button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 13px;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+        .set-item .btn-danger { background: var(--danger); }
+        .set-item .btn-warning { background: var(--warn); }
+
+        .year-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            width: 100%
+        }
+        .year-check {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px
+        }
+        .year-check input { width: 16px; height: 16px; cursor: pointer }
+
+        /* ===== 日志面板 ===== */
+        #logPanel {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, .2);
+            z-index: 100;
+            flex-direction: column
+        }
+        #logPanel .log-header {
+            background: var(--accent);
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold
+        }
+        #logPanel .log-header button { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 5px }
+        .log-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            background: #f7fdfc;
+            flex-wrap: wrap
+        }
+        .log-toolbar button {
+            padding: 5px 12px;
+            border: 1px solid var(--accent);
+            background: #fff;
+            color: var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            touch-action: manipulation;
+            min-height: 32px;
+        }
+        .log-toolbar button.active { background: var(--accent); color: #fff }
+        .log-toolbar button.danger { border-color: var(--danger); color: var(--danger) }
+        .log-toolbar button.danger:hover { background: var(--danger); color: #fff }
+        .log-toolbar .spacer { flex: 1 }
+        #logPanel .log-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+            font-size: 13px;
+            line-height: 1.8
+        }
+        .log-group-title {
+            background: #e6f7f5;
+            color: var(--accent);
+            font-weight: bold;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin: 10px 0 5px;
+            font-size: 12px
+        }
+        .log-entry {
+            padding: 5px 0 5px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333
+        }
+        .log-entry .log-time { color: var(--accent); font-weight: bold; margin-right: 8px; font-size: 12px }
+        .log-empty { text-align: center; color: #aaa; padding: 40px 0 }
+
+        #progressBar {
+            display: none;
+            margin-top: 10px;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden
+        }
+        #progressFill { height: 100%; background: var(--accent); width: 0; transition: width .2s }
+        #progressText { font-size: 12px; color: #666; margin-top: 4px; display: none }
+
+        .add-week-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 12px;
+            touch-action: manipulation;
+        }
+        .add-week-row:hover { background: #2a5298 }
+        .week-tip { font-size: 12px; color: #888; margin-left: 10px; display: inline-block }
+
+        .toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity .3s;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+            max-width: 90%;
+            text-align: center
+        }
+        .toast.show { opacity: 1 }
+        .toast-success { background: var(--success) }
+        .toast-error { background: var(--danger) }
+        .toast-info { background: #3498db }
+
+        /* ===== 手机端卡片布局（仅在非桌面模式下生效） ===== */
+        @media (max-width: 768px) {
+            /* 只有当 body 没有 desktop-mode 类时才应用卡片布局 */
+            body:not(.desktop-mode) .topbar {
+                flex-wrap: wrap;
+                gap: 6px;
+                padding: 8px 10px
+            }
+            body:not(.desktop-mode) .topbar h1 {
+                font-size: 15px;
+                width: 100%;
+                text-align: center;
+                order: -1
+            }
+            body:not(.desktop-mode) .topbar .right {
+                width: 100%;
+                justify-content: center;
+                gap: 5px;
+                flex-wrap: wrap
+            }
+            body:not(.desktop-mode) .topbar .right button {
+                flex: 0 0 auto;
+                padding: 7px 10px;
+                font-size: 11px;
+                min-height: 36px;
+            }
+            body:not(.desktop-mode) .stats-bar {
+                padding: 6px 10px;
+                gap: 6px;
+                justify-content: center
+            }
+            body:not(.desktop-mode) .stat-item {
+                padding: 2px 8px;
+                font-size: 11px
+            }
+            body:not(.desktop-mode) .stat-sep { display: none }
+            body:not(.desktop-mode) .toolbar {
+                padding: 8px 10px
+            }
+            body:not(.desktop-mode) .filter-row { gap: 4px }
+            body:not(.desktop-mode) .fbtn {
+                padding: 4px 8px;
+                font-size: 12px;
+                min-height: 30px;
+            }
+            body:not(.desktop-mode) .search-row { flex-wrap: wrap }
+            body:not(.desktop-mode) .search-row input {
+                min-width: 0;
+                min-height: 38px;
+            }
+            body:not(.desktop-mode) .tabs {
+                padding: 8px 10px 0
+            }
+            body:not(.desktop-mode) .tab {
+                font-size: 13px;
+                padding: 9px 0
+            }
+            body:not(.desktop-mode) .content { padding: 10px; }
+
+            body:not(.desktop-mode) table,
+            body:not(.desktop-mode) thead,
+            body:not(.desktop-mode) tbody,
+            body:not(.desktop-mode) th,
+            body:not(.desktop-mode) td,
+            body:not(.desktop-mode) tr {
+                display: block;
+                width: 100%;
+            }
+            body:not(.desktop-mode) thead { display: none !important; }
+            body:not(.desktop-mode) table {
+                border: none;
+                background: transparent;
+                table-layout: auto !important;
+                min-width: unset;
+            }
+            body:not(.desktop-mode) tr {
+                background: #fff;
+                margin-bottom: 12px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                padding: 12px;
+                border: 1px solid #eee;
+            }
+            body:not(.desktop-mode) td {
+                border: none !important;
+                padding: 6px 0 6px 80px !important;
+                text-align: left !important;
+                min-height: auto;
+                position: relative;
+                width: 100% !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow: visible !important;
+                line-height: 1.6;
+                background: transparent !important;
+            }
+            body:not(.desktop-mode) td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                top: 6px;
+                width: 75px;
+                font-weight: bold;
+                color: #888;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            body:not(.desktop-mode) td.datecell {
+                font-weight: bold;
+                color: var(--primary);
+                padding-left: 0 !important;
+                font-size: 15px;
+                border-bottom: 1px dashed #eee !important;
+                padding-bottom: 8px;
+                margin-bottom: 4px;
+                text-align: left !important;
+            }
+            body:not(.desktop-mode) td.datecell::before { display: none; }
+            body:not(.desktop-mode) tr.weekend { border-left: 3px solid var(--danger); }
+            body:not(.desktop-mode) tr.weekend td.datecell { color: var(--danger); }
+            body:not(.desktop-mode) .col-resize { display: none; }
+            body:not(.desktop-mode) td[contenteditable="true"],
+            body:not(.desktop-mode) td.touch-cell {
+                border-bottom: 1px dashed #ccc !important;
+                outline: none !important;
+                background: #fafafa !important;
+                min-height: 32px;
+                padding-right: 10px;
+            }
+            body:not(.desktop-mode) td[contenteditable="true"]:focus,
+            body:not(.desktop-mode) td.touch-cell.editing {
+                background: #fffbe6 !important;
+                border-bottom-color: var(--warn);
+                outline: 2px solid var(--warn) !important;
+            }
+            body:not(.desktop-mode) #weeklyTable td:nth-child(1)::before { content: "日期"; }
+            body:not(.desktop-mode) #weeklyTable td:nth-child(2)::before { content: "周报内容"; }
+            body:not(.desktop-mode) #weeklyTable td:nth-child(3)::before { content: "备注"; }
+            body:not(.desktop-mode) .modal {
+                max-width: 100%;
+                height: 100%;
+                max-height: 100%;
+                border-radius: 0;
+                padding: 20px;
+            }
+            body:not(.desktop-mode) .modal-mask { padding: 0; }
+            body:not(.desktop-mode) #logPanel {
+                width: 100%;
+                max-width: 100%;
+            }
+            body:not(.desktop-mode) .week-tip {
+                display: inline-block;
+                margin-left: 10px;
+            }
+            body:not(.desktop-mode) .add-week-row {
+                width: auto;
+                justify-content: flex-start;
+            }
+        }
+
+        /* ===== 桌面视图模式（强制表格布局，覆盖卡片样式） ===== */
+        body.desktop-mode #mainPage .topbar {
+            flex-wrap: nowrap !important;
+            padding: 10px 15px !important;
+            min-width: 1000px;
+        }
+        body.desktop-mode #mainPage .topbar h1 {
+            width: auto !important;
+            text-align: left !important;
+            order: 0 !important;
+            font-size: 17px !important;
+        }
+        body.desktop-mode #mainPage .topbar .right {
+            width: auto !important;
+            justify-content: flex-end !important;
+            flex-wrap: nowrap !important;
+        }
+        body.desktop-mode #mainPage .topbar .right button {
+            flex: 0 0 auto !important;
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+            min-height: 32px !important;
+        }
+        body.desktop-mode #mainPage .stats-bar {
+            padding: 8px 15px !important;
+            gap: 12px !important;
+            justify-content: flex-start !important;
+            min-width: 1000px;
+        }
+        body.desktop-mode #mainPage .stat-item {
+            padding: 3px 10px !important;
+            font-size: 12px !important;
+        }
+        body.desktop-mode #mainPage .stat-sep { display: inline !important; }
+        body.desktop-mode #mainPage .toolbar {
+            padding: 10px 15px !important;
+            min-width: 1000px;
+        }
+        body.desktop-mode #mainPage .fbtn {
+            padding: 5px 12px !important;
+            font-size: 13px !important;
+        }
+        body.desktop-mode #mainPage .search-row {
+            flex-wrap: nowrap !important;
+        }
+        body.desktop-mode #mainPage .tabs {
+            padding: 10px 15px 0 !important;
+            min-width: 1000px;
+        }
+        body.desktop-mode #mainPage .tab {
+            font-size: 14px !important;
+            padding: 10px 0 !important;
+        }
+        body.desktop-mode #mainPage .content {
+            padding: 15px !important;
+            min-width: 1000px;
+        }
+        /* ★ 强制表格布局（即使在手机上） */
+        body.desktop-mode #mainPage table {
+            display: table !important;
+            border-collapse: collapse !important;
+            background: #fff !important;
+            table-layout: fixed !important;
+            width: 100% !important;
+            min-width: auto !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        body.desktop-mode #mainPage thead {
+            display: table-header-group !important;
+        }
+        body.desktop-mode #mainPage tbody {
+            display: table-row-group !important;
+        }
+        body.desktop-mode #mainPage tr {
+            display: table-row !important;
+            background: transparent !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+        body.desktop-mode #mainPage td {
+            display: table-cell !important;
+            border: 1px solid #ddd !important;
+            padding: 10px !important;
+            min-height: 32px !important;
+            position: static !important;
+            padding-left: 10px !important;
+            width: auto !important;
+            background: transparent !important;
+            border-bottom-color: #ddd !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow: visible !important;
+            line-height: 1.5 !important;
+        }
+        body.desktop-mode #mainPage td::before {
+            display: none !important;
+        }
+        body.desktop-mode #mainPage td.datecell {
+            font-size: 14px !important;
+            border-bottom: 1px solid #ddd !important;
+            padding-bottom: 10px !important;
+            margin-bottom: 0 !important;
+            text-align: center !important;
+        }
+        body.desktop-mode #mainPage tr.weekend { border-left: none !important; }
+        body.desktop-mode #mainPage tr.weekend td.datecell { color: var(--danger) !important; }
+        body.desktop-mode #mainPage .col-resize { display: block !important; }
+        body.desktop-mode #mainPage td[contenteditable="true"] {
+            outline: 1px solid rgba(13, 148, 136, 0.15) !important;
+            background: #fafcff !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+        body.desktop-mode #mainPage td[contenteditable="true"]:hover {
+            outline-color: rgba(13, 148, 136, 0.5) !important;
+            background: #f5faff !important;
+        }
+        body.desktop-mode #mainPage td[contenteditable="true"]:focus {
+            background: #fffbe6 !important;
+            outline: 2px solid var(--warn) !important;
+        }
+        body.desktop-mode #mainPage td.touch-cell {
+            border-bottom: 1px solid #ddd !important;
+            background: transparent !important;
+        }
+        body.desktop-mode #mainPage td.touch-cell.editing {
+            background: #fffbe6 !important;
+            outline: 2px solid var(--warn) !important;
+        }
+        /* 桌面模式下列对齐 */
+        body.desktop-mode #mainPage #dailyTable td:nth-child(1),
+        body.desktop-mode #mainPage #dailyTable td:nth-child(2),
+        body.desktop-mode #mainPage #weeklyTable td:nth-child(1) {
+            text-align: center !important;
+        }
+        body.desktop-mode #mainPage #dailyTable td:nth-child(3),
+        body.desktop-mode #mainPage #dailyTable td:nth-child(4),
+        body.desktop-mode #mainPage #weeklyTable td:nth-child(2),
+        body.desktop-mode #mainPage #weeklyTable td:nth-child(3) {
+            text-align: left !important;
+        }
+
+        body.desktop-mode #mainPage .modal {
+            max-width: 500px !important;
+            max-height: 85vh !important;
+            border-radius: 10px !important;
+        }
+        body.desktop-mode #mainPage .modal-mask { padding: 20px !important; }
+        body.desktop-mode #mainPage #logPanel { max-width: 420px !important; }
+        body.desktop-mode #mainPage .week-tip {
+            display: inline-block !important;
+            margin-left: 10px !important;
+        }
+        body.desktop-mode #mainPage .add-week-row {
+            width: auto !important;
+            justify-content: flex-start !important;
+        }
+        body.desktop-mode #mainPage .stats-bar,
+        body.desktop-mode #mainPage .toolbar,
+        body.desktop-mode #mainPage .tabs,
+        body.desktop-mode #mainPage .content {
+            min-width: 1000px;
+        }
+
+        @media (min-width: 769px) {
+            td::before { display: none; }
+        }
+        @media (min-width: 769px) and (max-width: 1200px) {
+            body.desktop-mode #mainPage .topbar,
+            body.desktop-mode #mainPage .stats-bar,
+            body.desktop-mode #mainPage .toolbar,
+            body.desktop-mode #mainPage .tabs,
+            body.desktop-mode #mainPage .content {
+                min-width: auto;
+            }
+            body.desktop-mode #mainPage .topbar .right button {
+                padding: 5px 8px !important;
+                font-size: 11px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== Toast ========== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ========== 登录页 ========== -->
+    <div id="loginPage">
+        <div class="login-box">
+            <h2>📋 工作日报</h2>
+            <label>账号</label>
+            <input id="username" value="admin" readonly style="background:#f5f5f5">
+            <label>密码</label>
+            <input id="password" type="password" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+            <button onclick="doLogin()">登 录</button>
+            <div id="loginErr"></div>
+        </div>
+    </div>
+
+    <!-- ========== 主页 ========== -->
+    <div id="mainPage">
+        <div class="topbar">
+            <h1>📋 工作日报</h1>
+            <div class="right">
+                <button class="btn-desktop" id="btnDesktop" onclick="toggleDesktopMode()">🖥️ 桌面</button>
+                <button class="btn-upload" id="btnUpload" onclick="manualUpload()">☁ 上传同步</button>
+                <button class="btn-download" id="btnDownload" onclick="manualDownload()">📥 加载云端</button>
+                <button class="btn-log" onclick="toggleLog()">📜 日志</button>
+                <button class="btn-set" onclick="openSettings()">⚙ 设置</button>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <span class="stat-item cloud">☁ 云端日报：<span class="num" id="statCloudDaily">--</span>条</span>
+            <span class="stat-item cloud">☁ 云端周报：<span class="num" id="statCloudWeekly">--</span>条</span>
+            <span class="stat-sep">|</span>
+            <span class="stat-item local">💾 本地日报：<span class="num" id="statLocalDaily">--</span>条</span>
+            <span class="stat-item local">💾 本地周报：<span class="num" id="statLocalWeekly">--</span>条</span>
+            <span class="stat-sep">|</span>
+            <span id="syncStatusBadge" class="badge-loading">检测中…</span>
+            <span id="lastUpdate">--</span>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-row"><span class="lab">年份：</span><span id="yearBtns"></span></div>
+            <div class="filter-row"><span class="lab">月份：</span><span id="monthBtns"></span></div>
+            <div class="search-row">
+                <input id="searchInput" placeholder="模糊查找：工作内容 / 备注 / 日期…" onkeydown="if(event.key==='Enter')doSearch()">
+                <button onclick="doSearch()">🔍 查找</button>
+                <button onclick="clearSearch()" style="background:#888">清空</button>
+            </div>
+            <div id="progressBar"><div id="progressFill"></div></div>
+            <div id="progressText"></div>
+        </div>
+
+        <div class="tabs">
+            <span class="tab active" id="tabDaily" onclick="switchTab('daily')">📅 日报</span>
+            <span class="tab" id="tabWeekly" onclick="switchTab('weekly')">📆 周报</span>
+        </div>
+
+        <div class="content">
+            <div id="dailyView">
+                <table id="dailyTable">
+                    <thead><tr>
+                            <th>日期<div class="col-resize"></div></th>
+                            <th>星期<div class="col-resize"></div></th>
+                            <th>工作内容<div class="col-resize"></div></th>
+                            <th>备注<div class="col-resize"></div></th>
+                        </tr></thead>
+                    <tbody id="dailyBody"></tbody>
+                </table>
+            </div>
+            <div id="weeklyView" style="display:none">
+                <button class="add-week-row" onclick="addWeekRow()">＋ 添加一行</button>
+                <span class="week-tip">💡 电脑：右键数据行删除；手机：长按数据行删除</span>
+                <table id="weeklyTable">
+                    <thead><tr>
+                            <th>日期<div class="col-resize"></div></th>
+                            <th>周报内容<div class="col-resize"></div></th>
+                            <th>备注<div class="col-resize"></div></th>
+                        </tr></thead>
+                    <tbody id="weeklyBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 日志面板 ========== -->
+    <div id="logPanel">
+        <div class="log-header"><span>📜 操作日志</span><button onclick="toggleLog()">✕</button></div>
+        <div class="log-toolbar">
+            <button id="logByDay" onclick="setLogView('day')">按日</button>
+            <button id="logByWeek" onclick="setLogView('week')">按周</button>
+            <span class="spacer"></span>
+            <button class="danger" onclick="cleanLogs('24h')">清24小时前</button>
+            <button class="danger" onclick="cleanLogs('7d')">清7天前</button>
+            <button class="danger" onclick="cleanLogs('all')">清空</button>
+        </div>
+        <div class="log-body" id="logBody"></div>
+    </div>
+
+    <!-- ========== 设置弹窗 ========== -->
+    <div class="modal-mask" id="settingMask">
+        <div class="modal">
+            <h3>⚙ 设置</h3>
+            <div class="set-item" style="flex-direction:column;align-items:flex-start">
+                <span style="font-weight:bold;margin-bottom:8px;flex:none">📅 年份显示管理（勾选要显示的年份）</span>
+                <div class="year-grid" id="yearGrid"></div>
+            </div>
+            <div class="set-item"><span>🔑 修改登录密码</span><button style="background:#f39c12" onclick="openPwdModal()">修改</button></div>
+            <div class="set-item"><span>📤 导出日报 Excel（当前筛选）</span><button style="background:#27ae60" onclick="exportExcel('daily')">导出日报</button></div>
+            <div class="set-item"><span>📤 导出周报 Excel（当前筛选）</span><button style="background:#27ae60" onclick="exportExcel('weekly')">导出周报</button></div>
+            <div class="set-item"><span>📋 导出日报导入模板</span><button style="background:#16a085" onclick="exportTemplate('daily')">日报模板</button></div>
+            <div class="set-item"><span>📋 导出周报导入模板</span><button style="background:#16a085" onclick="exportTemplate('weekly')">周报模板</button></div>
+            <div class="set-item"><span>📋 使用模板导入日报</span><button style="background:#2c3e50" onclick="document.getElementById('tplImportDailyFile').click()">导入日报</button>
+                <input type="file" id="tplImportDailyFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this,'daily')">
+            </div>
+            <div class="set-item"><span>📋 使用模板导入周报</span><button style="background:#2c3e50" onclick="document.getElementById('tplImportWeeklyFile').click()">导入周报</button>
+                <input type="file" id="tplImportWeeklyFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this,'weekly')">
+            </div>
+            <hr style="border: 1px solid #eee; margin: 12px 0;">
+            <div class="set-item"><span>🚪 退出登录</span><button class="btn-danger" onclick="logout()">退出</button></div>
+            <div class="set-item"><span>🗑️ 删除本地数据（日报+周报）</span><button class="btn-warning" onclick="clearLocalData()">删除本地</button></div>
+            <div class="set-item"><span>☁️ 删除云端数据（日报+周报）⚠️ 慎用</span><button class="btn-danger" onclick="clearCloudData()">删除云端</button></div>
+            <div class="btns"><button class="btn-cancel" onclick="closeSettings()">关闭</button></div>
+        </div>
+    </div>
+
+    <!-- ========== 改密弹窗 ========== -->
+    <div class="modal-mask" id="pwdMask">
+        <div class="modal">
+            <h3>🔑 修改密码</h3>
+            <label>原密码</label><input id="oldPwd" type="password">
+            <label>新密码</label><input id="newPwd" type="password">
+            <label>确认新密码</label><input id="newPwd2" type="password">
+            <div class="btns">
+                <button class="btn-cancel" onclick="document.getElementById('pwdMask').style.display='none'">取消</button>
+                <button class="btn-ok" onclick="changePwd()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ===================== Supabase 配置 ===================== */
+        const SUPABASE_URL = 'https://rseuqiwnssqbrjdljyqz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_FGpLshLp9Vt6vayDHaeMLA_37-p89QV';
+
+        let sb = null,
+            online = false;
+        if (SUPABASE_URL.includes('supabase.co') && !SUPABASE_ANON_KEY.includes('anon公钥')) {
+            try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                online = true; } catch (e) { console.error('SB初始化失败', e) }
+        }
+
+        /* ===================== 全局状态 ===================== */
+        const WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const ALL_YEARS = Array.from({ length: 11 }, (_, i) => 2023 + i);
+
+        let visibleYears = [];
+        try {
+            const stored = localStorage.getItem('dr_visible_years');
+            if (stored && stored !== 'null' && stored !== 'undefined') {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) visibleYears = parsed.map(Number).filter(y => !isNaN(y) && y >= 2023 && y <= 2033);
+            }
+        } catch (e) { console.warn('年份配置损坏，已重置', e) }
+        visibleYears = [...new Set(visibleYears)].sort((a, b) => a - b);
+        if (!visibleYears.length) visibleYears = [...ALL_YEARS];
+
+        let curYear = +(localStorage.getItem('dr_year') || new Date().getFullYear());
+        if (!visibleYears.includes(curYear)) curYear = visibleYears[0];
+        let curMonth = +(localStorage.getItem('dr_month') || (new Date().getMonth() + 1));
+
+        let keyword = '';
+        let dailyData = JSON.parse(localStorage.getItem('dr_daily') || '{}');
+        let weeklyData = JSON.parse(localStorage.getItem('dr_weekly') || '{}');
+        let opLogs = JSON.parse(localStorage.getItem('dr_logs') || '[]');
+        let logViewMode = localStorage.getItem('dr_logview') || 'day';
+
+        let cloudDailyCount = 0,
+            cloudWeeklyCount = 0;
+        // ★ 默认桌面模式
+        let desktopMode = localStorage.getItem('dr_desktop_mode') === '1' ? true : true;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const PREF_TABLE = 'app_settings';
+        const PREF_ID = 1;
+
+        // ★ 获取 viewport meta 元素
+        const viewportMeta = document.getElementById('viewportMeta') || document.querySelector('meta[name="viewport"]');
+
+        function saveLocal() {
+            localStorage.setItem('dr_daily', JSON.stringify(dailyData));
+            localStorage.setItem('dr_weekly', JSON.stringify(weeklyData));
+        }
+
+        function saveVisibleYears() {
+            localStorage.setItem('dr_visible_years', JSON.stringify(visibleYears));
+            if (!visibleYears.includes(curYear) && visibleYears.length) { curYear = visibleYears[0];
+                localStorage.setItem('dr_year', curYear); }
+            renderAll();
+        }
+
+        function fmt(d) { const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}` }
+
+        function getMonday(d) { const x = new Date(d);
+            x.setHours(0, 0, 0, 0); const day = (x.getDay() + 6) % 7;
+            x.setDate(x.getDate() - day); return x }
+
+        function showToast(msg, type = 'info', duration = 3000) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast toast-' + type + ' show';
+            clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => { el.classList.remove('show') }, duration);
+        }
+        let _toastTimer = null;
+
+        function toggleDesktopMode() {
+            desktopMode = !desktopMode;
+            localStorage.setItem('dr_desktop_mode', desktopMode ? '1' : '0');
+            applyDesktopMode();
+            showToast(desktopMode ? '🖥️ 桌面视图（可双指缩放）' : '📱 手机视图（禁止缩放）', 'info');
+            addLog(desktopMode ? '切换到桌面视图' : '切换到手机视图');
+            setTimeout(() => { initColResize('dailyTable');
+                initColResize('weeklyTable') }, 100);
+            renderAll();
+        }
+
+        function applyDesktopMode() {
+            document.body.classList.toggle('desktop-mode', desktopMode);
+            const btn = document.getElementById('btnDesktop');
+            if (btn) btn.textContent = desktopMode ? '📱 手机' : '🖥️ 桌面';
+            // ★ 动态设置 viewport
+            if (viewportMeta) {
+                if (desktopMode) {
+                    // 桌面模式：固定宽度1280，允许缩放
+                    viewportMeta.content = 'width=1280, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0';
+                } else {
+                    // 手机模式：禁止缩放
+                    viewportMeta.content = 'width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0';
+                }
+            }
+        }
+
+        function updateStats() {
+            const localDaily = Object.keys(dailyData).filter(k => dailyData[k].content || dailyData[k].remark).length;
+            const localWeekly = Object.keys(weeklyData).filter(k => !k.startsWith('new_') && !k.startsWith('empty_') && (weeklyData[
+                k].content || weeklyData[k].remark)).length;
+            document.getElementById('statLocalDaily').textContent = localDaily;
+            document.getElementById('statLocalWeekly').textContent = localWeekly;
+            document.getElementById('statCloudDaily').textContent = cloudDailyCount;
+            document.getElementById('statCloudWeekly').textContent = cloudWeeklyCount;
+        }
+
+        function setSyncBadge(status, text) {
+            const el = document.getElementById('syncStatusBadge');
+            el.textContent = text;
+            el.className = '';
+            if (status === 'ok') el.classList.add('badge-ok');
+            else if (status === 'warn') el.classList.add('badge-warn');
+            else if (status === 'err') el.classList.add('badge-err');
+            else el.classList.add('badge-loading');
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN', { hour12: false });
+        }
+
+        // ★ 修复云端统计：只统计有内容或备注的记录
+        async function fetchCloudCounts() {
+            if (!online) { cloudDailyCount = 0;
+                cloudWeeklyCount = 0;
+                updateStats(); return }
+            try {
+                const [d, w] = await Promise.all([
+                    sb.from('daily_reports')
+                    .select('*', { count: 'exact', head: true })
+                    .or('content.neq.,remark.neq.'),
+                    sb.from('weekly_reports')
+                    .select('*', { count: 'exact', head: true })
+                    .or('content.neq.,remark.neq.')
+                ]);
+                cloudDailyCount = d.count || 0;
+                cloudWeeklyCount = w.count || 0;
+                updateStats();
+            } catch (e) {
+                console.error('获取云端计数失败', e);
+                cloudDailyCount = '?';
+                cloudWeeklyCount = '?';
+                updateStats();
+            }
+        }
+
+        /* ===================== 手动上传（跳过空日期行） ===================== */
+        async function manualUpload() {
+            if (!online) { showToast('离线模式，无法上传', 'error'); return }
+            const btn = document.getElementById('btnUpload');
+            btn.classList.add('btn-disabled');
+            btn.textContent = '⏳ 上传中…';
+            setSyncBadge('loading', '上传中…');
+            addLog('开始手动上传同步…');
+            let errors = [];
+
+            try {
+                const dailyRows = Object.entries(dailyData)
+                    .filter(([k, v]) => v.content || v.remark)
+                    .map(([k, v]) => ({ report_date: k, content: v.content || '', remark: v.remark || '',
+                        updated_at: new Date().toISOString() }));
+
+                const weeklyRows = Object.entries(weeklyData)
+                    .filter(([k, v]) => {
+                        if (k.startsWith('new_') || k.startsWith('empty_')) return false;
+                        if (!v.content && !v.remark) return false;
+                        const dateObj = new Date(k + 'T00:00:00');
+                        return !isNaN(dateObj.getTime());
+                    })
+                    .map(([k, v]) => {
+                        const dateKey = fmt(new Date(k + 'T00:00:00'));
+                        return { date_key: dateKey, content: v.content || '', remark: v.remark || '',
+                            updated_at: new Date().toISOString() };
+                    });
+
+                console.log(`📤 待上传周报: ${weeklyRows.length} 条`);
+
+                let dOk = 0,
+                    dFail = 0,
+                    wOk = 0,
+                    wFail = 0;
+                const BATCH = 50;
+
+                for (let i = 0; i < dailyRows.length; i += BATCH) {
+                    const batch = dailyRows.slice(i, i + BATCH);
+                    try {
+                        const { error } = await sb.from('daily_reports').upsert(batch, { onConflict: 'report_date' });
+                        if (error) throw error;
+                        dOk += batch.length;
+                    } catch (e) {
+                        dFail += batch.length;
+                        errors.push(`日报批量失败: ${e.message}`);
+                        console.error('日报批量上传失败', e);
+                    }
+                    const pct = Math.round(((i + batch.length) / (dailyRows.length + weeklyRows.length + 1)) * 100);
+                    setSyncBadge('loading', `上传中 ${pct}%`);
+                }
+
+                for (let i = 0; i < weeklyRows.length; i += BATCH) {
+                    const batch = weeklyRows.slice(i, i + BATCH);
+                    try {
+                        const { data, error } = await sb.from('weekly_reports').upsert(batch, { onConflict: 'date_key' });
+                        if (error) {
+                            if (error.code === '42P01') {
+                                errors.push('❌ 周报表不存在，请在 Supabase 中创建 weekly_reports 表');
+                            }
+                            throw error;
+                        }
+                        wOk += batch.length;
+                    } catch (e) {
+                        wFail += batch.length;
+                        const errMsg = e.message || '未知错误';
+                        errors.push(`周报批量失败: ${errMsg}`);
+                        console.error('周报批量上传失败', e);
+                    }
+                    const pct = Math.round(((dailyRows.length + i + batch.length) / (dailyRows.length + weeklyRows.length +
+                    1)) * 100);
+                    setSyncBadge('loading', `上传中 ${pct}%`);
+                }
+
+                await fetchCloudCounts();
+                let summary = `日报 ${dOk}✅${dFail?' '+dFail+'❌':''} / 周报 ${wOk}✅${wFail?' '+wFail+'❌':''}`;
+                if (errors.length > 0) {
+                    const showErrors = errors.slice(0, 3).join('；');
+                    summary += ` 错误详情：${showErrors}${errors.length > 3 ? ` 等${errors.length}条` : ''}`;
+                }
+                if (dFail + wFail === 0 && errors.length === 0) {
+                    setSyncBadge('ok', '☁ 上传完成');
+                    showToast('✅ 上传成功！' + summary, 'success');
+                    addLog('手动上传完成: ' + summary);
+                } else {
+                    setSyncBadge('warn', '⚠ 部分失败');
+                    showToast('⚠ 部分失败: ' + summary, 'error', 8000);
+                    addLog('手动上传部分失败: ' + summary);
+                }
+            } catch (e) {
+                setSyncBadge('err', '❌ 上传失败');
+                const errMsg = e.message || '未知错误';
+                showToast('❌ 上传失败: ' + errMsg, 'error', 5000);
+                addLog('手动上传异常: ' + errMsg);
+                console.error(e);
+            } finally {
+                btn.classList.remove('btn-disabled');
+                btn.textContent = '☁ 上传同步';
+            }
+        }
+
+        /* ===================== 手动加载云端 ===================== */
+        async function manualDownload() {
+            if (!online) { showToast('离线模式，无法加载', 'error'); return }
+            const btn = document.getElementById('btnDownload');
+            btn.classList.add('btn-disabled');
+            btn.textContent = '⏳ 加载中…';
+            setSyncBadge('loading', '加载中…');
+            addLog('开始手动加载云端数据…');
+
+            try {
+                let allDaily = [],
+                    offset = 0;
+                const PAGE = 1000;
+                while (true) {
+                    const { data, error } = await sb.from('daily_reports').select('*').range(offset, offset + PAGE - 1);
+                    if (error) throw error;
+                    if (!data || data.length === 0) break;
+                    allDaily = allDaily.concat(data);
+                    offset += PAGE;
+                    if (data.length < PAGE) break;
+                    setSyncBadge('loading', `加载日报 ${allDaily.length}…`);
+                }
+                let allWeekly = [],
+                    wOffset = 0;
+                while (true) {
+                    const { data, error } = await sb.from('weekly_reports').select('*').range(wOffset, wOffset + PAGE - 1);
+                    if (error) throw error;
+                    if (!data || data.length === 0) break;
+                    allWeekly = allWeekly.concat(data);
+                    wOffset += PAGE;
+                    if (data.length < PAGE) break;
+                    setSyncBadge('loading', `加载周报 ${allWeekly.length}…`);
+                }
+
+                let dMerged = 0,
+                    wMerged = 0;
+                allDaily.forEach(r => {
+                    if (r.content || r.remark) { dailyData[r.report_date] = { content: r.content || '',
+                            remark: r.remark || '' };
+                        dMerged++; } else if (!dailyData[r.report_date]) { dailyData[r.report_date] = { content: '',
+                            remark: '' }; }
+                });
+                allWeekly.forEach(r => {
+                    const key = r.date_key;
+                    if (key) {
+                        weeklyData[key] = { content: r.content || '', remark: r.remark || '' };
+                        wMerged++;
+                    }
+                });
+
+                saveLocal();
+                cloudDailyCount = allDaily.length;
+                cloudWeeklyCount = allWeekly.length;
+                updateStats();
+                renderAll();
+                setSyncBadge('ok', '☁ 加载完成');
+                showToast(`✅ 加载成功！日报 ${dMerged} 条，周报 ${wMerged} 条`, 'success');
+                addLog(`手动加载完成: 日报 ${allDaily.length} 条，周报 ${allWeekly.length} 条`);
+            } catch (e) {
+                setSyncBadge('err', '❌ 加载失败');
+                showToast('❌ 加载失败: ' + e.message, 'error', 5000);
+                addLog('手动加载异常: ' + e.message);
+                console.error(e);
+            } finally {
+                btn.classList.remove('btn-disabled');
+                btn.textContent = '📥 加载云端';
+            }
+        }
+
+        function parseDate(val) {
+            if (!val && val !== 0) return null;
+            const s = String(val).trim();
+            if (!s) return null;
+            if (/^\d+$/.test(s)) { const n = Number(s); if (n > 20000 && n < 200000) { const d = new Date((n - 25569) *
+                        86400 * 1000); if (!isNaN(d.getTime())) return fmt(d); } }
+            let m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+            if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3]); if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d
+                    .getFullYear() <= 2100) return fmt(d); }
+            m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+            if (m) { let d = new Date(+m[3], +m[1] - 1, +m[2]); if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) return fmt(
+                    d);
+                d = new Date(+m[3], +m[2] - 1, +m[1]); if (!isNaN(d.getTime()) && d.getFullYear() >= 2000) return fmt(d); }
+            if (val instanceof Date && !isNaN(val.getTime())) return fmt(val);
+            const fb = new Date(s);
+            if (!isNaN(fb.getTime()) && fb.getFullYear() >= 2000 && fb.getFullYear() <= 2100) return fmt(fb);
+            return null;
+        }
+
+        /* ===================== 日志系统 ===================== */
+        function addLog(msg) {
+            opLogs.unshift({ ts: Date.now(), time: new Date().toLocaleString('zh-CN', { hour12: false }), msg });
+            if (opLogs.length > 1000) opLogs = opLogs.slice(0, 1000);
+            localStorage.setItem('dr_logs', JSON.stringify(opLogs));
+            renderLogs();
+        }
+
+        function autoCleanLogs() {
+            const last = +(localStorage.getItem('dr_log_clean') || 0),
+                now = Date.now(),
+                MONTH = 30 * 86400000;
+            if (now - last > MONTH) { const before = opLogs.length;
+                opLogs = opLogs.filter(l => (l.ts || 0) > now - MONTH);
+                localStorage.setItem('dr_log_clean', String(now));
+                localStorage.setItem('dr_logs', JSON.stringify(opLogs)); if (before > opLogs.length) console.log(
+                    `[自动清理] 已删除 ${before-opLogs.length} 条30天前的日志`); }
+        }
+
+        function cleanLogs(mode) {
+            let cutoff = 0,
+                label = '';
+            if (mode === '24h') { cutoff = Date.now() - 86400000;
+                label = '24小时前' } else if (mode === '7d') { cutoff = Date.now() - 7 * 86400000;
+                label = '7天前' }
+            const before = opLogs.length;
+            if (mode === 'all') opLogs = [];
+            else opLogs = opLogs.filter(l => (l.ts || 0) > cutoff);
+            localStorage.setItem('dr_logs', JSON.stringify(opLogs));
+            renderLogs();
+            addLog(`手动清理日志（${mode==='all'?'全部':label}），删除 ${before-opLogs.length} 条`);
+        }
+
+        function setLogView(m) { logViewMode = m;
+            localStorage.setItem('dr_logview', m);
+            renderLogs() }
+
+        function renderLogs() {
+            document.getElementById('logByDay').classList.toggle('active', logViewMode === 'day');
+            document.getElementById('logByWeek').classList.toggle('active', logViewMode === 'week');
+            const el = document.getElementById('logBody');
+            if (!opLogs.length) { el.innerHTML = '<div class="log-empty">暂无日志</div>'; return }
+            const groups = new Map();
+            opLogs.forEach(l => { const ts = l.ts || Date.parse(l.time) || Date.now();
+                let key; if (logViewMode === 'day') key = fmt(new Date(ts));
+                else key = fmt(getMonday(new Date(ts))); if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(l); });
+            const keys = [...groups.keys()].sort().reverse();
+            let html = '';
+            keys.forEach(k => { let title = k; if (logViewMode === 'week') { const mon = new Date(k + 'T00:00:00'),
+                        sun = new Date(mon);
+                    sun.setDate(mon.getDate() + 6);
+                    title = `${k} ～ ${fmt(sun)} 当周`; }
+                html += `<div class="log-group-title">${title}（${groups.get(k).length}条）</div>`;
+                groups.get(k).forEach(l => { const hm = l.time.split(' ')[1] || l.time;
+                    html += `<div class="log-entry"><span class="log-time">${hm}</span>${esc(l.msg)}</div>`; }); });
+            el.innerHTML = html;
+        }
+
+        function toggleLog() { const p = document.getElementById('logPanel');
+            p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; if (p.style.display === 'flex') renderLogs(); }
+
+        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+        function textToHtml(s) { return esc(s).replace(/\n/g, '<br>') }
+
+        function getCellText(td) {
+            return td.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<\/div><div>/gi, '\n')
+                .replace(/<\/p><p>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>').trim();
+        }
+
+        /* ===================== 云端偏好 ===================== */
+        async function loadPreferencesFromCloud() {
+            if (!online) return;
+            try {
+                const { data, error } = await sb.from(PREF_TABLE).select('year, month').eq('id', PREF_ID).single();
+                if (error) {
+                    if (error.code === 'PGRST116') { console.log('云端偏好表无记录，使用默认'); return; }
+                    throw error;
+                }
+                if (data) {
+                    let changed = false;
+                    if (data.year && visibleYears.includes(Number(data.year))) {
+                        curYear = Number(data.year);
+                        localStorage.setItem('dr_year', curYear);
+                        changed = true;
+                    }
+                    if (data.month !== undefined && data.month !== null) {
+                        const m = Number(data.month);
+                        if (m >= 0 && m <= 12) {
+                            curMonth = m;
+                            localStorage.setItem('dr_month', curMonth);
+                            changed = true;
+                        }
+                    }
+                    if (changed) { addLog(`从云端加载偏好: 年份=${curYear}, 月份=${curMonth}`);
+                        renderAll(); }
+                }
+            } catch (e) { console.error('加载云端偏好失败:', e);
+                addLog('加载云端偏好失败: ' + e.message); }
+        }
+
+        async function savePreferencesToCloud() {
+            if (!online) return;
+            try {
+                const payload = { id: PREF_ID, year: curYear, month: curMonth, updated_at: new Date().toISOString() };
+                const { error } = await sb.from(PREF_TABLE).upsert(payload, { onConflict: 'id' });
+                if (error) throw error;
+                console.log('偏好已同步云端');
+                addLog(`偏好云端同步: 年份=${curYear}, 月份=${curMonth}`);
+            } catch (e) { console.error('保存云端偏好失败:', e);
+                addLog('保存云端偏好失败: ' + e.message); }
+        }
+
+        async function loadCloud() {
+            if (!online) { setSyncBadge('warn', '⚠ 本地模式');
+                addLog('本地模式启动');
+                updateStats(); return; }
+            try {
+                setSyncBadge('loading', '🔄 正在同步...');
+                const [d, w, pref] = await Promise.all([
+                    sb.from('daily_reports').select('*'),
+                    sb.from('weekly_reports').select('*'),
+                    sb.from(PREF_TABLE).select('year, month').eq('id', PREF_ID).single()
+                ]);
+                if (d.data) d.data.forEach(r => dailyData[r.report_date] = { content: r.content || '', remark: r.remark ||
+                        '' });
+                if (w.data) {
+                    w.data.forEach(r => {
+                        const key = r.date_key;
+                        if (key) { weeklyData[key] = { content: r.content || '', remark: r.remark || '' }; }
+                    });
+                }
+                saveLocal();
+                if (pref.data) {
+                    if (pref.data.year && visibleYears.includes(Number(pref.data.year))) {
+                        curYear = Number(pref.data.year);
+                        localStorage.setItem('dr_year', curYear);
+                    }
+                    if (pref.data.month !== undefined && pref.data.month !== null) {
+                        const m = Number(pref.data.month);
+                        if (m >= 0 && m <= 12) {
+                            curMonth = m;
+                            localStorage.setItem('dr_month', curMonth);
+                        }
+                    }
+                }
+                renderAll();
+                cloudDailyCount = d.data?.length || 0;
+                cloudWeeklyCount = w.data?.length || 0;
+                updateStats();
+                setSyncBadge('ok', '☁ 云同步正常');
+                addLog('云端加载成功，日报' + (d.data?.length || 0) + '条，周报' + (w.data?.length || 0) + '条');
+            } catch (e) {
+                setSyncBadge('err', '⚠ 云端加载失败');
+                addLog('云端加载失败: ' + e.message);
+                console.error(e);
+                updateStats();
+            }
+        }
+
+        /* ===================== 登录 ===================== */
+        async function doLogin() {
+            const pwd = document.getElementById('password').value;
+            const errEl = document.getElementById('loginErr');
+            errEl.textContent = '';
+            const cachedPwd = localStorage.getItem('dr_pwd_cache');
+
+            if (cachedPwd && pwd === cachedPwd) {
+                showMain();
+                addLog('快速登录（本地缓存匹配）');
+                loadCloud().then(() => { renderAll();
+                    heartbeat() }).catch(e => console.warn('后台云同步失败', e));
+                return;
+            }
+
+            if (!online || new URLSearchParams(window.location.search).get('offline') === '1') {
+                const localPwd = cachedPwd || '1234';
+                if (pwd === localPwd) { showMain();
+                    addLog('离线登录成功');
+                    loadCloud();
+                    renderAll(); return } else { errEl.textContent = '本地密码错误(默认:1234)';
+                    addLog('离线登录失败'); return }
+            }
+
+            try {
+                errEl.textContent = '⏳ 验证中…';
+                const { data, error } = await sb.from('users').select('password').eq('username', 'admin').single();
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        if (pwd === '1234' || pwd === cachedPwd) {
+                            localStorage.setItem('dr_pwd_cache', pwd);
+                            showMain();
+                            addLog('云端无用户，默认密码登录');
+                            loadCloud();
+                            renderAll();
+                            heartbeat();
+                            return;
+                        }
+                    }
+                    throw new Error('数据库错误: ' + error.message);
+                }
+                if (!data) throw new Error('未找到管理员账号');
+
+                if (data.password === pwd) {
+                    localStorage.setItem('dr_pwd_cache', pwd);
+                    localStorage.setItem('dr_logged_in', 'true');
+                    showMain();
+                    addLog('云端验证登录成功');
+                    loadCloud();
+                    renderAll();
+                    heartbeat();
+                } else {
+                    errEl.textContent = '密码错误';
+                    addLog('登录失败：密码不匹配');
+                }
+            } catch (e) {
+                console.error('[Login] 异常:', e);
+                errEl.textContent = '登录异常: ' + e.message;
+                addLog('登录异常: ' + e.message);
+                if (cachedPwd && pwd === cachedPwd) {
+                    showMain();
+                    addLog('网络异常，本地缓存登录');
+                    renderAll();
+                }
+            }
+        }
+
+        function showMain() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainPage').style.display = 'flex';
+            document.getElementById('password').value = '';
+            document.getElementById('loginErr').textContent = '';
+            applyDesktopMode();
+            updateStats();
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('dr_logged_in');
+                localStorage.removeItem('dr_pwd_cache');
+                addLog('用户退出');
+                location.reload();
+            }
+        }
+
+        /* ===================== 删除本地数据 ===================== */
+        function clearLocalData() {
+            if (!confirm('⚠️ 确定要删除本地所有日报和周报数据吗？\n此操作不可恢复！')) return;
+            dailyData = {};
+            weeklyData = {};
+            saveLocal();
+            updateStats();
+            renderAll();
+            addLog('已清空本地数据');
+            showToast('本地数据已清空', 'info');
+            closeSettings();
+        }
+
+        /* ===================== 删除云端数据 ===================== */
+        async function clearCloudData() {
+            if (!online) { showToast('离线模式，无法删除云端数据', 'error'); return; }
+            if (!confirm('⚠️ 第一次确认：确定要删除云端所有日报和周报数据吗？')) return;
+            if (!confirm('⚠️ 第二次确认：此操作将永久删除云端数据，不可恢复！')) return;
+            if (!confirm('⚠️ 最后一次确认：确定执行删除操作？')) return;
+
+            try {
+                setSyncBadge('loading', '正在删除云端数据…');
+                const { error: err1 } = await sb.from('daily_reports').delete().neq('report_date', '');
+                if (err1) throw new Error('日报删除失败: ' + err1.message);
+                const { error: err2 } = await sb.from('weekly_reports').delete().neq('date_key', '');
+                if (err2) throw new Error('周报删除失败: ' + err2.message);
+                cloudDailyCount = 0;
+                cloudWeeklyCount = 0;
+                dailyData = {};
+                weeklyData = {};
+                saveLocal();
+                updateStats();
+                renderAll();
+                setSyncBadge('ok', '☁ 云端数据已清空');
+                showToast('✅ 云端数据已全部删除', 'success');
+                addLog('已清空云端数据（日报+周报）');
+                closeSettings();
+            } catch (e) {
+                setSyncBadge('err', '❌ 删除失败');
+                showToast('❌ 删除云端数据失败: ' + e.message, 'error');
+                addLog('删除云端数据失败: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        /* ===================== 筛选渲染 ===================== */
+        function renderFilters() {
+            const safeYears = visibleYears.filter(v => { const n = Number(v); return !isNaN(n) && n >= 2023 && n <= 2033 })
+                .sort((a, b) => a - b);
+            let y = '';
+            safeYears.forEach(i => { y +=
+                    `<button class="fbtn ${i===curYear?'active':''}" onclick="setYear(${i})">${i}</button>` });
+            if (!safeYears.length) y = '<span style="color:#999;font-size:13px">请在设置中开启至少一个年份</span>';
+            document.getElementById('yearBtns').innerHTML = y;
+            let m = `<button class="fbtn ${curMonth===0?'active':''}" onclick="setMonth(0)">全部</button>`;
+            for (let i = 1; i <= 12; i++) m += `<button class="fbtn ${i===curMonth?'active':''}" onclick="setMonth(${i})">${i}月</button>`;
+            document.getElementById('monthBtns').innerHTML = m;
+        }
+
+        function renderYearGrid() {
+            const grid = document.getElementById('yearGrid');
+            if (!grid) return;
+            grid.innerHTML = ALL_YEARS.map(y => { const checked = visibleYears.includes(y) ? 'checked' : '';
+                return `<label class="year-check"><input type="checkbox" value="${y}" ${checked} onchange="toggleYearVisible(${y},this.checked)">${y}</label>` })
+                .join('');
+        }
+
+        function toggleYearVisible(year, isChecked) {
+            const y = Number(year);
+            if (isNaN(y) || y < 2023 || y > 2033) return;
+            if (isChecked) { if (!visibleYears.includes(y)) visibleYears.push(y); } else { visibleYears = visibleYears.filter(
+                    item => Number(item) !== y); }
+            visibleYears = [...new Set(visibleYears.map(Number))].sort((a, b) => a - b);
+            saveVisibleYears();
+            addLog(`年份显示设置：${y} ${isChecked?'显示':'隐藏'}`);
+        }
+
+        function setYear(y) {
+            curYear = y;
+            localStorage.setItem('dr_year', y);
+            addLog('切换年份→' + y);
+            renderAll();
+            savePreferencesToCloud();
+        }
+
+        function setMonth(m) {
+            curMonth = m;
+            localStorage.setItem('dr_month', m);
+            addLog('切换月份→' + (m === 0 ? '全部' : m + '月'));
+            renderAll();
+            savePreferencesToCloud();
+        }
+
+        /* =====================================================================
+           ★ 多选复制粘贴（仅在桌面模式下启用）
+           ===================================================================== */
+        let _sel = { active: false, dragging: false, tableId: null, startRow: -1, startCol: -1, endRow: -1, endCol: -1,
+            cells: [] };
+        let _clipboard = null;
+
+        function _getCells(tableId) {
+            const tbody = document.querySelector('#' + tableId + ' tbody');
+            if (!tbody) return [];
+            return Array.from(tbody.querySelectorAll('tr')).map(tr =>
+                Array.from(tr.querySelectorAll('td[contenteditable="true"]'))
+            );
+        }
+
+        function _clearHighlight() {
+            _sel.cells.forEach(({ rowIdx, colIdx, tableId }) => {
+                const allCells = _getCells(tableId);
+                if (allCells[rowIdx] && allCells[rowIdx][colIdx])
+                    allCells[rowIdx][colIdx].classList.remove('cell-selected');
+            });
+            _sel.cells = [];
+        }
+
+        function _applyHighlight(tableId) {
+            const allCells = _getCells(tableId);
+            _sel.cells.forEach(({ rowIdx, colIdx }) => {
+                if (allCells[rowIdx] && allCells[rowIdx][colIdx])
+                    allCells[rowIdx][colIdx].classList.add('cell-selected');
+            });
+        }
+
+        function _computeRect(tableId) {
+            const r1 = Math.min(_sel.startRow, _sel.endRow);
+            const r2 = Math.max(_sel.startRow, _sel.endRow);
+            const c1 = Math.min(_sel.startCol, _sel.endCol);
+            const c2 = Math.max(_sel.startCol, _sel.endCol);
+            const result = [];
+            for (let r = r1; r <= r2; r++)
+                for (let c = c1; c <= c2; c++) result.push({ tableId, rowIdx: r, colIdx: c });
+            return result;
+        }
+
+        function _bindCellEvents() {
+            ['dailyTable', 'weeklyTable'].forEach(tableId => {
+                const allCells = _getCells(tableId);
+                allCells.forEach((row, r) => {
+                    row.forEach((td, c) => {
+                        td.dataset.r = r;
+                        td.dataset.c = c;
+                        td.dataset.tid = tableId;
+                    });
+                });
+            });
+        }
+
+        // ★ 鼠标事件：仅在桌面模式下启用多选拖拽
+        document.addEventListener('mousedown', function(e) {
+            if (!desktopMode) return;
+            const td = e.target.closest('td[contenteditable="true"]');
+            if (!td) { if (!e.target.closest('.toast')) _clearHighlight(); return; }
+            const tableId = td.dataset.tid,
+                r = parseInt(td.dataset.r),
+                c = parseInt(td.dataset.c);
+            if (isNaN(r) || isNaN(c) || !tableId) return;
+            if (e.shiftKey) {
+                e.preventDefault();
+                if (_sel.startRow < 0) { _sel.startRow = r;
+                    _sel.startCol = c; }
+                _sel.endRow = r;
+                _sel.endCol = c;
+                _clearHighlight();
+                _sel.cells = _computeRect(tableId);
+                _sel.tableId = tableId;
+                _applyHighlight(tableId);
+                return;
+            }
+            _sel.active = true;
+            _sel.dragging = false;
+            _sel.tableId = tableId;
+            _sel.startRow = r;
+            _sel.startCol = c;
+            _sel.endRow = r;
+            _sel.endCol = c;
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!desktopMode) return;
+            if (!_sel.active) return;
+            const td = e.target.closest('td[contenteditable="true"]');
+            if (!td) return;
+            if (td.dataset.tid !== _sel.tableId) return;
+            const r = parseInt(td.dataset.r),
+                c = parseInt(td.dataset.c);
+            if (isNaN(r) || isNaN(c)) return;
+            if (r !== _sel.endRow || c !== _sel.endCol) {
+                _sel.dragging = true;
+                _sel.endRow = r;
+                _sel.endCol = c;
+                e.preventDefault();
+                _clearHighlight();
+                _sel.cells = _computeRect(_sel.tableId);
+                _applyHighlight(_sel.tableId);
+            }
+        });
+
+        document.addEventListener('mouseup', function(e) {
+            if (!desktopMode) return;
+            if (!_sel.active) return;
+            _sel.active = false;
+            if (_sel.dragging) { _sel.dragging = false; if (document.activeElement && document.activeElement.blur)
+                    document.activeElement.blur(); } else { _clearHighlight();
+                _sel.startRow = _sel.startCol = _sel.endRow = _sel.endCol = -1; }
+        });
+
+        // ★ 复制粘贴快捷键（仅在桌面模式下）
+        document.addEventListener('keydown', function(e) {
+            if (!desktopMode) return;
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                // 检查当前是否有选区（文本选中）
+                const selText = window.getSelection().toString();
+                // 如果选中了多行或多选单元格，走原有逻辑
+                if (_sel.cells.length > 1 || (_sel.cells.length === 1 && _sel.dragging)) {
+                    e.preventDefault();
+                    _copyCells();
+                    return;
+                }
+                // 如果只有一个单元格且没有拖拽，但存在文本选中（部分文字），则复制选中的文字
+                if (_sel.cells.length === 1 && selText && selText.trim().length > 0) {
+                    e.preventDefault();
+                    // 复制选中的文字到剪贴板
+                    navigator.clipboard.writeText(selText).then(() => {
+                        showToast('📋 已复制选中文字', 'info', 1500);
+                    }).catch(() => {
+                        // 降级方案
+                        const textarea = document.createElement('textarea');
+                        textarea.value = selText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        textarea.remove();
+                        showToast('📋 已复制选中文字', 'info', 1500);
+                    });
+                    return;
+                }
+                // 如果没有选中任何单元格，但有文本选中（可能用户点选了某个单元格内的文字）
+                if (_sel.cells.length === 0 && selText && selText.trim().length > 0) {
+                    e.preventDefault();
+                    navigator.clipboard.writeText(selText).then(() => {
+                        showToast('📋 已复制选中文字', 'info', 1500);
+                    }).catch(() => {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = selText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        textarea.remove();
+                        showToast('📋 已复制选中文字', 'info', 1500);
+                    });
+                    return;
+                }
+                // 其他情况：复制整个单元格（原有逻辑）
+                if (_sel.cells.length === 1 && !selText) {
+                    e.preventDefault();
+                    _copyCells();
+                }
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                const active = document.activeElement;
+                if (active && active.tagName === 'TD' && active.contentEditable === 'true' && _clipboard) {
+                    e.preventDefault();
+                    _pasteCells(active);
+                }
+            }
+            if (e.key === 'Escape') _clearHighlight();
+        });
+
+        function _copyCells() {
+            if (_sel.cells.length === 0) return;
+            const allCells = _getCells(_sel.tableId);
+            const rows = new Map();
+            _sel.cells.forEach(({ rowIdx, colIdx }) => {
+                if (!rows.has(rowIdx)) rows.set(rowIdx, []);
+                const text = (allCells[rowIdx] && allCells[rowIdx][colIdx]) ? getCellText(allCells[rowIdx][
+                    colIdx]) : '';
+                rows.get(rowIdx).push({ colIdx, text });
+            });
+            const sortedRows = [...rows.keys()].sort((a, b) => a - b);
+            _clipboard = sortedRows.map(rk => rows.get(rk).sort((a, b) => a.colIdx - b.colIdx).map(x => x.text));
+            const tsv = _clipboard.map(r => r.join('\t')).join('\n');
+            navigator.clipboard.writeText(tsv).catch(() => {});
+            showToast(`📋 已复制 ${_sel.cells.length} 个单元格`, 'info', 1500);
+        }
+
+        function _pasteCells(startTd) {
+            if (!_clipboard || !_clipboard.length) return;
+            const tableId = startTd.dataset.tid;
+            const startR = parseInt(startTd.dataset.r),
+                startC = parseInt(startTd.dataset.c);
+            const allCells = _getCells(tableId);
+            let count = 0;
+            for (let r = 0; r < _clipboard.length; r++) {
+                for (let c = 0; c < _clipboard[r].length; c++) {
+                    const tr = startR + r,
+                        tc = startC + c;
+                    if (allCells[tr] && allCells[tr][tc]) {
+                        const td = allCells[tr][tc];
+                        const newText = _clipboard[r][c];
+                        td.innerHTML = textToHtml(newText);
+                        td.dispatchEvent(new FocusEvent('blur'));
+                        count++;
+                    }
+                }
+            }
+            if (count > 0) { showToast(`📋 已粘贴 ${count} 个单元格`, 'success', 1500);
+                addLog(`批量粘贴 ${count} 个单元格`); }
+        }
+
+        /* ===================== 双击编辑（触摸设备且非桌面模式） ===================== */
+        function initTouchEdit() {
+            if (desktopMode || !isTouchDevice) return;
+            document.querySelectorAll('#dailyBody, #weeklyBody').forEach(tbody => {
+                tbody.addEventListener('dblclick', function(e) {
+                    const td = e.target.closest('td.touch-cell');
+                    if (!td || td.classList.contains('editing')) return;
+                    td.contentEditable = 'true';
+                    td.classList.add('editing');
+                    td.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(td);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    td.addEventListener('blur', function onBlur() {
+                        td.contentEditable = 'false';
+                        td.classList.remove('editing');
+                        td.removeEventListener('blur', onBlur);
+                    }, { once: true });
+                });
+            });
+        }
+
+        /* ===================== 日报 ===================== */
+        function renderDaily() {
+            let html = '',
+                startM = curMonth === 0 ? 1 : curMonth,
+                endM = curMonth === 0 ? 12 : curMonth;
+            for (let mo = startM; mo <= endM; mo++) { const days = new Date(curYear, mo, 0).getDate();
+                for (let d = 1; d <= days; d++) { const dt = new Date(curYear, mo - 1, d);
+                    const ds =
+                    `${curYear}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const row = dailyData[ds] || { content: '', remark: '' };
+                    if (keyword) { const hit = (row.content + row.remark + ds + WEEK[dt.getDay()]).toLowerCase().includes(
+                            keyword.toLowerCase()); if (!hit) continue }
+                    const wk = dt.getDay(),
+                        we = (wk === 0 || wk === 6) ? ' class="weekend"' : '';
+                    const editableAttr = (desktopMode) ? 'contenteditable="true"' : '';
+                    const touchClass = (!desktopMode && isTouchDevice) ? 'touch-cell' : '';
+                    html += `<tr${we}>
+                        <td class="datecell" data-label="日期">${ds}</td>
+                        <td data-label="星期">${WEEK[wk]}</td>
+                        <td ${editableAttr} data-date="${ds}" data-field="content" data-label="工作内容"
+                            class="${touchClass}" onblur="saveDaily(this)">${textToHtml(row.content)}</td>
+                        <td ${editableAttr} data-date="${ds}" data-field="remark" data-label="备注"
+                            class="${touchClass}" onblur="saveDaily(this)">${textToHtml(row.remark)}</td></tr>`;
+                } }
+            document.getElementById('dailyBody').innerHTML = html ||
+                '<tr><td colspan="4" class="empty-tip">无匹配数据</td></tr>';
+            _bindCellEvents();
+            if (!desktopMode && isTouchDevice) initTouchEdit();
+        }
+
+        const _saveTimers = {};
+
+        async function saveDaily(td) {
+            const ds = td.dataset.date,
+                field = td.dataset.field,
+                val = getCellText(td);
+            if (!dailyData[ds]) dailyData[ds] = { content: '', remark: '' };
+            if (dailyData[ds][field] === val) return;
+            dailyData[ds][field] = val;
+            saveLocal();
+            updateStats();
+
+            clearTimeout(_saveTimers[ds + '_' + field]);
+            _saveTimers[ds + '_' + field] = setTimeout(async () => {
+                const content = dailyData[ds]?.content || '';
+                const remark = dailyData[ds]?.remark || '';
+                const isEmpty = !content && !remark;
+                if (isEmpty) {
+                    try {
+                        if (online) { await sb.from('daily_reports').delete().eq('report_date', ds);
+                            addLog('🗑️ 云端删除日报: ' + ds); }
+                        delete dailyData[ds];
+                        saveLocal();
+                        updateStats();
+                        setSyncBadge('ok', '☁ 已删除 ' + ds);
+                        renderDaily();
+                        fetchCloudCounts();
+                        showToast('🗑️ 已删除空日报 ' + ds, 'info', 1500);
+                    } catch (e) { setSyncBadge('err', '⚠ 删除失败');
+                        addLog('❌ 日报删除失败: ' + ds + ' ' + e.message);
+                        console.error(e); }
+                    return;
+                }
+                if (online) {
+                    try {
+                        await sb.from('daily_reports').upsert({ report_date: ds, content, remark,
+                            updated_at: new Date().toISOString() }, { onConflict: 'report_date' });
+                        setSyncBadge('ok', '☁ 已保存 ' + ds);
+                        addLog('日报保存: ' + ds);
+                        fetchCloudCounts();
+                    } catch (e) { setSyncBadge('err', '⚠ 保存失败');
+                        addLog('日报保存失败: ' + e.message);
+                        console.error(e); }
+                } else { setSyncBadge('warn', '💾 本地已保存 ' + ds);
+                    addLog('日报本地保存: ' + ds); }
+            }, 300);
+        }
+
+        /* ===================== 周报（支持空日期） ===================== */
+        function renderWeekly() {
+            const year = curYear,
+                month = curMonth;
+            const startM = month === 0 ? 1 : month,
+                endM = month === 0 ? 12 : month;
+            let allRows = [];
+
+            for (let mo = startM; mo <= endM; mo++) {
+                const mStr = String(mo).padStart(2, '0');
+                const keys = Object.keys(weeklyData).filter(k => {
+                    if (k.startsWith('new_') || k.startsWith('empty_')) return false;
+                    if (k.length !== 10) return false;
+                    const parts = k.split('-');
+                    if (parts.length !== 3) return false;
+                    const y = parseInt(parts[0]),
+                        m = parseInt(parts[1]);
+                    return y === year && m === mo;
+                });
+                keys.sort();
+                keys.forEach(k => { allRows.push({ date: k, data: weeklyData[k], isTemp: false }); });
+                const dataCount = keys.length;
+                const minRows = 4;
+                for (let i = dataCount; i < minRows; i++) {
+                    const emptyKey = 'empty_' + year + '_' + mo + '_' + i;
+                    allRows.push({ date: '', data: { content: '', remark: '' }, isTemp: true, tempKey: emptyKey });
+                }
+            }
+
+            const tempKeys = Object.keys(weeklyData).filter(k => k.startsWith('new_'));
+            tempKeys.forEach(k => { allRows.push({ date: '', data: weeklyData[k], isTemp: true, tempKey: k }); });
+
+            if (keyword) {
+                allRows = allRows.filter(row => {
+                    const content = row.data.content || '',
+                        remark = row.data.remark || '',
+                        date = row.date || '';
+                    return (content + remark + date).toLowerCase().includes(keyword.toLowerCase());
+                });
+            }
+
+            let html = '';
+            allRows.forEach((row) => {
+                const date = row.date,
+                    content = row.data.content || '',
+                    remark = row.data.remark || '';
+                const isTemp = row.isTemp || false,
+                    tempKey = row.tempKey || '';
+                const dataKey = isTemp ? tempKey : date;
+                const editableAttr = (desktopMode) ? 'contenteditable="true"' : '';
+                const touchClass = (!desktopMode && isTouchDevice) ? 'touch-cell' : '';
+                html += `<tr oncontextmenu="delWeekRow(event,'${dataKey}')">
+                    <td ${editableAttr} data-wk="${dataKey}" data-field="date" data-label="日期"
+                        class="${touchClass}" onblur="saveWeekly(this)" style="text-align:center">${textToHtml(date)}</td>
+                    <td ${editableAttr} data-wk="${dataKey}" data-field="content" data-label="周报内容"
+                        class="${touchClass}" onblur="saveWeekly(this)">${textToHtml(content)}</td>
+                    <td ${editableAttr} data-wk="${dataKey}" data-field="remark" data-label="备注"
+                        class="${touchClass}" onblur="saveWeekly(this)">${textToHtml(remark)}</td></tr>`;
+            });
+
+            document.getElementById('weeklyBody').innerHTML = html ||
+                '<tr><td colspan="3" class="empty-tip">无匹配数据</td></tr>';
+            _bindCellEvents();
+            if (!desktopMode && isTouchDevice) initTouchEdit();
+        }
+
+        /* ★ 周报删除 - 所有行均可删除，包括补足空行 */
+        function delWeekRow(e, dataKey) {
+            e.preventDefault();
+            if (!dataKey) {
+                showToast('该行无法删除', 'info');
+                return;
+            }
+            if (dataKey.startsWith('empty_') || dataKey.startsWith('new_')) {
+                if (confirm(`确定删除该空行吗？`)) {
+                    delete weeklyData[dataKey];
+                    saveLocal();
+                    updateStats();
+                    renderWeekly();
+                    addLog('删除空行: ' + dataKey);
+                    showToast('已删除空行', 'info');
+                }
+                return;
+            }
+            if (!confirm(`确定删除日期为「${dataKey}」的周报行吗？\n删除后不可恢复。`)) return;
+            Object.keys(_wSaveTimers).forEach(t => { if (t.indexOf(dataKey + '_') === 0) { clearTimeout(_wSaveTimers[t]);
+                    delete _wSaveTimers[t]; } });
+            delete weeklyData[dataKey];
+            saveLocal();
+            updateStats();
+            if (online) {
+                sb.from('weekly_reports').delete().eq('date_key', dataKey)
+                    .then(() => { console.log('云端已删除 ' + dataKey);
+                        fetchCloudCounts() })
+                    .catch(err => console.error('云端删除失败', err));
+            }
+            addLog('删除周报行: ' + dataKey);
+            renderWeekly();
+        }
+
+        function addWeekRow() {
+            const tempKey = 'new_' + Date.now();
+            weeklyData[tempKey] = { content: '', remark: '' };
+            saveLocal();
+            renderWeekly();
+            addLog('添加空周报行');
+            setTimeout(() => {
+                const tbody = document.getElementById('weeklyBody');
+                const rows = tbody.querySelectorAll('tr');
+                if (rows.length > 0) {
+                    const lastRow = rows[rows.length - 1];
+                    const firstTd = lastRow.querySelector('td');
+                    if (firstTd && firstTd.contentEditable === 'true') { firstTd.focus(); }
+                }
+            }, 100);
+        }
+
+        const _wSaveTimers = {};
+
+        /* ★ 保存周报（允许日期为空） */
+        async function saveWeekly(td) {
+            const key = td.dataset.wk,
+                field = td.dataset.field,
+                val = getCellText(td);
+
+            if (field === 'date') {
+                const newDate = val.trim();
+                if (!newDate) {
+                    if (key && key.startsWith('new_')) {
+                        const emptyKey = 'empty_' + Date.now();
+                        weeklyData[emptyKey] = { content: weeklyData[key].content || '', remark: weeklyData[key]
+                            .remark || '' };
+                        delete weeklyData[key];
+                        td.dataset.wk = emptyKey;
+                        const tr = td.closest('tr');
+                        tr.querySelectorAll('td').forEach(t => { if (t.dataset.wk) t.dataset.wk = emptyKey; });
+                        saveLocal();
+                        renderWeekly();
+                        addLog('临时行转为空行');
+                        showToast('日期已清空，保存为空行', 'info');
+                    } else if (key && !key.startsWith('empty_') && !key.startsWith('new_')) {
+                        const content = weeklyData[key]?.content || '';
+                        const remark = weeklyData[key]?.remark || '';
+                        delete weeklyData[key];
+                        const emptyKey = 'empty_' + Date.now();
+                        weeklyData[emptyKey] = { content, remark };
+                        td.dataset.wk = emptyKey;
+                        const tr = td.closest('tr');
+                        tr.querySelectorAll('td').forEach(t => { if (t.dataset.wk) t.dataset.wk = emptyKey; });
+                        saveLocal();
+                        updateStats();
+                        renderWeekly();
+                        addLog('清空日期，转为空行');
+                        showToast('日期已清空，内容保留', 'info');
+                    }
+                    return;
+                }
+
+                const parsed = parseDate(newDate);
+                if (!parsed) {
+                    showToast('日期格式无效，请使用 YYYY-MM-DD 格式', 'error');
+                    td.innerHTML = textToHtml(key.startsWith('empty_') ? '' : key);
+                    return;
+                }
+                if (key !== parsed) {
+                    if (weeklyData[parsed] && !key.startsWith('new_') && !key.startsWith('empty_')) {
+                        showToast('该日期已有数据，无法覆盖', 'error');
+                        td.innerHTML = textToHtml(key);
+                        return;
+                    }
+                    const content = weeklyData[key]?.content || '',
+                        remark = weeklyData[key]?.remark || '';
+                    weeklyData[parsed] = { content, remark };
+                    if (key && key !== parsed) delete weeklyData[key];
+                    td.dataset.wk = parsed;
+                    const tr = td.closest('tr');
+                    tr.querySelectorAll('td').forEach(t => { if (t.dataset.wk) t.dataset.wk = parsed; });
+                    addLog('周报日期修改: ' + (key || '空') + ' -> ' + parsed);
+                    saveLocal();
+                    updateStats();
+                    renderWeekly();
+                    showToast('日期已更新为 ' + parsed, 'success');
+                    return;
+                }
+                return;
+            }
+
+            if (!key) {
+                showToast('数据异常，请刷新', 'error');
+                return;
+            }
+            if (!weeklyData[key]) weeklyData[key] = { content: '', remark: '' };
+            if (weeklyData[key][field] === val) return;
+            weeklyData[key][field] = val;
+            saveLocal();
+            updateStats();
+
+            clearTimeout(_wSaveTimers[key + '_' + field]);
+            _wSaveTimers[key + '_' + field] = setTimeout(async () => {
+                const content = weeklyData[key]?.content || '',
+                    remark = weeklyData[key]?.remark || '';
+                const isEmpty = !content && !remark;
+                if (isEmpty && !key.startsWith('new_') && !key.startsWith('empty_')) {
+                    try {
+                        if (online) { await sb.from('weekly_reports').delete().eq('date_key', key);
+                            addLog('🗑️ 云端删除周报: ' + key); }
+                        delete weeklyData[key];
+                        saveLocal();
+                        updateStats();
+                        setSyncBadge('ok', '☁ 已删除周报');
+                        renderWeekly();
+                        fetchCloudCounts();
+                        showToast('🗑️ 已删除空周报行', 'info', 1500);
+                    } catch (e) { setSyncBadge('err', '⚠ 删除失败');
+                        addLog('❌ 周报删除失败: ' + key + ' ' + e.message);
+                        console.error(e); }
+                    return;
+                }
+                if (isEmpty && (key.startsWith('new_') || key.startsWith('empty_'))) {
+                    return;
+                }
+                if (!key.startsWith('new_') && !key.startsWith('empty_')) {
+                    const dateObj = new Date(key + 'T00:00:00');
+                    if (isNaN(dateObj.getTime())) return;
+                    if (!online) { setSyncBadge('warn', '💾 本地已保存');
+                        addLog('周报本地保存: ' + key); return; }
+                    try {
+                        const payload = { date_key: key, content, remark, updated_at: new Date().toISOString() };
+                        const { data, error } = await sb.from('weekly_reports').upsert(payload, { onConflict: 'date_key' });
+                        if (error) { console.error('Supabase 周报保存错误:', error);
+                            setSyncBadge('err', '⚠ 云同步失败');
+                            addLog('❌ 周报云同步失败: ' + error.message); } else { setSyncBadge('ok', '☁ 周报已同步 ' +
+                                key);
+                            addLog('✅ 周报云同步成功: ' + key);
+                            fetchCloudCounts(); }
+                    } catch (e) { console.error('周报保存异常:', e);
+                        setSyncBadge('err', '⚠ 网络异常');
+                        addLog('❌ 周报保存异常: ' + e.message); }
+                }
+            }, 500);
+        }
+
+        /* ===================== 搜索/页签 ===================== */
+        function doSearch() { keyword = document.getElementById('searchInput').value.trim();
+            addLog('搜索: ' + (keyword || '(清空)'));
+            renderAll(); }
+
+        function clearSearch() { keyword = '';
+            document.getElementById('searchInput').value = '';
+            addLog('清空搜索');
+            renderAll(); }
+
+        function switchTab(t) {
+            document.getElementById('dailyView').style.display = t === 'daily' ? '' : 'none';
+            document.getElementById('weeklyView').style.display = t === 'weekly' ? '' : 'none';
+            document.getElementById('tabDaily').classList.toggle('active', t === 'daily');
+            document.getElementById('tabWeekly').classList.toggle('active', t === 'weekly');
+            _clearHighlight();
+            addLog('切换到' + (t === 'daily' ? '日报' : '周报'));
+        }
+
+        function renderAll() { renderFilters();
+            renderDaily();
+            renderWeekly();
+            updateStats(); }
+
+        /* ===================== 列宽拖拽 ===================== */
+        function initColResize(tableId) {
+            if (window.innerWidth <= 768 && !desktopMode) return;
+            const table = document.getElementById(tableId);
+            if (!table) return;
+            table.querySelectorAll('.col-resize').forEach(handle => {
+                handle.onmousedown = e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const th = handle.parentElement,
+                        startX = e.clientX,
+                        startW = th.offsetWidth;
+                    handle.classList.add('dragging');
+                    const onMove = ev => { th.style.width = Math.max(50, startW + (ev.clientX - startX)) + 'px' };
+                    const onUp = () => { handle.classList.remove('dragging');
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp) };
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                }
+            });
+        }
+
+        /* ===================== 设置相关 ===================== */
+        function openSettings() { renderYearGrid();
+            document.getElementById('settingMask').style.display = 'flex' }
+
+        function closeSettings() { document.getElementById('settingMask').style.display = 'none' }
+
+        function openPwdModal() { document.getElementById('pwdMask').style.display = 'flex' }
+
+        async function changePwd() {
+            const o = document.getElementById('oldPwd').value,
+                n = document.getElementById('newPwd').value,
+                n2 = document.getElementById('newPwd2').value;
+            let cur;
+            if (online) { try { const { data } = await sb.from('users').select('password').eq('username', 'admin')
+                    .single();
+                    cur = data?.password } catch (e) {} }
+            if (!cur) cur = localStorage.getItem('dr_pwd_cache') || '1234';
+            if (o !== cur) return alert('原密码错误');
+            if (!n || n !== n2) return alert('新密码为空或两次不一致');
+            if (online) await sb.from('users').update({ password: n, updated_at: new Date().toISOString() }).eq(
+                'username', 'admin');
+            localStorage.setItem('dr_pwd_cache', n);
+            document.getElementById('pwdMask').style.display = 'none';
+            document.getElementById('oldPwd').value = document.getElementById('newPwd').value = document.getElementById(
+                'newPwd2').value = '';
+            addLog('密码修改成功');
+            alert('密码修改成功！');
+            closeSettings();
+        }
+
+        /* ===================== Excel 导出 ===================== */
+        function exportExcel(type) {
+            if (type === 'weekly') {
+                const year = curYear,
+                    month = curMonth;
+                const startM = month === 0 ? 1 : month,
+                    endM = month === 0 ? 12 : month;
+                const rows = [];
+                for (let mo = startM; mo <= endM; mo++) {
+                    const mStr = String(mo).padStart(2, '0');
+                    const keys = Object.keys(weeklyData).filter(k => {
+                        if (k.startsWith('new_') || k.startsWith('empty_')) return false;
+                        if (k.length !== 10) return false;
+                        const parts = k.split('-');
+                        if (parts.length !== 3) return false;
+                        const y = parseInt(parts[0]),
+                            m = parseInt(parts[1]);
+                        return y === year && m === mo;
+                    });
+                    keys.sort();
+                    keys.forEach(k => {
+                        const data = weeklyData[k];
+                        if (keyword && !(data.content + data.remark + k).toLowerCase().includes(keyword
+                            .toLowerCase())) return;
+                        rows.push({ '日期': k, '周报内容': data.content || '', '备注': data.remark || '' });
+                    });
+                }
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+                for (let R = range.s.r; R <= range.e.r; R++)
+                    for (let C = range.s.c; C <= range.e.c; C++) { const addr = XLSX.utils.encode_cell({ r: R,
+                            c: C }); if (ws[addr]) ws[addr].s = { alignment: { wrapText: true, vertical: 'center',
+                                horizontal: 'center' } }; }
+                ws['!cols'] = [{ wch: 15 }, { wch: 60 }, { wch: 30 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '周报');
+                XLSX.writeFile(wb, `周报_${year}年${month===0?'全年':month+'月'}.xlsx`);
+                addLog('导出周报Excel: ' + rows.length + '条');
+                closeSettings();
+                return;
+            }
+            // 日报导出
+            const rows = [],
+                startM = curMonth === 0 ? 1 : curMonth,
+                endM = curMonth === 0 ? 12 : curMonth;
+            for (let mo = startM; mo <= endM; mo++) { const days = new Date(curYear, mo, 0).getDate();
+                for (let d = 1; d <= days; d++) { const dt = new Date(curYear, mo - 1, d);
+                    const ds =
+                    `${curYear}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const r = dailyData[ds] || { content: '', remark: '' };
+                    if (keyword && !(r.content + r.remark + ds).toLowerCase().includes(keyword.toLowerCase()))
+                        continue;
+                    rows.push({ '日期': ds, '星期': WEEK[dt.getDay()], '工作内容': r.content, '备注': r.remark }); } }
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+            for (let R = range.s.r; R <= range.e.r; R++)
+                for (let C = range.s.c; C <= range.e.c; C++) { const addr = XLSX.utils.encode_cell({ r: R, c: C }); if (ws[
+                        addr]) ws[addr].s = { alignment: { wrapText: true, vertical: 'center',
+                        horizontal: 'center' } }; }
+            ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 50 }, { wch: 30 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '日报');
+            XLSX.writeFile(wb, `日报_${curYear}年${curMonth===0?'全年':curMonth+'月'}.xlsx`);
+            addLog('导出日报Excel: ' + rows.length + '条');
+            closeSettings();
+        }
+
+        function exportTemplate(type) {
+            if (type === 'weekly') {
+                const ws = XLSX.utils.json_to_sheet([{ '日期': '', '周报内容': '', '备注': '' }]);
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let C = range.s.c; C <= range.e.c; C++) { const addr = XLSX.utils.encode_cell({ r: 0, c: C }); if (ws[
+                        addr]) ws[addr].s = { font: { bold: true }, alignment: { vertical: 'center',
+                            horizontal: 'center' } }; }
+                ws['!cols'] = [{ wch: 15 }, { wch: 60 }, { wch: 30 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '周报导入模板');
+                XLSX.writeFile(wb, '周报导入模板.xlsx');
+                addLog('导出周报导入模板');
+                closeSettings();
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet([{ '日期': '', '星期': '', '工作内容': '', '备注': '' }]);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let C = range.s.c; C <= range.e.c; C++) { const addr = XLSX.utils.encode_cell({ r: 0, c: C }); if (ws[
+                    addr]) ws[addr].s = { font: { bold: true }, alignment: { vertical: 'center',
+                        horizontal: 'center' } }; }
+            ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 50 }, { wch: 30 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '日报导入模板');
+            XLSX.writeFile(wb, '日报导入模板.xlsx');
+            addLog('导出日报导入模板');
+            closeSettings();
+        }
+
+        /* ===================== Excel 导入 ===================== */
+        async function importExcel(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+            const bar = document.getElementById('progressBar'),
+                fill = document.getElementById('progressFill'),
+                txt = document.getElementById('progressText');
+            bar.style.display = 'block';
+            txt.style.display = 'block';
+            fill.style.width = '0%';
+            txt.textContent = '读取文件中…';
+            const reader = new FileReader();
+            reader.onload = async e => {
+                txt.textContent = '解析中…';
+                fill.style.width = '5%';
+                const wb = XLSX.read(e.target.result, { type: 'array', cellDates: false, raw: true });
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
+                const total = rows.length;
+                let count = 0,
+                    skipped = 0,
+                    batch = [];
+                const BATCH_SIZE = 20;
+
+                if (type === 'weekly') {
+                    for (let i = 0; i < total; i++) {
+                        const r = rows[i];
+                        const rawDate = r['日期'] ?? r['date'] ?? r['Date'] ?? '';
+                        const dateStr = parseDate(rawDate);
+                        if (!dateStr) { skipped++; continue; }
+                        const content = String(r['周报内容'] ?? r.content ?? r.Content ?? '');
+                        const remark = String(r['备注'] ?? r.remark ?? r.Remark ?? '');
+                        weeklyData[dateStr] = { content, remark };
+                        count++;
+                        batch.push({ date_key: dateStr, content, remark, updated_at: new Date().toISOString() });
+                        fill.style.width = (Math.round(((i + 1) / total) * 90) + 5) + '%';
+                        txt.textContent = `导入周报中… ${i+1}/${total}`;
+                        if (online && batch.length >= BATCH_SIZE) {
+                            try { await sb.from('weekly_reports').upsert(batch, { onConflict: 'date_key' }) } catch (
+                            err) { addLog('周报批量导入失败: ' + err.message) }
+                            batch = [];
+                            await new Promise(r => setTimeout(r, 0));
+                        }
+                    }
+                    if (online && batch.length > 0) { try { await sb.from('weekly_reports').upsert(batch,
+                            { onConflict: 'date_key' }) } catch (err) { addLog('周报尾批导入失败: ' + err
+                            .message) } }
+                } else {
+                    for (let i = 0; i < total; i++) { const r = rows[i];
+                        const ds = parseDate(r['日期'] ?? r.date ?? r.Date ?? r['DATE']);
+                        if (!ds) { skipped++; continue }
+                        const content = String(r['工作内容'] ?? r.content ?? r.Content ?? ''),
+                            remark = String(r['备注'] ?? r.remark ?? r.Remark ?? '');
+                        dailyData[ds] = { content, remark };
+                        count++;
+                        batch.push({ report_date: ds, content, remark, updated_at: new Date().toISOString() });
+                        fill.style.width = (Math.round(((i + 1) / total) * 90) + 5) + '%';
+                        txt.textContent = `导入日报中… ${i+1}/${total}`;
+                        if (online && batch.length >= BATCH_SIZE) { try { await sb.from('daily_reports').upsert(
+                                batch, { onConflict: 'report_date' }) } catch (err) { addLog(
+                                '日报批量导入失败: ' + err.message) }
+                            batch = [];
+                            await new Promise(r => setTimeout(r, 0)); } }
+                    if (online && batch.length > 0) { try { await sb.from('daily_reports').upsert(batch,
+                            { onConflict: 'report_date' }) } catch (err) { addLog('日报尾批导入失败: ' + err
+                            .message) } }
+                }
+
+                saveLocal();
+                renderAll();
+                updateStats();
+                fill.style.width = '100%';
+                txt.textContent = `✅ 完成！成功 ${count} 条，跳过 ${skipped} 条`;
+                setSyncBadge('ok', '☁ 导入完成');
+                addLog(`导入${type==='weekly'?'周报':'日报'}Excel: 成功${count}条，跳过${skipped}条 (${file.name})`);
+                fetchCloudCounts();
+                setTimeout(() => { bar.style.display = 'none';
+                    txt.style.display = 'none' }, 3000);
+                input.value = '';
+                closeSettings();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        /* ===================== 心跳 ===================== */
+        function heartbeat() {
+            if (!online) return;
+            const ping = () => { sb.from('users').select('username', { count: 'exact', head: true })
+                    .then(() => { localStorage.setItem('dr_ping', String(Date.now()));
+                        console.log('[心跳] ping ok'); }); };
+            if (Date.now() - (+localStorage.getItem('dr_ping') || 0) > 3 * 86400000) ping();
+            setInterval(() => { if (Date.now() - (+localStorage.getItem('dr_ping') || 0) > 86400000) ping(); },
+            6 * 3600000);
+        }
+
+        /* ===================== 初始化 ===================== */
+        autoCleanLogs();
+        renderLogs();
+        updateStats();
+        applyDesktopMode();
+
+        // ★ 自动登录：如果已记住登录状态且存在缓存密码，直接进入
+        if (localStorage.getItem('dr_logged_in') === 'true' && localStorage.getItem('dr_pwd_cache')) {
+            showMain();
+            loadCloud().then(() => { renderAll();
+                heartbeat(); }).catch(e => console.warn('自动登录加载数据失败', e));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { initColResize('dailyTable');
+            initColResize('weeklyTable') });
+        window.addEventListener('resize', () => { initColResize('dailyTable');
+            initColResize('weeklyTable') });
+    </script>
+</body>
+</html>
