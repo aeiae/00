@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" id="viewportMeta" content="width=1280, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
+    <meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>工作日报</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
     </script>
@@ -1118,8 +1118,8 @@
 
         let cloudDailyCount = 0,
             cloudWeeklyCount = 0;
-        // ★ 默认桌面模式
-        let desktopMode = localStorage.getItem('dr_desktop_mode') === '1' ? true : true;
+        // ★ 默认桌面模式（将在初始化时根据设备调整）
+        let desktopMode = true;
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const PREF_TABLE = 'app_settings';
         const PREF_ID = 1;
@@ -2590,6 +2590,18 @@
         autoCleanLogs();
         renderLogs();
         updateStats();
+
+        // ★ 检测是否为移动设备，若是则强制手机模式（覆盖 localStorage 的保存值）
+        const isMobile = isTouchDevice || window.innerWidth <= 768;
+        if (isMobile) {
+            desktopMode = false;
+            localStorage.setItem('dr_desktop_mode', '0');
+        } else {
+            // 非移动设备则读取 localStorage 或默认桌面
+            const stored = localStorage.getItem('dr_desktop_mode');
+            desktopMode = stored === '1' ? true : false;
+        }
+
         applyDesktopMode();
 
         // ★ 自动登录：如果已记住登录状态且存在缓存密码，直接进入
