@@ -1,38 +1,38 @@
 ﻿[
     {
         "name":  "01-安装造价工具箱",
-        "path":  "01-安装造价工具箱.html"
+        "path":  "HTML/01-安装造价工具箱.html"
     },
     {
         "name":  "02-本地网络管理控制台",
-        "path":  "02-本地网络管理控制台.html"
+        "path":  "HTML/02-本地网络管理控制台.html"
     },
     {
         "name":  "03-网址收藏夹",
-        "path":  "03-网址收藏夹.html"
+        "path":  "HTML/03-网址收藏夹.html"
     },
     {
         "name":  "04-HTML文件整理工具",
-        "path":  "04-HTML文件整理工具.html"
+        "path":  "HTML/04-HTML文件整理工具.html"
     },
     {
         "name":  "05-index导航页",
-        "path":  "05-index导航页.html"
+        "path":  "HTML/05-index导航页.html"
     },
     {
         "name":  "06-Excel清单查看工具",
-        "path":  "06-Excel清单查看工具.html"
+        "path":  "HTML/06-Excel清单查看工具.html"
     },
     {
         "name":  "07-信息价查询工具-安装专业优化版 ",
-        "path":  "07-信息价查询工具-安装专业优化版 .html"
+        "path":  "HTML/07-信息价查询工具-安装专业优化版 .html"
     },
     {
         "name":  "08-分部分项清单数据查看工具",
-        "path":  "08-分部分项清单数据查看工具.html"
+        "path":  "HTML/08-分部分项清单数据查看工具.html"
     },
     {
         "name":  "09-工作日报",
-        "path":  "09-工作日报.html"
+        "path":  "HTML/09-工作日报.html"
     }
 ]
