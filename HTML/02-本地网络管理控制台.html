@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地网络管理控制台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#165DFF', cardBg: '#f8fafc' } } }
+        }
+    </script>
+    <style>
+        .card-shadow { box-shadow: 0 4px 20px rgba(22, 93, 255, 0.1); }
+        .grad-bg { background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%); }
+        .context-menu { position: fixed; z-index: 9999; min-width: 140px; }
+        .site-item, .device-item, .port-item { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        * { -webkit-tap-highlight-color: transparent; }
+        .port-actions { opacity: 0; transition: opacity 0.2s; }
+        .port-item.show-actions .port-actions { opacity: 1; }
+        .syncing { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="max-w-5xl mx-auto p-4 py-8">
+        <!-- 顶部标题 -->
+        <div class="grad-bg text-white rounded-2xl p-6 mb-6 card-shadow relative overflow-hidden">
+            <h1 class="text-[24px] font-bold flex items-center gap-2">
+                <i class="fa fa-wifi"></i> 本地网络控制台
+            </h1>
+            <div id="sync-status" class="absolute top-6 right-6 text-xs bg-white/20 px-2 py-1 rounded flex items-center gap-1 cursor-pointer" onclick="manualSync()">
+                <i id="sync-icon" class="fa fa-cloud"></i>
+                <span id="sync-text">初始化...</span>
+            </div>
+        </div>
+
+        <!-- 首页导航页 -->
+        <div id="page-home">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="site-list"></div>
+            <button onclick="openSiteEdit()" class="mt-6 w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl text-lg hover:bg-primary/5 transition">
+                <i class="fa fa-plus mr-2"></i> 新增位置
+            </button>
+            <div class="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
+                <button onclick="exportData()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-download mr-1"></i> 导出下载</button>
+                <button onclick="copyData()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-copy mr-1"></i> 复制数据</button>
+                <button onclick="document.getElementById('import-file').click()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-upload mr-1"></i> 文件导入</button>
+                <button onclick="openPasteImport()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-paste mr-1"></i> 粘贴导入</button>
+                <button onclick="openShareSelect()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-camera mr-1"></i> 分享截图</button>
+                <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+            </div>
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-3 border-l-4 pl-3 border-primary">测速网站列表</h3>
+                <div class="bg-white rounded-xl p-4 card-shadow">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100"><tr><th class="border p-2 text-left">测速网站</th><th class="border p-2 text-left">网址</th><th class="border p-2">操作</th></tr></thead>
+                            <tbody id="speed-table-home"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 站点详情页 -->
+        <div id="page-site" class="hidden">
+            <button onclick="backHome()" class="mb-4 text-primary flex items-center gap-1"><i class="fa fa-arrow-left"></i> 返回首页</button>
+            <h2 id="site-title" class="text-2xl font-bold mb-4"></h2>
+            <h3 class="text-lg font-semibold mb-3">网络设备</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" id="device-list"></div>
+            <button onclick="openDeviceEdit()" class="w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl mb-8 hover:bg-primary/5"><i class="fa fa-plus mr-2"></i> 新增网络设备</button>
+            <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
+            <div class="bg-white rounded-xl p-4 card-shadow mb-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm mb-3">
+                        <thead class="bg-gray-100"><tr><th class="border p-2 text-left">网口</th><th class="border p-2 text-left">房间用途</th><th class="border p-2 w-20">操作</th></tr></thead>
+                        <tbody id="port-table-site"></tbody>
+                    </table>
+                </div>
+                <p class="text-gray-600 text-xs mb-3">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p>
+                <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口记录可显示编辑、删除操作</p>
+                <button onclick="openPortEdit()" class="text-sm text-primary border border-primary px-3 py-1 rounded hover:bg-primary/5 transition"><i class="fa fa-plus mr-1"></i> 添加网口记录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 & 弹窗 (保持原有结构不变) -->
+    <div id="ctx-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentSite()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 修改名称</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentSite()"><i class="fa fa-trash mr-2"></i> 删除位置</div>
+    </div>
+    <div id="ctx-device-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentDevice()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑设备</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentDevice()"><i class="fa fa-trash mr-2"></i> 删除设备</div>
+    </div>
+    <div id="modal-site" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-site-title">新增位置</h3><input type="hidden" id="edit-site-id"><label class="block mb-2 font-medium">位置名称</label><input id="site-name-input" class="w-full border rounded-lg p-3 mb-5" placeholder="如：家里、店里"><div class="flex gap-3"><button onclick="closeModal('modal-site')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSite()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-device" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-device-title">新增网络设备</h3><input type="hidden" id="edit-device-id"><label class="block mb-2 font-medium">设备名称</label><input id="dev-name" class="w-full border rounded-lg p-3 mb-3" placeholder="光猫 / 中兴路由器"><label class="block mb-2 font-medium">管理地址</label><input id="dev-ip" class="w-full border rounded-lg p-3 mb-3" placeholder="192.168.1.1"><label class="block mb-2 font-medium">管理密码</label><input id="dev-pwd" class="w-full border rounded-lg p-3 mb-3" placeholder="设备后台管理密码"><label class="block mb-2 font-medium">路由密码</label><input id="dev-route-pwd" class="w-full border rounded-lg p-3 mb-5" placeholder="WiFi路由密码"><div class="flex gap-3"><button onclick="closeModal('modal-device')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveDevice()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-port" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-port-title">添加网口记录</h3><input type="hidden" id="edit-port-id"><label class="block mb-2 font-medium">网口名称</label><input id="port-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：网口1、LAN1"><label class="block mb-2 font-medium">房间用途</label><input id="port-desc" class="w-full border rounded-lg p-3 mb-5" placeholder="如：次卧、客厅(T568B)"><div class="flex gap-3"><button onclick="closeModal('modal-port')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="savePort()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-share-select" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4">选择要截图的位置</h3><div id="share-site-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div><div class="flex gap-3"><button onclick="closeModal('modal-share-select')" class="flex-1 py-2 border rounded-lg">取消</button></div></div></div>
+    <div id="modal-share-qr" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-sm p-6"><h3 class="text-xl font-bold mb-2 text-center" id="share-qr-title">分享截图</h3><p class="text-gray-500 text-sm mb-4 text-center">网络设备信息截图</p><div class="flex justify-center mb-4"><div id="qr-code-container" class="bg-gray-100 p-2 rounded-xl border border-gray-200 max-h-96 overflow-y-auto"></div></div><p class="text-center text-gray-400 text-xs mb-4">长按图片可保存到手机</p><div class="flex gap-3"><button onclick="closeModal('modal-share-qr')" class="flex-1 py-2 border rounded-lg">关闭</button></div></div></div>
+    <div id="modal-paste-import" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-lg p-6"><h3 class="text-xl font-bold mb-4">粘贴导入数据</h3><p class="text-gray-500 text-sm mb-3">将之前复制的JSON数据粘贴到下方文本框中</p><textarea id="paste-data-textarea" class="w-full border rounded-lg p-3 mb-4 h-48 text-sm font-mono" placeholder="在此粘贴JSON数据..."></textarea><div class="flex gap-3"><button onclick="closeModal('modal-paste-import')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="doPasteImport()" class="flex-1 py-2 grad-bg text-white rounded-lg">确认导入</button></div></div></div>
+    <div id="page-share" class="hidden">
+        <div class="grad-bg text-white rounded-2xl p-6 mb-6 card-shadow"><h1 class="text-[24px] font-bold flex items-center gap-2"><i class="fa fa-wifi"></i> <span id="share-site-name">网络信息</span></h1><p class="text-white/80 text-sm mt-2">分享的网络设备信息</p></div>
+        <h3 class="text-lg font-semibold mb-3">网络设备</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="share-device-list"></div>
+        <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
+        <div class="bg-white rounded-xl p-4 card-shadow mb-4"><div class="overflow-x-auto"><table class="w-full text-sm mb-3"><thead class="bg-gray-100"><tr><th class="border p-2 text-left">网口</th><th class="border p-2 text-left">房间用途</th></tr></thead><tbody id="share-port-table"></tbody></table></div><p class="text-gray-600 text-xs">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div>
+        <button onclick="backHome()" class="w-full py-3 border border-primary text-primary rounded-xl mt-4"><i class="fa fa-home mr-2"></i> 返回控制台首页</button>
+    </div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/85 text-white px-5 py-2 rounded-lg hidden z-[9999]">复制成功</div>
+
+    <script>
+        // ⚠️ 请填写你的 Supabase 项目信息
+        const SUPABASE_URL = 'https://bbsmuquknfmegwokfsyn.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_IfxinQAG6tS4Nhsb0klV1Q_Tyel20J6';
+
+        let supabaseClient = null;
+        let isSyncing = false;
+
+        const defaultData = {
+            sites: [{ id: "zd", name: "家里", devices: [{ id: "zd-gm", name: "光猫", ip: "192.168.1.1", pwd: "62ay2ht5", routePwd: "" }, { id: "zd-zx", name: "中兴路由器", ip: "192.168.5.1", pwd: "25803699", routePwd: "" }], portList: [{ id: "p1", port: "网口1", desc: "次卧（客厅）(T568B)" }, { id: "p2", port: "网口2", desc: "次卧（飘窗）(T568B)" }, { id: "p3", port: "网口3", desc: "主卧(T568B)" }, { id: "p4", port: "网口4", desc: "客厅(T568B)" }] }],
+            speedList: [{ name: "测速网", url: "https://www.speedtest.cn/" }, { name: "speed.do", url: "http://speed.do/" }, { name: "中国联通宽带测速平台", url: "http://218.24.47.18" }]
+        };
+
+        let data = JSON.parse(localStorage.getItem("netMgrData")) || JSON.parse(JSON.stringify(defaultData));
+        let currentSiteId = null, ctxSiteId = null, ctxDeviceId = null, ctxPortId = null, editPortId = null, currentShareSite = null;
+
+        // ========== Supabase 无登录同步逻辑 ==========
+        async function initSupabase() {
+            if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+                updateSyncStatus('offline', '未配置云服务'); return;
+            }
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                updateSyncStatus('syncing', '连接云端...');
+                await loadFromCloud();
+            } catch (err) {
+                console.error('Supabase初始化失败:', err);
+                updateSyncStatus('error', '云服务异常');
+            }
+        }
+
+        async function loadFromCloud() {
+            if (!supabaseClient) return;
+            isSyncing = true;
+            updateSyncStatus('syncing', '拉取数据...');
+            try {
+                const { data: row, error } = await supabaseClient.from('net_mgr_config').select('data, updated_at').eq('id', 1).maybeSingle();
+                if (error) throw error;
+                if (row && row.data && Object.keys(row.data).length > 0) {
+                    const cloudTime = new Date(row.updated_at).getTime();
+                    const localTime = parseInt(localStorage.getItem("netMgrData_ts") || "0");
+                    if (cloudTime > localTime) {
+                        data = migrateDataStructure(row.data);
+                        saveLocal();
+                        refreshUI();
+                        updateSyncStatus('online', '云端数据已同步');
+                    } else {
+                        await pushToCloud();
+                    }
+                } else {
+                    await pushToCloud();
+                }
+            } catch (err) {
+                console.error('拉取失败:', err);
+                updateSyncStatus('error', '同步失败');
+            } finally { isSyncing = false; }
+        }
+
+        async function pushToCloud() {
+            if (!supabaseClient || isSyncing) return;
+            isSyncing = true;
+            updateSyncStatus('syncing', '上传数据...');
+            try {
+                const { error } = await supabaseClient.from('net_mgr_config').upsert({ id: 1, data: data, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                if (error) throw error;
+                localStorage.setItem("netMgrData_ts", Date.now().toString());
+                updateSyncStatus('online', '已同步至云端');
+            } catch (err) {
+                console.error('推送失败:', err);
+                updateSyncStatus('error', '上传失败');
+            } finally { isSyncing = false; }
+        }
+
+        function manualSync() { loadFromCloud(); }
+        function updateSyncStatus(state, text) {
+            const icon = document.getElementById('sync-icon');
+            document.getElementById('sync-text').innerText = text;
+            icon.className = state === 'syncing' ? 'fa fa-refresh syncing' : state === 'online' ? 'fa fa-cloud' : state === 'error' ? 'fa fa-exclamation-circle' : 'fa fa-cloud-upload';
+        }
+
+        // ========== 本地存储与迁移 ==========
+        function migrateDataStructure(rawData) {
+            const d = JSON.parse(JSON.stringify(rawData));
+            if (!d.sites) d.sites = [];
+            d.sites.forEach(site => { if (!site.portList) site.portList = []; if (!site.devices) site.devices = []; site.devices.forEach(dev => { if (!dev.routePwd) dev.routePwd = ""; }); });
+            if (!d.speedList) d.speedList = defaultData.speedList;
+            return d;
+        }
+        function saveLocal() { localStorage.setItem("netMgrData", JSON.stringify(data)); localStorage.setItem("netMgrData_ts", Date.now().toString()); }
+        function saveData() { saveLocal(); pushToCloud(); }
+        function refreshUI() { renderSiteList(); renderSpeedTableHome(); if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) { renderDeviceList(site); renderPortTableSite(site); } } }
+
+        // ========== 原有 UI 逻辑 (完全保留) ==========
+        function showToast(text = "复制成功") { const t = document.getElementById("toast"); t.innerText = text; t.classList.remove("hidden"); setTimeout(() => t.classList.add("hidden"), 1500); }
+        function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+        function checkShareMode() { const params = new URLSearchParams(window.location.hash.slice(1)); const shareData = params.get('share'); if (shareData) { try { showSharePage(JSON.parse(decodeURIComponent(escape(atob(shareData))))); return true; } catch(e) {} } return false; }
+        function showSharePage(siteData) { document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.remove("hidden"); document.getElementById("share-site-name").innerText = siteData.name || "网络信息"; const devWrap = document.getElementById("share-device-list"); devWrap.innerHTML = ""; if (siteData.devices?.length > 0) { siteData.devices.forEach(dev => { const c = document.createElement("div"); c.className = "bg-white rounded-xl p-5 card-shadow"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; devWrap.appendChild(c); }); } else { devWrap.innerHTML = '<p class="text-gray-400">暂无设备信息</p>'; } const tb = document.getElementById("share-port-table"); tb.innerHTML = ""; if (siteData.portList?.length > 0) { siteData.portList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2">${item.port}</td><td class="border p-2">${item.desc}</td>`; tb.appendChild(tr); }); } else { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录</td></tr>'; } }
+        function renderSiteList() { const wrap = document.getElementById("site-list"); wrap.innerHTML = ""; data.sites.forEach(site => { const card = document.createElement("div"); card.className = "site-item bg-white rounded-xl p-6 card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; card.innerHTML = `<h3 class="text-xl font-bold text-primary mb-2"><i class="fa fa-server mr-2"></i>${site.name}</h3><p class="text-gray-500 text-sm">共 ${site.devices.length} 台网络设备</p>`; card.onclick = () => openSite(site.id); card.oncontextmenu = (e) => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.clientX, e.clientY); }; let pt; card.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); card.addEventListener("touchend", () => clearTimeout(pt)); card.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(card); }); }
+        function renderSpeedTableHome() { const tb = document.getElementById("speed-table-home"); tb.innerHTML = ""; data.speedList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2">${item.name}</td><td class="border p-2 text-blue-600 break-all">${item.url}</td><td class="border p-2 text-center"><a href="${item.url}" target="_blank" class="text-primary">打开</a></td>`; tb.appendChild(tr); }); }
+        function showCtxMenu(x, y) { const m = document.getElementById("ctx-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
+        function showDeviceCtxMenu(x, y) { const m = document.getElementById("ctx-device-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
+        function openSite(siteId) { currentSiteId = siteId; document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.remove("hidden"); const site = data.sites.find(s => s.id === siteId); document.getElementById("site-title").innerText = site.name; renderDeviceList(site); renderPortTableSite(site); }
+        function backHome() { document.getElementById("page-home").classList.remove("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.add("hidden"); if (window.location.hash) history.pushState("", document.title, window.location.pathname + window.location.search); refreshUI(); }
+        function renderDeviceList(site) { const wrap = document.getElementById("device-list"); wrap.innerHTML = ""; site.devices.forEach(dev => { const c = document.createElement("div"); c.className = "device-item bg-white rounded-xl p-5 card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; c.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.clientX, e.clientY); }; let pt; c.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); c.addEventListener("touchend", () => clearTimeout(pt)); c.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(c); }); }
+        async function copyText(str) { if (!str) { showToast("内容为空"); return; } try { await navigator.clipboard.writeText(str); showToast(); } catch (e) { const ta = document.createElement("textarea"); ta.value = str; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); showToast(); } }
+        function renderPortTableSite(site) { const tb = document.getElementById("port-table-site"); tb.innerHTML = ""; if (!site.portList?.length) { tb.innerHTML = '<tr><td colspan="3" class="border p-4 text-center text-gray-400">暂无网口记录，点击下方按钮添加</td></tr>'; return; } site.portList.forEach(item => { const tr = document.createElement("tr"); tr.className = "port-item"; tr.innerHTML = `<td class="border p-2">${item.port}</td><td class="border p-2">${item.desc}</td><td class="border p-2 text-center"><div class="port-actions flex justify-center gap-2"><button onclick="editPort('${item.id}')" class="text-primary text-xs"><i class="fa fa-pencil"></i></button><button onclick="delPort('${item.id}')" class="text-red-500 text-xs"><i class="fa fa-trash"></i></button></div></td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); document.querySelectorAll('.port-item').forEach(el => el.classList.remove('show-actions')); tr.classList.add('show-actions'); ctxPortId = item.id; }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); document.querySelectorAll('.port-item').forEach(el => el.classList.remove('show-actions')); tr.classList.add('show-actions'); ctxPortId = item.id; }; tb.appendChild(tr); }); }
+        function openPortEdit() { editPortId = null; document.getElementById("modal-port-title").innerText = "添加网口记录"; document.getElementById("port-name").value = ""; document.getElementById("port-desc").value = ""; document.getElementById("modal-port").classList.remove("hidden"); }
+        function editPort(portId) { const p = data.sites.find(s => s.id === currentSiteId)?.portList.find(i => i.id === portId); if(!p) return; editPortId = portId; document.getElementById("modal-port-title").innerText = "编辑网口记录"; document.getElementById("port-name").value = p.port; document.getElementById("port-desc").value = p.desc; document.getElementById("modal-port").classList.remove("hidden"); }
+        function delPort(portId) { if (!confirm("确定删除该网口记录？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.portList = site.portList.filter(p => p.id !== portId); saveData(); renderPortTableSite(site); }
+        function savePort() { const port = document.getElementById("port-name").value.trim(); const desc = document.getElementById("port-desc").value.trim(); if (!port) return showToast("网口名称不能为空"); const site = data.sites.find(s => s.id === currentSiteId); if (editPortId) { const p = site.portList.find(i => i.id === editPortId); p.port = port; p.desc = desc; } else { site.portList.push({ id: "port_" + Date.now(), port, desc }); } saveData(); renderPortTableSite(site); closeModal("modal-port"); }
+        function openSiteEdit() { document.getElementById("modal-site-title").innerText = "新增位置"; document.getElementById("edit-site-id").value = ""; document.getElementById("site-name-input").value = ""; document.getElementById("modal-site").classList.remove("hidden"); }
+        function editCurrentSite() { const site = data.sites.find(s => s.id === ctxSiteId); document.getElementById("modal-site-title").innerText = "修改位置"; document.getElementById("edit-site-id").value = ctxSiteId; document.getElementById("site-name-input").value = site.name; document.getElementById("ctx-menu").classList.add("hidden"); document.getElementById("modal-site").classList.remove("hidden"); }
+        function saveSite() { const name = document.getElementById("site-name-input").value.trim(); if (!name) return showToast("名称不能为空"); const editId = document.getElementById("edit-site-id").value; if (editId) { data.sites.find(i => i.id === editId).name = name; } else { data.sites.push({ id: "site_" + Date.now(), name, devices: [], portList: [] }); } saveData(); renderSiteList(); closeModal("modal-site"); }
+        function delCurrentSite() { if (!confirm("确定删除该位置及所有设备？")) return; data.sites = data.sites.filter(s => s.id !== ctxSiteId); saveData(); renderSiteList(); document.getElementById("ctx-menu").classList.add("hidden"); }
+        function editCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); editDevice(ctxDeviceId); }
+        function delCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); delDevice(ctxDeviceId); }
+        function openDeviceEdit() { document.getElementById("modal-device-title").innerText = "新增网络设备"; document.getElementById("edit-device-id").value = ""; document.getElementById("dev-name").value = ""; document.getElementById("dev-ip").value = ""; document.getElementById("dev-pwd").value = ""; document.getElementById("dev-route-pwd").value = ""; document.getElementById("modal-device").classList.remove("hidden"); }
+        function editDevice(devId) { const dev = data.sites.find(s => s.id === currentSiteId)?.devices.find(d => d.id === devId); if(!dev) return; document.getElementById("modal-device-title").innerText = "编辑设备"; document.getElementById("edit-device-id").value = devId; document.getElementById("dev-name").value = dev.name; document.getElementById("dev-ip").value = dev.ip; document.getElementById("dev-pwd").value = dev.pwd || ""; document.getElementById("dev-route-pwd").value = dev.routePwd || ""; document.getElementById("modal-device").classList.remove("hidden"); }
+        function delDevice(devId) { if (!confirm("确定删除该设备？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.devices = site.devices.filter(d => d.id !== devId); saveData(); renderDeviceList(site); }
+        function saveDevice() { const name = document.getElementById("dev-name").value.trim(); const ip = document.getElementById("dev-ip").value.trim(); const pwd = document.getElementById("dev-pwd").value.trim(); const routePwd = document.getElementById("dev-route-pwd").value.trim(); if (!name || !ip) return showToast("设备名称和地址必填"); const editId = document.getElementById("edit-device-id").value; const site = data.sites.find(s => s.id === currentSiteId); if (editId) { const dev = site.devices.find(d => d.id === editId); dev.name = name; dev.ip = ip; dev.pwd = pwd; dev.routePwd = routePwd; } else { site.devices.push({ id: "dev_" + Date.now(), name, ip, pwd, routePwd }); } saveData(); renderDeviceList(site); closeModal("modal-device"); }
+        function openShareSelect() { const list = document.getElementById("share-site-list"); list.innerHTML = ""; data.sites.forEach(site => { const item = document.createElement("div"); item.className = "p-3 border rounded-lg cursor-pointer hover:bg-gray-50 flex items-center justify-between"; item.innerHTML = `<span><i class="fa fa-server mr-2 text-primary"></i>${site.name}</span><span class="text-gray-400 text-sm">${site.devices.length} 台设备</span>`; item.onclick = () => { closeModal('modal-share-select'); generateShareScreenshot(site); }; list.appendChild(item); }); document.getElementById("modal-share-select").classList.remove("hidden"); }
+        function generateShareScreenshot(site) { currentShareSite = site; document.getElementById("share-qr-title").innerText = `分享：${site.name}`; document.getElementById("modal-share-qr").classList.remove("hidden"); const container = document.getElementById("qr-code-container"); container.innerHTML = '<p class="text-gray-400 text-sm p-4">生成截图中...</p>'; const renderBox = document.createElement("div"); renderBox.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:#f1f5f9;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;"; let dh = ''; site.devices.forEach(dev => { dh += `<div style="background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><h4 style="font-size:16px;font-weight:bold;margin:0 0 8px;color:#1e293b;">${dev.name}</h4><p style="font-size:14px;color:#64748b;margin:4px 0;">地址：${dev.ip}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">管理密码：${dev.pwd||'未设置'}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">路由密码：${dev.routePwd||'未设置'}</p></div>`; }); let ph = ''; if (site.portList?.length) { let pr = ''; site.portList.forEach(i => { pr += `<tr><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;">${i.port}</td><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;">${i.desc}</td></tr>`; }); ph = `<div><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网口分配记录</h3><div style="background:white;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;">网口</th><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;">房间用途</th></tr></thead><tbody>${pr}</tbody></table><p style="font-size:12px;color:#64748b;margin:12px 0 0;">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div></div>`; } renderBox.innerHTML = `<div style="background:linear-gradient(135deg,#165DFF,#4080FF);color:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><h2 style="font-size:20px;font-weight:bold;margin:0;display:flex;align-items:center;gap:8px;"><span>📶</span> ${site.name}</h2><p style="font-size:14px;opacity:.8;margin:8px 0 0;">网络设备信息</p></div><div style="margin-bottom:16px;"><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网络设备</h3>${dh}</div>${ph}`; document.body.appendChild(renderBox); setTimeout(() => { html2canvas(renderBox, { backgroundColor: '#f1f5f9', scale: 2, useCORS: true, logging: false }).then(canvas => { const img = document.createElement("img"); img.src = canvas.toDataURL('image/png'); img.style.cssText = "width:100%;border-radius:8px;"; container.innerHTML = ""; container.appendChild(img); document.body.removeChild(renderBox); }).catch(err => { container.innerHTML = '<p class="text-red-500 text-sm p-4">截图生成失败</p>'; document.body.contains(renderBox) && document.body.removeChild(renderBox); }); }, 100); }
+        function exportData() { const b = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; const d = new Date(); a.download = `网络控制台数据_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); showToast("导出成功"); }
+        function copyData() { copyText(JSON.stringify(data, null, 2)); showToast("数据已复制"); }
+        function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("导入数据将覆盖当前所有数据，确定继续吗？")) { event.target.value = ""; return; } const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported.sites || !Array.isArray(imported.sites)) { showToast("数据格式错误"); return; } data = migrateDataStructure(imported); saveData(); refreshUI(); showToast("导入成功"); } catch { showToast("文件解析失败"); } }; reader.readAsText(file); event.target.value = ""; }
+        function openPasteImport() { document.getElementById("paste-data-textarea").value = ""; document.getElementById("modal-paste-import").classList.remove("hidden"); }
+        function doPasteImport() { const text = document.getElementById("paste-data-textarea").value.trim(); if (!text) { showToast("请粘贴数据"); return; } if (!confirm("导入数据将覆盖当前所有数据，确定继续吗？")) return; try { const imported = JSON.parse(text); if (!imported.sites || !Array.isArray(imported.sites)) { showToast("数据格式错误"); return; } data = migrateDataStructure(imported); saveData(); refreshUI(); closeModal("modal-paste-import"); showToast("导入成功"); } catch { showToast("数据解析失败"); } }
+
+        // ========== 初始化 ==========
+        window.onload = () => {
+            if (checkShareMode()) return;
+            data = migrateDataStructure(data);
+            refreshUI();
+            initSupabase();
+        };
+        window.addEventListener('hashchange', () => { if (!window.location.hash) { document.getElementById("page-share").classList.add("hidden"); document.getElementById("page-home").classList.remove("hidden"); refreshUI(); } });
+    </script>
+</body>
+</html>
