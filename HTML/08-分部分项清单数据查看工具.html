@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 移动端固定为1280px宽度，直接显示桌面版，不缩放适配 -->
+    <meta name="viewport" content="width=1280">
+    <title>清单数据查看工具 - 项目版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f7 100%);
+            color: #1f2937;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* 修改为 auto，确保手机端内容可滚动 */
+            overflow-y: auto;
+        }
+
+        .header {
+            background: #ffffff;
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header .project-name {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 400;
+        }
+        .header .stats {
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header .stats span {
+            background: #f3f4f6;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #4b5563;
+        }
+        .header .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs {
+            background: white;
+            padding: 0 20px;
+            border-bottom: 1px solid #ebeef5;
+            display: flex;
+            gap: 0;
+            flex-shrink: 0;
+        }
+        .tab {
+            padding: 10px 18px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .tab:hover {
+            color: #3b82f6;
+        }
+        .tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .tab .tab-badge {
+            display: inline-block;
+            background: #e5e7eb;
+            color: #6b7280;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 6px;
+        }
+        .tab.active .tab-badge {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .toolbar {
+            background: #ffffff;
+            padding: 10px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .btn {
+            padding: 6px 14px;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            color: #4b5563;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .btn:hover {
+            border-color: #3b82f6;
+            color: #2563eb;
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+        .btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .btn-sm {
+            padding: 3px 8px;
+            font-size: 11px;
+        }
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            color: #4b5563;
+        }
+        .checkbox-wrapper input {
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+        .search-input {
+            padding: 5px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 12px;
+            width: 180px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        .divider {
+            width: 1px;
+            height: 18px;
+            background: #e5e7eb;
+            margin: 0 4px;
+        }
+
+        .paste-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            /* 手机端可滚动 */
+            overflow-y: auto;
+        }
+        .project-info-bar {
+            background: white;
+            padding: 12px 24px;
+            border-bottom: 1px solid #ebeef5;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .project-info-bar label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .project-input {
+            flex: 1;
+            max-width: 400px;
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+        .project-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .paste-tabs {
+            background: #ffffff;
+            padding: 0 28px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            gap: 0;
+            flex-shrink: 0;
+        }
+        .paste-tab {
+            padding: 14px 22px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        .paste-tab::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #d1d5db;
+            flex-shrink: 0;
+        }
+        .paste-tab.data-valid::before {
+            background: #10b981;
+        }
+        .paste-tab.data-invalid::before {
+            background: #f59e0b;
+        }
+        .paste-tab.has-data::before {
+            background: #10b981;
+        }
+        .paste-tab:hover {
+            color: #3b82f6;
+        }
+        .paste-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .paste-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .paste-card {
+            width: 100%;
+            max-width: 650px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        .paste-card-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #f3f4f6;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+        .paste-card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+        .paste-card-header p {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        .paste-card-body {
+            padding: 24px;
+        }
+        .paste-box {
+            width: 100%;
+            border: 2px dashed #d1d5db;
+            border-radius: 14px;
+            padding: 44px 32px;
+            text-align: center;
+            background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .paste-box:hover,
+        .paste-box.dragover {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+        }
+        .paste-box.has-data {
+            border-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        .paste-box .icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            color: #9ca3af;
+        }
+        .paste-box.has-data .icon {
+            color: #22c55e;
+        }
+        .paste-box h3 {
+            font-size: 15px;
+            color: #374151;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .paste-box p {
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .paste-box .data-info {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #16a34a;
+            display: none;
+        }
+        .paste-box.has-data .data-info {
+            display: block;
+        }
+
+        .paste-tip {
+            margin-top: 20px;
+            padding: 14px 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.8;
+        }
+        .paste-tip strong {
+            color: #3b82f6;
+        }
+        .paste-tip code {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #374151;
+        }
+
+        .paste-textarea {
+            width: 100%;
+            height: 120px;
+            margin-top: 16px;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 11px;
+            font-family: monospace;
+            resize: vertical;
+            display: block;
+        }
+
+        .start-btn-bar {
+            padding: 16px 24px;
+            background: white;
+            border-top: 1px solid #ebeef5;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .table-page {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .table-page.active {
+            display: flex;
+        }
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            background: white;
+            position: relative;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            color: #333333;
+            table-layout: fixed;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th {
+            background: #f9fafb;
+            padding: 8px 10px;
+            text-align: center !important;
+            font-weight: 600;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            font-size: 12px;
+            position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            user-select: none;
+            vertical-align: middle !important;
+        }
+        th.col-编码,
+        th.col-序号,
+        th.col-费用代号 {
+            text-align: center !important;
+        }
+        th.dragging {
+            opacity: 0.5;
+            background: #eff6ff;
+        }
+        th.drag-over {
+            background: #dbeafe;
+        }
+        td {
+            padding: 6px 10px;
+            border: 1px solid #e5e7eb;
+            vertical-align: middle !important;
+            overflow: hidden;
+        }
+        td.editable {
+            cursor: text;
+        }
+        td.editable:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+            background: #eff6ff;
+        }
+        .num-col {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-family: "SF Mono", Monaco, Consolas, monospace;
+            white-space: nowrap;
+        }
+
+        .col-编码,
+        .col-序号,
+        .col-费用代号 {
+            white-space: nowrap;
+            font-family: "SF Mono", Monaco, Consolas, monospace;
+            text-align: left !important;
+        }
+        td.col-编码,
+        td.col-序号,
+        td.col-费用代号 {
+            text-align: left !important;
+        }
+
+        .col-名称 .cell-text,
+        .col-项目特征 .cell-text,
+        .col-计算基数 .cell-text,
+        .col-基数说明 .cell-text,
+        .col-备注 .cell-text {
+            white-space: pre-wrap !important;
+            word-break: break-word;
+            line-height: 1.6;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            display: block;
+        }
+        td.col-名称,
+        td.col-项目特征,
+        td.col-计算基数,
+        td.col-基数说明,
+        td.col-备注 {
+            vertical-align: top;
+            height: auto;
+        }
+
+        .col-resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            cursor: col-resize;
+            user-select: none;
+            z-index: 20;
+            background: transparent;
+            transition: background 0.2s;
+        }
+        .col-resizer:hover,
+        .col-resizer.active {
+            background: #3b82f6;
+        }
+
+        .row-section-1 td {
+            color: #1e40af !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            padding: 9px 12px !important;
+            background: #ffffff !important;
+        }
+        .row-section-1 td:first-child {
+            padding-left: 12px !important;
+            border-left: 4px solid #3b82f6 !important;
+            background: linear-gradient(90deg, #eff6ff 0%, #ffffff 30%) !important;
+        }
+        .row-section-2 td {
+            color: #166534 !important;
+            font-weight: 600 !important;
+            font-size: 12.5px !important;
+            padding: 7px 12px !important;
+            background: #ffffff !important;
+        }
+        .row-section-2 td:first-child {
+            padding-left: 24px !important;
+            border-left: 4px solid #22c55e !important;
+            background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 30%) !important;
+        }
+        .row-section-3 td {
+            color: #92400e !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+            padding: 6px 12px !important;
+            background: #ffffff !important;
+        }
+        .row-section-3 td:first-child {
+            padding-left: 36px !important;
+            border-left: 4px solid #f59e0b !important;
+            background: linear-gradient(90deg, #fffbeb 0%, #ffffff 30%) !important;
+        }
+        .row-section-4 td {
+            color: #6b21a8 !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+            padding: 6px 12px !important;
+            background: #ffffff !important;
+        }
+        .row-section-4 td:first-child {
+            padding-left: 48px !important;
+            border-left: 4px solid #a855f7 !important;
+            background: linear-gradient(90deg, #faf5ff 0%, #ffffff 30%) !important;
+        }
+        .row-section-5 td {
+            color: #9d174d !important;
+            font-weight: 600 !important;
+            font-size: 11.5px !important;
+            padding: 5px 12px !important;
+            background: #ffffff !important;
+        }
+        .row-section-5 td:first-child {
+            padding-left: 60px !important;
+            border-left: 4px solid #ec4899 !important;
+            background: linear-gradient(90deg, #fdf2f8 0%, #ffffff 30%) !important;
+        }
+
+        .row-deleted td {
+            color: #9ca3af !important;
+            text-decoration: line-through !important;
+            background: #f9fafb !important;
+            opacity: 0.7;
+        }
+        .row-deleted td:first-child {
+            border-left: 4px solid #9ca3af !important;
+            padding-left: 12px !important;
+        }
+        .row-deleted .cat-tag {
+            opacity: 0.5;
+            text-decoration: line-through !important;
+        }
+
+        .row-item td {
+            background: #ffffff;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .row-item td:first-child {
+            padding-left: 48px;
+        }
+        .row-item:hover td {
+            background: #f9fafb;
+        }
+
+        .row-quota td {
+            background: #fafafa;
+            color: #4b5563;
+            font-size: 12px;
+        }
+        .row-quota td:first-child {
+            padding-left: 64px;
+        }
+        .row-quota:hover td {
+            background: #f5f5f5;
+        }
+
+        .row-material td {
+            background: #fdfcfb;
+            color: #4b5563;
+            font-size: 12px;
+        }
+        .row-material td:first-child {
+            padding-left: 80px;
+        }
+        .row-material:hover td {
+            background: #f9f5f0;
+        }
+
+        .row-normal td {
+            background: #ffffff;
+            color: #374151;
+        }
+        .row-normal:hover td {
+            background: #f9fafb;
+        }
+
+        .cat-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .cat-部 {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .cat-项 {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .cat-补项 {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .cat-定 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .cat-借 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .cat-换 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .cat-借换 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .cat-主 {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+        .cat-设 {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+        .cat-补 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: rgba(0, 0, 0, 0.05);
+            color: #6b7280;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 6px;
+            font-size: 8px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .toggle-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .row-section-1 .toggle-btn {
+            background: rgba(59, 130, 246, 0.15);
+            color: #1e40af;
+        }
+        .row-section-2 .toggle-btn {
+            background: rgba(34, 197, 94, 0.15);
+            color: #166534;
+        }
+        .row-section-3 .toggle-btn {
+            background: rgba(245, 158, 11, 0.2);
+            color: #92400e;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            padding: 6px 0;
+            z-index: 1000;
+            min-width: 160px;
+            display: none;
+        }
+        .context-menu-item {
+            padding: 7px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #374151;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .context-menu-item:hover {
+            background: #f3f4f6;
+            color: #3b82f6;
+        }
+        .context-menu-item.danger {
+            color: #ef4444;
+        }
+        .context-menu-item.danger:hover {
+            background: #fef2f2;
+        }
+        .context-menu-divider {
+            height: 1px;
+            background: #f3f4f6;
+            margin: 4px 0;
+        }
+        .color-picker-inline {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            padding: 8px 12px;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #3b82f6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #9ca3af;
+        }
+        .empty-state .icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        tr.row-selected td {
+            background-color: #dbeafe !important;
+            border-color: #93c5fd !important;
+        }
+        tr.row-selected td:first-child {
+            border-left: 4px solid #3b82f6 !important;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .cell-content {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            width: 100%;
+        }
+        .cell-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+            flex: 1;
+        }
+        .col-项目特征 .cell-text,
+        .col-名称 .cell-text,
+        .col-计算基数 .cell-text,
+        .col-基数说明 .cell-text,
+        .col-备注 .cell-text {
+            white-space: pre-wrap !important;
+            word-break: break-word;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #9ca3af;
+            line-height: 1;
+        }
+        .modal-close:hover {
+            color: #4b5563;
+        }
+        .modal-body {
+            padding: 14px 18px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 10px 18px;
+            border-top: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .batch-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .section-list {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .section-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .section-item:last-child {
+            border-bottom: none;
+        }
+        .section-item:hover {
+            background: #f9fafb;
+        }
+        .section-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .section-name {
+            font-size: 12px;
+            color: #1f2937;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .section-price {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+            font-family: "SF Mono", Monaco, Consolas, monospace;
+        }
+        .section-level-select {
+            padding: 3px 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }
+        .section-level-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .fee-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: normal;
+        }
+        .fee-人工费 {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .fee-材料费 {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .fee-机械费 {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .fee-管理费 {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .fee-利润 {
+            background: #ede9fe;
+            color: #6b21a8;
+        }
+        .fee-规费 {
+            color: #9d174d;
+        }
+        .fee-税金 {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        table.fenbu-table .col-编码 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-类别 {
+            text-align: center !important;
+        }
+        table.fenbu-table .col-名称 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-项目特征 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-规格型号 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-单位 {
+            text-align: center !important;
+        }
+        table.fenbu-table .col-工程量表达式 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-含量 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-工程量 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-单价 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-合价 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-综合单价 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-综合合价 {
+            text-align: right !important;
+        }
+        table.fenbu-table .col-备注 {
+            text-align: left !important;
+        }
+        table.fenbu-table .col-层级 {
+            text-align: center !important;
+        }
+        table.fenbu-table th {
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
+        table.measure-table th,
+        table.other-table th,
+        table.fee-summary-table th {
+            background: #f0f0f0 !important;
+            color: #333333 !important;
+            font-weight: 600 !important;
+            text-align: center !important;
+            border: 1px solid #d0d0d0 !important;
+        }
+        table.measure-table td,
+        table.other-table td,
+        table.fee-summary-table td {
+            border: 1px solid #e0e0e0 !important;
+            background: #ffffff !important;
+            color: #333333 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部标题栏 -->
+    <div class="header">
+        <h1>📋 <span id="headerTitle">清单数据查看工具</span><span class="project-name" id="headerProjectName"></span></h1>
+        <div class="header-actions">
+            <div class="stats" id="statsBar" style="display: none;">
+                <span>总行数: <b id="totalRows">0</b></span>
+                <span>显示: <b id="displayRows">0</b></span>
+            </div>
+            <button class="btn btn-sm" id="backBtn" style="display: none;">← 返回粘贴</button>
+            <button class="btn btn-sm btn-primary" id="exportBtn" style="display: none;">📤 导出 Excel</button>
+        </div>
+    </div>
+
+    <!-- 粘贴页面 -->
+    <div class="paste-page" id="pastePage">
+        <div class="project-info-bar">
+            <label>📁 项目名称：</label>
+            <input type="text" class="project-input" id="projectNameInput" placeholder="请输入项目名称" value="未命名项目">
+        </div>
+        <div class="paste-tabs">
+            <div class="paste-tab active" data-tab="分部分项">
+                <span class="status-dot"></span> 分部分项
+            </div>
+        </div>
+        <div class="paste-content">
+            <div class="paste-card">
+                <div class="paste-card-header">
+                    <h2 id="pasteTabTitle">分部分项数据</h2>
+                    <p id="pasteTabDesc">从广联达计价软件中复制分部分项清单数据</p>
+                </div>
+                <div class="paste-card-body">
+                    <div class="paste-box" id="pasteBox">
+                        <div class="icon">📋</div>
+                        <h3 id="pasteBoxTitle">点击粘贴分部分项数据</h3>
+                        <p id="pasteBoxDesc">点击此区域或按 Ctrl+V 粘贴</p>
+                        <div class="data-info" id="pasteDataInfo">已加载 0 行数据</div>
+                    </div>
+                    <textarea class="paste-textarea" id="pasteTextarea" placeholder="也可直接粘贴到此处..."></textarea>
+                    <div class="paste-tip" id="pasteTip">
+                        <strong>💡 操作说明：</strong><br>
+                        1. 首先输入项目名称<br>
+                        2. 打开广联达计价软件，在分部分项里选中需要复制的数据区域，右键选择"复制格子内容"<br>
+                        3. 回到本工具，点击上方粘贴区域（浏览器弹窗需确认）或在输入框直接粘贴<br>
+                        4. 点击底部"开始查看"按钮进入浏览模式（数据有效则直接进入）<br>
+                        5. 进入浏览模式后鼠标放在分部行上，点击右键手动设置层级<br>
+                        6. 可在浏览模式浏览或导出Excel查看（清单行右键可设置颜色，备注列可备注）
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="start-btn-bar">
+            <button class="btn" id="clearAllBtn">清空全部数据</button>
+            <button class="btn btn-primary" id="startViewBtn">开始查看 →</button>
+        </div>
+    </div>
+
+    <!-- 表格查看页面 -->
+    <div class="table-page" id="tablePage">
+        <div class="tabs" id="viewTabs">
+            <div class="tab active" data-tab="分部分项">分部分项 <span class="tab-badge">0</span></div>
+        </div>
+        <div class="toolbar" id="toolbar-分部分项">
+            <div class="toolbar-group">
+                <span class="toolbar-label">显示层级：</span>
+                <button class="btn active" data-level="all">全部</button>
+                <button class="btn" data-level="1">一级分部</button>
+                <button class="btn" data-level="2">二级分部</button>
+                <button class="btn" data-level="3">三级分部</button>
+                <button class="btn" data-level="item">清单</button>
+                <button class="btn" data-level="quota">定额</button>
+            </div>
+            <div class="divider"></div>
+            <div class="toolbar-group">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索名称/编码/项目特征..." style="width:180px;">
+                <button class="btn btn-sm" id="clearSearchBtn" title="清除搜索">✕</button>
+            </div>
+            <div class="toolbar-group" style="margin-left: auto;">
+                <button class="btn btn-sm" id="expandAllBtn">全部展开</button>
+                <button class="btn btn-sm" id="collapseAllBtn">全部折叠</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="dataTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="level1">设为一级分部</div>
+        <div class="context-menu-item" data-action="level2">设为二级分部</div>
+        <div class="context-menu-item" data-action="level3">设为三级分部</div>
+        <div class="context-menu-item" data-action="level4">设为四级分部</div>
+        <div class="context-menu-item" data-action="level5">设为五级分部</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="batchSet">批量设置分部层级</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="cancel">取消分部</div>
+    </div>
+    <div class="context-menu" id="itemContextMenu">
+        <div style="padding: 6px 12px; font-size: 11px; color: #6b7280; font-weight: 500;">设置行颜色</div>
+        <div class="color-picker-inline">
+            <div class="color-swatch" style="background: #fee2e2;" data-color="#fee2e2"></div>
+            <div class="color-swatch" style="background: #fef3c7;" data-color="#fef3c7"></div>
+            <div class="color-swatch" style="background: #dcfce7;" data-color="#dcfce7"></div>
+            <div class="color-swatch" style="background: #dbeafe;" data-color="#dbeafe"></div>
+            <div class="color-swatch" style="background: #ede9fe;" data-color="#ede9fe"></div>
+            <div class="color-swatch" style="background: #fce7f3;" data-color="#fce7f3"></div>
+            <div class="color-swatch" style="background: #e0e7ff;" data-color="#e0e7ff"></div>
+            <div class="color-swatch" style="background: #ccfbf1;" data-color="#ccfbf1"></div>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="clearColor">清除颜色</div>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal-overlay hidden" id="batchSetModal">
+        <div class="modal">
+            <div class="modal-header"><h3>批量设置分部层级</h3><button class="modal-close" onclick="closeBatchSetModal()">×</button></div>
+            <div class="modal-body">
+                <div class="batch-toolbar">
+                    <button class="btn btn-sm" onclick="batchSetAllLevel(1)">全部一级</button>
+                    <button class="btn btn-sm" onclick="batchSetAllLevel(2)">全部二级</button>
+                    <button class="btn btn-sm" onclick="batchSetAllLevel(3)">全部三级</button>
+                    <button class="btn btn-sm" onclick="batchSetAllLevel(4)">全部四级</button>
+                    <button class="btn btn-sm" onclick="batchSetAllLevel(5)">全部五级</button>
+                </div>
+                <div class="section-list" id="sectionList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeBatchSetModal()">取消</button>
+                <button class="btn btn-primary" onclick="applyBatchSet()">应用</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay hidden" id="columnSettingsModal">
+        <div class="modal" style="max-width:350px;">
+            <div class="modal-header"><h3>列显示设置</h3><button class="modal-close" onclick="closeColumnSettingsModal()">×</button></div>
+            <div class="modal-body">
+                <div class="batch-toolbar">
+                    <button class="btn btn-sm" onclick="showAllColumns()">显示全部</button>
+                    <button class="btn btn-sm" onclick="hideAllColumns()">隐藏全部</button>
+                </div>
+                <div class="section-list" id="columnSettingsList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeColumnSettingsModal()">取消</button>
+                <button class="btn btn-primary" onclick="applyColumnSettings()">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================================
+        // 全局数据
+        // ========================================================================
+        const TABLE_NAMES = ['分部分项'];
+        let project = {
+            name: '未命名项目',
+            tables: {}
+        };
+        let currentTab = '分部分项';
+        let currentViewTab = '分部分项';
+        let selectedRows = new Set();
+        let lastClickedRow = -1;
+        let contextMenuRowIdx = -1;
+
+        // 初始化各表
+        TABLE_NAMES.forEach(name => {
+            project.tables[name] = {
+                rawData: [],
+                parsedData: [],
+                columns: [],
+                columnMapping: {},
+                columnWidths: {},
+                columnOrder: [],
+                visibleColumns: new Set(),
+                collapsedRows: new Set(),
+                currentLevel: 'all',
+                deletedFilter: false,
+                searchText: '',
+                hasData: false,
+                hasLevels: false,
+                isValidData: false,
+                pasteText: ''
+            };
+        });
+
+        // 标准列定义
+        const tableStandards = {
+            '分部分项': {
+                '编码': ['编码', '编号', '代码', '项目编码', '清单编码'],
+                '类别': ['类别', '类型', '分类', '行类型'],
+                '名称': ['名称', '项目名称', '子目名称', '清单名称'],
+                '项目特征': ['项目特征', '特征', '项目特征描述'],
+                '规格型号': ['规格型号', '型号', '规格'],
+                '单位': ['单位', '计量单位'],
+                '工程量表达式': ['工程量表达式', '表达式', '计算式'],
+                '含量': ['含量', '定额含量'],
+                '工程量': ['工程量', '数量', '工程数量'],
+                '单价': ['单价', '基价', '综合单价'],
+                '合价': ['合价', '总价', '金额', '综合合价'],
+                '综合单价': ['综合单价', '综单'],
+                '综合合价': ['综合合价', '综总', '综合总价'],
+                '备注': ['备注', '说明', '手动备注']
+            }
+        };
+
+        const numericColumns = {
+            '分部分项': ['含量', '工程量', '单价', '合价', '综合单价', '综合合价']
+        };
+
+        const ignoredColumns = [
+            '锁定综合单价', '单价构成文件', '取费专业', '招标控制价',
+            '最低限价综合单价', '最高限价综合单价', '比率(%)',
+            '人工费价格指数', '机械费价格指数', '管理费价格指数'
+        ];
+
+        const categoryMapping = {
+            '部': 'section',
+            '项': 'item',
+            '补项': 'item',
+            '定': 'quota',
+            '借': 'quota',
+            '换': 'quota',
+            '借换': 'quota',
+            '补子目': 'quota',
+            '主': 'material',
+            '设': 'material'
+        };
+
+        const defaultWidths = {
+            '序号': 50,
+            '费用代号': 80,
+            '编码': 120,
+            '类别': 55,
+            '名称': 240,
+            '项目特征': 180,
+            '规格型号': 100,
+            '单位': 50,
+            '工程量': 80,
+            '组价方式': 80,
+            '计算基数': 120,
+            '基数说明': 120,
+            '费率(%)': 65,
+            '单价': 80,
+            '合价': 100,
+            '综合单价': 85,
+            '综合合价': 105,
+            '金额': 100,
+            '费用类别': 90,
+            '备注': 150,
+            '含量': 70,
+            '工程量表达式': 100,
+            '层级': 60
+        };
+
+        // ========================================================================
+        // 工具函数
+        // ========================================================================
+        function getCurrentTable() { return project.tables[currentViewTab]; }
+
+        function isIgnoredColumn(colName) {
+            return ignoredColumns.some(ign => colName.trim() === ign || colName.includes(ign));
+        }
+
+        function matchColumns(headers, tableName) {
+            const standards = tableStandards[tableName] || {};
+            const mapping = {},
+                used = new Set();
+            headers.forEach(h => {
+                const hv = h.trim();
+                for (const [std, aliases] of Object.entries(standards)) {
+                    if (aliases.includes(hv) && !used.has(std)) {
+                        mapping[h] = std;
+                        used.add(std);
+                        break;
+                    }
+                }
+            });
+            headers.forEach(h => {
+                if (mapping[h]) return;
+                const hv = h.trim().toLowerCase();
+                for (const [std, aliases] of Object.entries(standards)) {
+                    if (used.has(std)) continue;
+                    for (const alias of aliases) {
+                        if (hv.includes(alias.toLowerCase())) {
+                            mapping[h] = std;
+                            used.add(std);
+                            break;
+                        }
+                    }
+                    if (mapping[h]) break;
+                }
+            });
+            return mapping;
+        }
+
+        function getStandardCol(col, tableName) {
+            const t = project.tables[tableName || currentViewTab];
+            return t.columnMapping[col] || col;
+        }
+
+        function isNumericColumn(col, tableName) {
+            const std = getStandardCol(col, tableName);
+            return (numericColumns[tableName || currentViewTab] || []).includes(std);
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '') return '';
+            const n = parseFloat(num);
+            if (isNaN(n)) return num;
+            return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function getColClass(col, tableName) {
+            const std = getStandardCol(col, tableName);
+            let cls = [];
+            if (isNumericColumn(col, tableName)) cls.push('num-col');
+            cls.push('col-' + std);
+            return cls.join(' ');
+        }
+
+        function getCategory(row, tableName) {
+            const t = project.tables[tableName];
+            for (const [orig, std] of Object.entries(t.columnMapping)) {
+                if (std === '类别') return row[orig] || '';
+            }
+            return '';
+        }
+
+        function getRowType(category) { return categoryMapping[category] || 'other'; }
+
+        function getName(row, tableName) {
+            const t = project.tables[tableName];
+            for (const [orig, std] of Object.entries(t.columnMapping)) {
+                if (std === '名称') return row[orig] || '';
+            }
+            return '';
+        }
+
+        function getQuantity(row, tableName) {
+            const t = project.tables[tableName];
+            for (const [orig, std] of Object.entries(t.columnMapping)) {
+                if (std === '工程量') {
+                    const v = row[orig];
+                    if (v === '' || v == null) return 0;
+                    const n = parseFloat(v);
+                    return isNaN(n) ? 0 : n;
+                }
+            }
+            return 0;
+        }
+
+        function getCode(row, tableName) {
+            const t = project.tables[tableName];
+            for (const [orig, std] of Object.entries(t.columnMapping)) {
+                if (std === '编码') return row[orig] || '';
+            }
+            return '';
+        }
+
+        function getUnitPrice(row, tableName) {
+            const t = project.tables[tableName];
+            for (const [orig, std] of Object.entries(t.columnMapping)) {
+                if (std === '综合单价' || std === '单价') {
+                    const v = row[orig];
+                    if (v !== '' && v != null) {
+                        const n = parseFloat(String(v).replace(/,/g, ''));
+                        if (!isNaN(n)) return n;
+                    }
+                }
+            }
+            for (const key of Object.keys(row)) {
+                const lk = key.toLowerCase();
+                if (lk.includes('综合单价') || lk.includes('单价')) {
+                    const v = row[key];
+                    if (v !== '' && v != null) {
+                        const n = parseFloat(String(v).replace(/,/g, ''));
+                        if (!isNaN(n)) return n;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        function getTotalPrice(row, tableName) {
+            let total = 0;
+            const t = project.tables[tableName];
+            if (!t || !t.hasLevels) return 0;
+            const children = row._children || [];
+            for (const childIdx of children) {
+                if (childIdx < t.parsedData.length) {
+                    const child = t.parsedData[childIdx];
+                    if (child && !child._deleted) {
+                        const price = getUnitPrice(child, tableName);
+                        const qty = getQuantity(child, tableName);
+                        total += price * qty;
+                    }
+                }
+            }
+            return total;
+        }
+
+        function getLevelDisplayName(row) {
+            if (row._deleted) {
+                if (row._rowType === 'item') return '删除行-清单';
+                if (row._rowType === 'quota') return '删除行-定额';
+                if (row._rowType === 'material') return '删除行-主材';
+                return '删除行';
+            }
+            if (row._rowType === 'section') {
+                const names = ['', '一级分部', '二级分部', '三级分部', '四级分部', '五级分部'];
+                return names[row._level] || '分部';
+            }
+            if (row._rowType === 'item') return '清单行';
+            if (row._rowType === 'quota') return '定额行';
+            if (row._rowType === 'material') return '主材行';
+            return '';
+        }
+
+        // ========================================================================
+        // TSV 解析
+        // ========================================================================
+        function parseTSV(text, tableName) {
+            const rows = [];
+            let curRow = [],
+                curCell = '',
+                inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i],
+                    next = text[i + 1];
+                if (inQuotes) {
+                    if (ch === '"' && next === '"') { curCell += '"';
+                        i++; } else if (ch === '"') { inQuotes = false; } else { curCell += ch; }
+                } else {
+                    if (ch === '"' && curCell === '') { inQuotes = true; } else if (ch === '\t') { curRow.push(curCell);
+                        curCell = ''; } else if (ch === '\n' || ch === '\r') {
+                        if (ch === '\r' && next === '\n') i++;
+                        curRow.push(curCell);
+                        if (curRow.some(c => c.trim())) rows.push(curRow);
+                        curRow = [];
+                        curCell = '';
+                    } else { curCell += ch; }
+                }
+            }
+            if (curCell !== '' || curRow.length > 0) {
+                curRow.push(curCell);
+                if (curRow.some(c => c.trim())) rows.push(curRow);
+            }
+            if (rows.length < 2) return null;
+
+            const rawHeaders = rows[0].map(h => h.trim());
+            const filteredHeaders = rawHeaders.filter(h => !isIgnoredColumn(h));
+            const t = project.tables[tableName];
+            t.columnMapping = matchColumns(filteredHeaders, tableName);
+            t.columns = filteredHeaders;
+            t.columnOrder = [...filteredHeaders];
+            t.columnWidths = {};
+            filteredHeaders.forEach(col => {
+                const std = getStandardCol(col, tableName);
+                t.columnWidths[col] = defaultWidths[std] || 100;
+            });
+            t.visibleColumns = new Set(filteredHeaders);
+
+            if (tableName === '分部分项') {
+                const defaultCols = ['编码', '类别', '名称', '项目特征', '规格型号', '单位', '工程量表达式', '含量', '工程量', '单价', '合价',
+                    '综合单价', '综合合价', '备注'
+                ];
+                const vis = new Set();
+                for (const col of defaultCols) {
+                    let found = false;
+                    for (const [orig, std] of Object.entries(t.columnMapping)) {
+                        if (std === col) { vis.add(orig);
+                            found = true; break; }
+                    }
+                    if (!found && t.columns.includes(col)) vis.add(col);
+                }
+                t.visibleColumns = vis;
+                if (!t.columns.includes('备注')) {
+                    t.columns.push('备注');
+                    t.columnOrder.push('备注');
+                    t.columnWidths['备注'] = 150;
+                    t.visibleColumns.add('备注');
+                }
+                if (!t.columns.includes('层级')) {
+                    t.columns.push('层级');
+                    t.columnOrder.push('层级');
+                    t.columnWidths['层级'] = 60;
+                }
+            }
+
+            const data = [];
+            for (let i = 1; i < rows.length; i++) {
+                const vals = rows[i];
+                const row = {};
+                rawHeaders.forEach((col, idx) => {
+                    if (!isIgnoredColumn(col)) {
+                        row[col] = (vals[idx] != null ? vals[idx] : '');
+                    }
+                });
+                if (tableName === '分部分项') row['备注'] = '';
+                data.push(row);
+            }
+            return data;
+        }
+
+        // ========================================================================
+        // 层级处理（含删除行识别）
+        // ========================================================================
+        function processLevels(data, tableName) {
+            const result = [];
+            data.forEach((row, idx) => {
+                row._index = idx;
+                row._level = 0;
+                row._color = '';
+                row._children = [];
+                row._parent = -1;
+                row._rowType = 'normal';
+                row._deleted = false;
+                if (tableName === '分部分项') {
+                    const cat = getCategory(row, tableName);
+                    let rt = getRowType(cat);
+                    const code = getCode(row, tableName) || '';
+                    if (code.includes('补子目') && rt !== 'section') {
+                        rt = 'quota';
+                    }
+                    row._rowType = rt;
+                    if (row._rowType === 'section') row._level = 1;
+                }
+                result.push(row);
+            });
+
+            buildHierarchy(result, tableName);
+            markDeletedRows(result, tableName);
+            return result;
+        }
+
+        function buildHierarchy(data, tableName) {
+            let lastS1 = -1,
+                lastS2 = -1,
+                lastS3 = -1,
+                lastS4 = -1,
+                lastS5 = -1;
+            let lastItem = -1,
+                lastQuota = -1;
+            data.forEach((row, idx) => {
+                row._children = [];
+                if (row._rowType === 'section' && row._level === 1) {
+                    lastS1 = idx;
+                    lastS2 = lastS3 = lastS4 = lastS5 = -1;
+                    lastItem = lastQuota = -1;
+                    row._parent = -1;
+                } else if (row._rowType === 'section' && row._level === 2) {
+                    lastS2 = idx;
+                    lastS3 = lastS4 = lastS5 = -1;
+                    lastItem = lastQuota = -1;
+                    row._parent = lastS1;
+                    if (lastS1 >= 0) data[lastS1]._children.push(idx);
+                } else if (row._rowType === 'section' && row._level === 3) {
+                    lastS3 = idx;
+                    lastS4 = lastS5 = -1;
+                    lastItem = lastQuota = -1;
+                    row._parent = lastS2 >= 0 ? lastS2 : lastS1;
+                    if (row._parent >= 0) data[row._parent]._children.push(idx);
+                } else if (row._rowType === 'section' && row._level === 4) {
+                    lastS4 = idx;
+                    lastS5 = -1;
+                    lastItem = lastQuota = -1;
+                    row._parent = lastS3 >= 0 ? lastS3 : (lastS2 >= 0 ? lastS2 : lastS1);
+                    if (row._parent >= 0) data[row._parent]._children.push(idx);
+                } else if (row._rowType === 'section' && row._level === 5) {
+                    lastS5 = idx;
+                    lastItem = lastQuota = -1;
+                    row._parent = lastS4 >= 0 ? lastS4 : (lastS3 >= 0 ? lastS3 : (lastS2 >= 0 ? lastS2 : lastS1));
+                    if (row._parent >= 0) data[row._parent]._children.push(idx);
+                } else if (row._rowType === 'item') {
+                    lastItem = idx;
+                    lastQuota = -1;
+                    row._parent = lastS5 >= 0 ? lastS5 : (lastS4 >= 0 ? lastS4 : (lastS3 >= 0 ? lastS3 : (lastS2 >= 0 ?
+                        lastS2 : lastS1)));
+                    if (row._parent >= 0) data[row._parent]._children.push(idx);
+                } else if (row._rowType === 'quota') {
+                    lastQuota = idx;
+                    if (lastItem >= 0) {
+                        row._parent = lastItem;
+                        data[lastItem]._children.push(idx);
+                    } else {
+                        row._parent = lastS5 >= 0 ? lastS5 : (lastS4 >= 0 ? lastS4 : (lastS3 >= 0 ? lastS3 : (lastS2 >=
+                            0 ? lastS2 : lastS1)));
+                        if (row._parent >= 0 && data[row._parent]._rowType !== 'item') data[row._parent]._children.push(
+                        idx);
+                    }
+                } else if (row._rowType === 'material') {
+                    if (lastQuota >= 0) {
+                        row._parent = lastQuota;
+                        data[lastQuota]._children.push(idx);
+                    } else if (lastItem >= 0) {
+                        row._parent = lastItem;
+                        data[lastItem]._children.push(idx);
+                    } else {
+                        row._parent = lastS5 >= 0 ? lastS5 : (lastS4 >= 0 ? lastS4 : (lastS3 >= 0 ? lastS3 : (lastS2 >=
+                            0 ? lastS2 : lastS1)));
+                        if (row._parent >= 0 && data[row._parent]._rowType !== 'item' && data[row._parent]._rowType !==
+                            'quota') {
+                            data[row._parent]._children.push(idx);
+                        }
+                    }
+                } else {
+                    row._parent = lastS2 >= 0 ? lastS2 : lastS1;
+                    if (row._parent >= 0) data[row._parent]._children.push(idx);
+                }
+            });
+        }
+
+        // ========================================================================
+        // 标记删除行：清单行综合单价为0 或 定额/主材行含量为0
+        // ========================================================================
+        function markDeletedRows(data, tableName) {
+            if (tableName !== '分部分项') return;
+            const toDelete = new Set();
+
+            data.forEach((row, idx) => {
+                if (row._rowType === 'item') {
+                    const up = getUnitPrice(row, tableName);
+                    if (up === 0) toDelete.add(idx);
+                }
+            });
+
+            data.forEach((row, idx) => {
+                if (row._rowType === 'quota' || row._rowType === 'material') {
+                    const t = project.tables[tableName];
+                    let contentVal = 0;
+                    for (const [orig, std] of Object.entries(t.columnMapping)) {
+                        if (std === '含量') {
+                            const v = row[orig];
+                            if (v !== '' && v != null) {
+                                const n = parseFloat(String(v).replace(/,/g, ''));
+                                if (!isNaN(n)) contentVal = n;
+                            }
+                            break;
+                        }
+                    }
+                    if (contentVal === 0) toDelete.add(idx);
+                }
+            });
+
+            toDelete.forEach(idx => {
+                if (idx < data.length) {
+                    const row = data[idx];
+                    row._deleted = true;
+                    const children = row._children || [];
+                    children.forEach(childIdx => {
+                        if (childIdx < data.length) {
+                            const child = data[childIdx];
+                            if (child && (child._rowType === 'quota' || child._rowType === 'material')) {
+                                child._deleted = true;
+                                const subChildren = child._children || [];
+                                subChildren.forEach(subIdx => {
+                                    if (subIdx < data.length) {
+                                        const sub = data[subIdx];
+                                        if (sub && (sub._rowType === 'quota' || sub._rowType === 'material')) {
+                                            sub._deleted = true;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // ========================================================================
+        // 筛选与渲染
+        // ========================================================================
+        function filterData(tableName) {
+            const t = project.tables[tableName];
+            const filtered = [];
+            const data = t.hasLevels ? t.parsedData : t.rawData;
+
+            if (t.hasLevels) {
+                data.forEach((row, idx) => {
+                    let hidden = false;
+                    let parent = row._parent;
+                    while (parent >= 0) {
+                        if (t.collapsedRows.has(parent)) { hidden = true; break; }
+                        parent = data[parent]._parent;
+                    }
+                    if (hidden) return;
+
+                    if (t.searchText) {
+                        const s = t.searchText.toLowerCase();
+                        let found = false;
+                        for (const col of t.columns) {
+                            if ((row[col] || '').toLowerCase().includes(s)) { found = true; break; }
+                        }
+                        if (!found) return;
+                    }
+                    filtered.push({ row, idx });
+                });
+            } else {
+                data.forEach((row, idx) => {
+                    if (t.searchText) {
+                        const s = t.searchText.toLowerCase();
+                        let found = false;
+                        for (const col of t.columns) {
+                            if ((row[col] || '').toLowerCase().includes(s)) { found = true; break; }
+                        }
+                        if (!found) return;
+                    }
+                    filtered.push({ row, idx });
+                });
+            }
+            return filtered;
+        }
+
+        // ========================================================================
+        // 控制详细列显示（规格型号、工程量表达式、含量、单价、合价）
+        // ========================================================================
+        function setDetailColumnsVisible(tableName, visible) {
+            const t = project.tables[tableName];
+            const detailStdCols = ['规格型号', '工程量表达式', '含量', '单价', '合价'];
+            for (const col of t.columns) {
+                const std = getStandardCol(col, tableName);
+                if (detailStdCols.includes(std)) {
+                    if (visible) t.visibleColumns.add(col);
+                    else t.visibleColumns.delete(col);
+                }
+            }
+            const detailRawCols = ['规格型号', '工程量表达式', '含量', '单价', '合价'];
+            for (const col of t.columns) {
+                if (detailRawCols.includes(col)) {
+                    if (visible) t.visibleColumns.add(col);
+                    else t.visibleColumns.delete(col);
+                }
+            }
+        }
+
+        function setLevelCollapse(level, tableName) {
+            const t = project.tables[tableName];
+            t.collapsedRows.clear();
+            t.currentLevel = level;
+            const showDetail = (level === 'all' || level === 'quota');
+            setDetailColumnsVisible(tableName, showDetail);
+
+            if (!t.hasLevels) return;
+            switch (level) {
+                case '1':
+                    t.parsedData.forEach((row, idx) => {
+                        if (row._rowType === 'section' && row._level === 1) t.collapsedRows.add(idx);
+                    });
+                    break;
+                case '2':
+                    t.parsedData.forEach((row, idx) => {
+                        if (row._rowType === 'section' && row._level === 2) t.collapsedRows.add(idx);
+                    });
+                    break;
+                case '3':
+                    t.parsedData.forEach((row, idx) => {
+                        if (row._rowType === 'section' && row._level === 3) t.collapsedRows.add(idx);
+                    });
+                    break;
+                case 'item':
+                    t.parsedData.forEach((row, idx) => {
+                        if (row._rowType === 'item') t.collapsedRows.add(idx);
+                    });
+                    break;
+                case 'quota':
+                    t.parsedData.forEach((row, idx) => {
+                        if (row._rowType === 'quota') t.collapsedRows.add(idx);
+                    });
+                    break;
+            }
+        }
+
+        // 渲染表格
+        function renderTable(tableName) {
+            const t = project.tables[tableName];
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+
+            let displayColumns = t.columnOrder.filter(col => t.visibleColumns.has(col) && col !== '层级');
+            const showSerialCol = (tableName === '分部分项');
+            if (showSerialCol) {
+                displayColumns = ['_序号', ...displayColumns];
+            }
+
+            let headHtml = '<tr>';
+            displayColumns.forEach(col => {
+                if (col === '_序号') {
+                    headHtml +=
+                        `<th class="col-序号" style="width:50px;" data-col="_序号">序号<div class="col-resizer" data-col="_序号"></div></th>`;
+                    return;
+                }
+                const w = t.columnWidths[col] || 100;
+                const showPencil = tableName === '分部分项' && col === '备注';
+                headHtml += `<th class="${getColClass(col, tableName)}" style="width:${w}px;" data-col="${col}" draggable="true">
+                    ${col}${showPencil ? ' ✏️' : ''}
+                    <div class="col-resizer" data-col="${col}"></div>
+                </th>`;
+            });
+            headHtml += '</tr>';
+            thead.innerHTML = headHtml;
+
+            const filtered = filterData(tableName);
+            let bodyHtml = '';
+            let serialCounter = 0;
+
+            filtered.forEach(({ row, idx }) => {
+                let rowClass = '';
+                let hasChildren = false;
+                let isCollapsed = false;
+
+                if (t.hasLevels) {
+                    if (row._deleted) {
+                        rowClass = 'row-deleted';
+                    } else if (row._rowType === 'section') {
+                        rowClass = `row-section-${row._level}`;
+                    } else if (row._rowType === 'item') {
+                        rowClass = 'row-item';
+                    } else if (row._rowType === 'quota') {
+                        rowClass = 'row-quota';
+                    } else if (row._rowType === 'material') {
+                        rowClass = 'row-material';
+                    } else {
+                        rowClass = 'row-normal';
+                    }
+                    hasChildren = row._children && row._children.length > 0;
+                    isCollapsed = t.collapsedRows.has(idx);
+                } else {
+                    rowClass = 'row-normal';
+                }
+
+                let rowBgColor = row._color || '';
+                const isSelected = selectedRows.has(idx);
+                if (isSelected) rowClass += ' row-selected';
+
+                let serialNo = '';
+                if (showSerialCol && row._rowType === 'item') {
+                    serialCounter++;
+                    serialNo = serialCounter;
+                }
+
+                bodyHtml +=
+                    `<tr class="${rowClass}" data-idx="${idx}" style="${rowBgColor ? 'background-color:' + rowBgColor + ';' : ''}" onclick="handleRowClick(${idx}, event)">`;
+                displayColumns.forEach((col, colIdx) => {
+                    if (col === '_序号') {
+                        bodyHtml += `<td class="col-序号" style="text-align:center;">${serialNo}</td>`;
+                        return;
+                    }
+
+                    const colClass = getColClass(col, tableName);
+                    const stdCol = getStandardCol(col, tableName);
+                    let cellContent = row[col] || '';
+                    const isEditable = col === '备注' && tableName === '分部分项';
+
+                    let cellStyle = rowBgColor ? `background-color: ${rowBgColor};` : '';
+
+                    if (isEditable) {
+                        bodyHtml +=
+                            `<td class="${colClass} editable" contenteditable="true" data-col="${col}" data-idx="${idx}" style="${cellStyle}">${cellContent}</td>`;
+                        return;
+                    }
+
+                    // 保留项目特征中的换行符
+                    if (stdCol === '项目特征' || stdCol === '名称' || stdCol === '计算基数' || stdCol === '基数说明' ||
+                        stdCol === '备注') {
+                        cellContent = cellContent.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
+                    }
+
+                    const firstDataCol = showSerialCol ? 1 : 0;
+                    if (t.hasLevels && colIdx === firstDataCol) {
+                        if (hasChildren) {
+                            cellContent = `<div class="cell-content">
+                                <button class="toggle-btn" onclick="toggleRow(${idx}, event)">${isCollapsed ? '▶' : '▼'}</button>
+                                <span class="cell-text">${cellContent}</span>
+                            </div>`;
+                        } else {
+                            cellContent = `<div class="cell-content">
+                                <span style="display:inline-block;width:16px;flex-shrink:0;"></span>
+                                <span class="cell-text">${cellContent}</span>
+                            </div>`;
+                        }
+                    } else {
+                        if (stdCol === '项目特征' || stdCol === '名称' || stdCol === '计算基数' || stdCol === '基数说明' ||
+                            stdCol === '备注') {
+                            cellContent =
+                                `<div class="cell-content"><span class="cell-text" style="white-space:pre-wrap;word-break:break-word;">${cellContent}</span></div>`;
+                        } else {
+                            cellContent = `<div class="cell-content"><span class="cell-text">${cellContent}</span></div>`;
+                        }
+                    }
+
+                    if (stdCol === '类别' && row[col]) {
+                        cellContent = `<span class="cat-tag cat-${row[col]}">${row[col]}</span>`;
+                    }
+                    if (stdCol === '费用类别' && row[col]) {
+                        const fc = 'fee-' + row[col].replace(/[^\u4e00-\u9fa5]/g, '');
+                        cellContent = `<span class="fee-tag ${fc}">${row[col]}</span>`;
+                    }
+
+                    if (cellContent && cellContent !== '' && !row._deleted) {
+                        const clean = String(cellContent).replace(/,/g, '');
+                        const num = parseFloat(clean);
+                        if (!isNaN(num) && /^-?[\d,.]+$/.test(String(cellContent).trim())) {
+                            cellContent = formatNumber(num);
+                        }
+                    }
+
+                    bodyHtml += `<td class="${colClass}" style="${cellStyle}">${cellContent}</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+
+            if (filtered.length === 0) {
+                bodyHtml =
+                    `<tr><td colspan="${displayColumns.length}"><div class="empty-state"><div class="icon">🔍</div><p>没有符合条件的数据</p></div></td></tr>`;
+            }
+
+            tbody.innerHTML = bodyHtml;
+
+            const total = t.hasLevels ? t.parsedData.length : t.rawData.length;
+            const display = filtered.length;
+            document.getElementById('statsBar').style.display = 'flex';
+            document.getElementById('totalRows').textContent = total;
+            document.getElementById('displayRows').textContent = display;
+
+            document.querySelectorAll('.tab').forEach(tab => {
+                const tn = tab.dataset.tab;
+                const tb = project.tables[tn];
+                const cnt = tb.hasLevels ? tb.parsedData.length : tb.rawData.length;
+                tab.querySelector('.tab-badge').textContent = cnt;
+            });
+
+            initColResizers(tableName);
+            initContextMenu(tableName);
+            initHeaderContextMenu(tableName);
+            initColumnDrag(tableName);
+            initEditableCells(tableName);
+        }
+
+        // ========================================================================
+        // 列宽、列拖动、编辑单元格
+        // ========================================================================
+        function initColResizers(tableName) {
+            const resizers = document.querySelectorAll('.col-resizer');
+            let curResizer = null,
+                startX = 0,
+                startW = 0,
+                curCol = '';
+            const t = project.tables[tableName];
+            resizers.forEach(r => {
+                r.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    curResizer = r;
+                    curCol = r.dataset.col;
+                    startX = e.pageX;
+                    startW = t.columnWidths[curCol] || 100;
+                    r.classList.add('active');
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+            });
+
+            function onMove(e) {
+                if (!curResizer) return;
+                const nw = Math.max(40, startW + (e.pageX - startX));
+                t.columnWidths[curCol] = nw;
+                curResizer.parentElement.style.width = nw + 'px';
+            }
+
+            function onUp() {
+                if (curResizer) curResizer.classList.remove('active');
+                curResizer = null;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            }
+        }
+
+        function initColumnDrag(tableName) {
+            const ths = document.querySelectorAll('#dataTable thead th');
+            let draggedCol = null;
+            const t = project.tables[tableName];
+            ths.forEach(th => {
+                th.addEventListener('dragstart', e => {
+                    draggedCol = th.dataset.col;
+                    th.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                th.addEventListener('dragend', () => {
+                    th.classList.remove('dragging');
+                    document.querySelectorAll('th').forEach(h => h.classList.remove('drag-over'));
+                    draggedCol = null;
+                });
+                th.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    th.classList.add('drag-over');
+                });
+                th.addEventListener('dragleave', () => { th.classList.remove('drag-over'); });
+                th.addEventListener('drop', e => {
+                    e.preventDefault();
+                    th.classList.remove('drag-over');
+                    const targetCol = th.dataset.col;
+                    if (draggedCol && targetCol && draggedCol !== targetCol) {
+                        const order = t.columnOrder;
+                        const fi = order.indexOf(draggedCol);
+                        const ti = order.indexOf(targetCol);
+                        if (fi >= 0 && ti >= 0) {
+                            order.splice(fi, 1);
+                            order.splice(ti, 0, draggedCol);
+                            renderTable(tableName);
+                        }
+                    }
+                });
+            });
+        }
+
+        function initEditableCells(tableName) {
+            const t = project.tables[tableName];
+            const cells = document.querySelectorAll('td.editable');
+            cells.forEach(cell => {
+                cell.addEventListener('click', e => {
+                    e.stopPropagation();
+                    cell.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(cell);
+                    range.collapse(false);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                });
+                cell.addEventListener('mousedown', e => { e.stopPropagation(); });
+                cell.addEventListener('blur', () => {
+                    const col = cell.dataset.col;
+                    const idx = parseInt(cell.dataset.idx);
+                    if (col && idx >= 0) {
+                        const text = cell.textContent.trim();
+                        if (t.hasLevels) t.parsedData[idx][col] = text;
+                        else t.rawData[idx][col] = text;
+                    }
+                });
+                cell.addEventListener('keydown', e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault();
+                        cell.blur(); }
+                });
+            });
+        }
+
+        // ========================================================================
+        // 右键菜单
+        // ========================================================================
+        function initContextMenu(tableName) {
+            if (tableName !== '分部分项') return;
+            const rows = document.querySelectorAll('#dataTable tbody tr');
+            const t = project.tables[tableName];
+            rows.forEach(row => {
+                row.addEventListener('contextmenu', e => {
+                    const idx = parseInt(row.dataset.idx);
+                    const rowData = t.parsedData[idx];
+                    if (!rowData) return;
+                    if (rowData._rowType === 'section') {
+                        e.preventDefault();
+                        contextMenuRowIdx = idx;
+                        const menu = document.getElementById('contextMenu');
+                        menu.style.left = e.pageX + 'px';
+                        menu.style.top = e.pageY + 'px';
+                        menu.style.display = 'block';
+                        document.getElementById('itemContextMenu').style.display = 'none';
+                    } else if (rowData._rowType === 'item' || rowData._rowType === 'quota' || rowData._rowType ===
+                        'material') {
+                        e.preventDefault();
+                        contextMenuRowIdx = idx;
+                        const menu = document.getElementById('itemContextMenu');
+                        menu.style.left = e.pageX + 'px';
+                        menu.style.top = e.pageY + 'px';
+                        menu.style.display = 'block';
+                        document.getElementById('contextMenu').style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function initHeaderContextMenu(tableName) {
+            document.querySelectorAll('#dataTable thead th').forEach(th => {
+                th.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    openColumnSettingsModal(tableName);
+                });
+            });
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+            document.getElementById('itemContextMenu').style.display = 'none';
+            contextMenuRowIdx = -1;
+        }
+
+        document.querySelectorAll('#itemContextMenu .color-swatch').forEach(sw => {
+            sw.addEventListener('click', () => {
+                const color = sw.dataset.color;
+                if (currentViewTab === '分部分项') {
+                    if (selectedRows.size > 0 && selectedRows.has(contextMenuRowIdx)) {
+                        setSelectedRowsColor(color);
+                        return;
+                    }
+                    if (contextMenuRowIdx >= 0) {
+                        project.tables['分部分项'].parsedData[contextMenuRowIdx]._color = color;
+                    }
+                }
+                hideContextMenu();
+                renderTable(currentViewTab);
+            });
+        });
+
+        function handleItemContextMenuAction(action) {
+            if (contextMenuRowIdx < 0) return;
+            const t = project.tables[currentViewTab];
+            if (action === 'clearColor') {
+                if (selectedRows.size > 0 && selectedRows.has(contextMenuRowIdx)) {
+                    clearSelectedRowsColor();
+                    return;
+                }
+                const row = t.parsedData[contextMenuRowIdx];
+                if (row) row._color = '';
+            }
+            hideContextMenu();
+            renderTable(currentViewTab);
+        }
+
+        document.querySelectorAll('#itemContextMenu .context-menu-item').forEach(item => {
+            item.addEventListener('click', () => handleItemContextMenuAction(item.dataset.action));
+        });
+
+        function handleContextMenuAction(action) {
+            if (contextMenuRowIdx < 0 || currentViewTab !== '分部分项') return;
+            const t = project.tables['分部分项'];
+            const row = t.parsedData[contextMenuRowIdx];
+            if (!row) return;
+            switch (action) {
+                case 'level1':
+                    row._level = 1;
+                    row._rowType = 'section';
+                    break;
+                case 'level2':
+                    row._level = 2;
+                    row._rowType = 'section';
+                    break;
+                case 'level3':
+                    row._level = 3;
+                    row._rowType = 'section';
+                    break;
+                case 'level4':
+                    row._level = 4;
+                    row._rowType = 'section';
+                    break;
+                case 'level5':
+                    row._level = 5;
+                    row._rowType = 'section';
+                    break;
+                case 'batchSet':
+                    hideContextMenu();
+                    openBatchSetModal();
+                    return;
+                case 'cancel':
+                    row._level = 0;
+                    row._rowType = 'other';
+                    break;
+            }
+            buildHierarchy(t.parsedData, '分部分项');
+            hideContextMenu();
+            renderTable('分部分项');
+        }
+
+        document.querySelectorAll('#contextMenu .context-menu-item').forEach(item => {
+            item.addEventListener('click', () => handleContextMenuAction(item.dataset.action));
+        });
+
+        // ========================================================================
+        // 批量设置层级
+        // ========================================================================
+        function openBatchSetModal() {
+            const t = project.tables['分部分项'];
+            const list = document.getElementById('sectionList');
+            let html = '';
+            t.parsedData.forEach((row, idx) => {
+                if (row._rowType === 'section') {
+                    const name = getName(row, '分部分项');
+                    const price = getTotalPrice(row, '分部分项');
+                    const level = row._level;
+                    html += `
+                        <div class="section-item" data-idx="${idx}">
+                            <div class="section-info">
+                                <div class="section-name">${name || '(无名称)'}</div>
+                                <div class="section-price">合价: ${price.toFixed(2)}</div>
+                            </div>
+                            <select class="section-level-select" data-idx="${idx}">
+                                <option value="1" ${level === 1 ? 'selected' : ''}>一级</option>
+                                <option value="2" ${level === 2 ? 'selected' : ''}>二级</option>
+                                <option value="3" ${level === 3 ? 'selected' : ''}>三级</option>
+                                <option value="4" ${level === 4 ? 'selected' : ''}>四级</option>
+                                <option value="5" ${level === 5 ? 'selected' : ''}>五级</option>
+                                <option value="0" ${level === 0 ? 'selected' : ''}>取消</option>
+                            </select>
+                        </div>
+                    `;
+                }
+            });
+            if (html === '') html =
+                '<div style="text-align:center;padding:24px;color:#9ca3af;font-size:12px;">没有找到分部行</div>';
+            list.innerHTML = html;
+            document.getElementById('batchSetModal').classList.remove('hidden');
+        }
+
+        function closeBatchSetModal() { document.getElementById('batchSetModal').classList.add('hidden'); }
+
+        function batchSetAllLevel(level) {
+            document.querySelectorAll('.section-level-select').forEach(sel => sel.value = level);
+        }
+
+        function applyBatchSet() {
+            const t = project.tables['分部分项'];
+            document.querySelectorAll('.section-level-select').forEach(sel => {
+                const idx = parseInt(sel.dataset.idx);
+                const level = parseInt(sel.value);
+                if (idx >= 0 && idx < t.parsedData.length) {
+                    if (level === 0) { t.parsedData[idx]._level = 0;
+                        t.parsedData[idx]._rowType = 'other'; } else { t.parsedData[idx]._level = level;
+                        t.parsedData[idx]._rowType = 'section'; }
+                }
+            });
+            buildHierarchy(t.parsedData, '分部分项');
+            closeBatchSetModal();
+            renderTable('分部分项');
+        }
+
+        // ========================================================================
+        // 列显示设置
+        // ========================================================================
+        function openColumnSettingsModal(tableName) {
+            const t = project.tables[tableName || currentViewTab];
+            const list = document.getElementById('columnSettingsList');
+            let html = '';
+            t.columnOrder.forEach(col => {
+                const checked = t.visibleColumns.has(col) ? 'checked' : '';
+                html += `
+                    <div class="section-item">
+                        <label class="checkbox-wrapper" style="flex:1;">
+                            <input type="checkbox" class="col-checkbox" data-col="${col}" ${checked}>
+                            <span>${col}</span>
+                        </label>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+            document.getElementById('columnSettingsModal').classList.remove('hidden');
+        }
+
+        function closeColumnSettingsModal() { document.getElementById('columnSettingsModal').classList.add('hidden'); }
+
+        function showAllColumns() { document.querySelectorAll('.col-checkbox').forEach(cb => cb.checked = true); }
+
+        function hideAllColumns() { document.querySelectorAll('.col-checkbox').forEach(cb => cb.checked = false); }
+
+        function applyColumnSettings() {
+            const t = getCurrentTable();
+            const nv = new Set();
+            document.querySelectorAll('.col-checkbox').forEach(cb => {
+                if (cb.checked) nv.add(cb.dataset.col);
+            });
+            if (nv.size === 0) { alert('至少需要显示一列'); return; }
+            t.visibleColumns = nv;
+            closeColumnSettingsModal();
+            renderTable(currentViewTab);
+        }
+
+        // ========================================================================
+        // 行选择与颜色
+        // ========================================================================
+        function handleRowClick(idx, event) {
+            if (currentViewTab !== '分部分项') return;
+            const t = project.tables['分部分项'];
+            const row = t.parsedData[idx];
+            if (!row) return;
+            if (row._rowType !== 'item' && row._rowType !== 'quota' && row._rowType !== 'material' && !row._deleted) {
+                if (!event.ctrlKey && !event.metaKey && !event.shiftKey) {
+                    selectedRows.clear();
+                    lastClickedRow = -1;
+                    renderTable(currentViewTab);
+                }
+                return;
+            }
+            if (event.ctrlKey || event.metaKey) {
+                if (selectedRows.has(idx)) selectedRows.delete(idx);
+                else selectedRows.add(idx);
+                lastClickedRow = idx;
+            } else if (event.shiftKey && lastClickedRow >= 0) {
+                const filtered = filterData(currentViewTab);
+                const visIdx = filtered.map(f => f.idx);
+                const si = visIdx.indexOf(lastClickedRow);
+                const ei = visIdx.indexOf(idx);
+                if (si >= 0 && ei >= 0) {
+                    const mn = Math.min(si, ei),
+                        mx = Math.max(si, ei);
+                    for (let i = mn; i <= mx; i++) {
+                        const ri = visIdx[i];
+                        const rd = t.parsedData[ri];
+                        if (rd && (rd._rowType === 'item' || rd._rowType === 'quota' || rd._rowType === 'material' ||
+                                rd._deleted)) {
+                            selectedRows.add(ri);
+                        }
+                    }
+                }
+            } else {
+                selectedRows.clear();
+                selectedRows.add(idx);
+                lastClickedRow = idx;
+            }
+            renderTable(currentViewTab);
+        }
+
+        function setSelectedRowsColor(color) {
+            if (selectedRows.size === 0) return;
+            const t = project.tables['分部分项'];
+            selectedRows.forEach(idx => {
+                if (idx >= 0 && idx < t.parsedData.length) t.parsedData[idx]._color = color;
+            });
+            hideContextMenu();
+            renderTable(currentViewTab);
+        }
+
+        function clearSelectedRowsColor() {
+            if (selectedRows.size === 0) return;
+            const t = project.tables['分部分项'];
+            selectedRows.forEach(idx => {
+                if (idx >= 0 && idx < t.parsedData.length) t.parsedData[idx]._color = '';
+            });
+            hideContextMenu();
+            renderTable(currentViewTab);
+        }
+
+        // ========================================================================
+        // 折叠展开
+        // ========================================================================
+        function expandAll(tableName) {
+            tableName = tableName || currentViewTab;
+            const t = project.tables[tableName];
+            t.collapsedRows.clear();
+            setDetailColumnsVisible(tableName, true);
+            const toolbar = document.getElementById('toolbar-' + tableName);
+            if (toolbar) {
+                toolbar.querySelectorAll('[data-level]').forEach(b => b.classList.remove('active'));
+                const allBtn = toolbar.querySelector('[data-level="all"]');
+                if (allBtn) allBtn.classList.add('active');
+            }
+            t.currentLevel = 'all';
+            renderTable(tableName);
+        }
+
+        function collapseAll(tableName) {
+            tableName = tableName || currentViewTab;
+            const t = project.tables[tableName];
+            t.collapsedRows.clear();
+            setDetailColumnsVisible(tableName, false);
+            if (t.hasLevels) {
+                t.parsedData.forEach((row, idx) => {
+                    if (row._rowType === 'section' && row._level === 1) {
+                        t.collapsedRows.add(idx);
+                    }
+                });
+            }
+            const toolbar = document.getElementById('toolbar-' + tableName);
+            if (toolbar) {
+                toolbar.querySelectorAll('[data-level]').forEach(b => b.classList.remove('active'));
+                const level1Btn = toolbar.querySelector('[data-level="1"]');
+                if (level1Btn) level1Btn.classList.add('active');
+            }
+            t.currentLevel = '1';
+            renderTable(tableName);
+        }
+
+        function toggleRow(idx, event) {
+            event.stopPropagation();
+            const t = project.tables[currentViewTab];
+            if (t.collapsedRows.has(idx)) t.collapsedRows.delete(idx);
+            else t.collapsedRows.add(idx);
+            renderTable(currentViewTab);
+        }
+
+        // ========================================================================
+        // 导出Excel（保留行颜色、备注、项目特征换行）
+        // ========================================================================
+        function exportExcel() {
+            const projectName = project.name || '未命名项目';
+            const t = project.tables['分部分项'];
+
+            // 全部列：所有列 + 层级
+            let allCols = t.columnOrder.slice();
+            if (!allCols.includes('层级')) {
+                const remarkIdx = allCols.indexOf('备注');
+                if (remarkIdx >= 0) allCols.splice(remarkIdx + 1, 0, '层级');
+                else allCols.push('层级');
+            } else {
+                const remarkIdx = allCols.indexOf('备注');
+                const levelIdx = allCols.indexOf('层级');
+                if (remarkIdx >= 0 && levelIdx < remarkIdx) {
+                    allCols.splice(levelIdx, 1);
+                    const newRemarkIdx = allCols.indexOf('备注');
+                    allCols.splice(newRemarkIdx + 1, 0, '层级');
+                }
+            }
+
+            // 清单列：排除规格型号、工程量表达式、含量、单价、合价
+            let listCols = t.columnOrder.filter(col => t.visibleColumns.has(col) || col === '层级');
+            if (!listCols.includes('层级')) {
+                const remarkIdx = listCols.indexOf('备注');
+                if (remarkIdx >= 0) listCols.splice(remarkIdx + 1, 0, '层级');
+                else listCols.push('层级');
+            } else {
+                const remarkIdx = listCols.indexOf('备注');
+                const levelIdx = listCols.indexOf('层级');
+                if (remarkIdx >= 0 && levelIdx < remarkIdx) {
+                    listCols.splice(levelIdx, 1);
+                    const newRemarkIdx = listCols.indexOf('备注');
+                    listCols.splice(newRemarkIdx + 1, 0, '层级');
+                }
+            }
+            const excludeFromList = ['规格型号', '工程量表达式', '含量', '单价', '合价'];
+            listCols = listCols.filter(col => {
+                const std = getStandardCol(col, '分部分项');
+                return !excludeFromList.includes(std) && !excludeFromList.includes(col);
+            });
+
+            const showSerialCol = true;
+
+            function buildSheet(dataRows, cols, sheetNameSuffix) {
+                const sheetName = projectName + '-' + sheetNameSuffix;
+                let xml = '<Worksheet ss:Name="' + sheetName.replace(/[\\\/\?\*\[\]:]/g, '_') + '">\n';
+                xml += '  <Table ss:DefaultRowHeight="20">\n';
+                if (showSerialCol) xml += '   <Column ss:Index="1" ss:Width="50"/>\n';
+                for (let ci = 0; ci < cols.length; ci++) {
+                    const col = cols[ci];
+                    const std = getStandardCol(col, '分部分项');
+                    const w = t.columnWidths[col] || defaultWidths[std] || 100;
+                    const idx = showSerialCol ? ci + 2 : ci + 1;
+                    xml += '   <Column ss:Index="' + idx + '" ss:Width="' + w + '"/>\n';
+                }
+                // 表头
+                xml += '   <Row ss:Height="24">\n';
+                if (showSerialCol) xml += '    <Cell ss:StyleID="Header"><Data ss:Type="String">序号</Data></Cell>\n';
+                for (let ci = 0; ci < cols.length; ci++) {
+                    const colName = String(cols[ci]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    xml += '    <Cell ss:StyleID="Header"><Data ss:Type="String">' + colName + '</Data></Cell>\n';
+                }
+                xml += '   </Row>\n';
+
+                let serialCounter = 0;
+                for (let ri = 0; ri < dataRows.length; ri++) {
+                    const row = dataRows[ri];
+                    let rowStyle = "Default";
+                    let isDeleted = row._deleted || false;
+                    const rowColor = row._color || '';
+                    const hasCustomColor = rowColor && rowColor.length > 0;
+
+                    if (isDeleted) {
+                        rowStyle = 'DeletedRow';
+                    } else if (row._rowType === 'section') {
+                        rowStyle = 'Section' + row._level;
+                    } else if (row._rowType === 'item') {
+                        rowStyle = 'ItemRow';
+                    } else if (row._rowType === 'quota') {
+                        rowStyle = 'QuotaRow';
+                    } else if (row._rowType === 'material') {
+                        rowStyle = 'MaterialRow';
+                    }
+
+                    let serialNo = '';
+                    if (showSerialCol && row._rowType === 'item') {
+                        serialCounter++;
+                        serialNo = serialCounter;
+                    }
+
+                    xml += '   <Row>\n';
+                    if (showSerialCol) {
+                        xml += '    <Cell ss:StyleID="CenterCol"><Data ss:Type="String">' + serialNo + '</Data></Cell>\n';
+                    }
+                    for (let ci = 0; ci < cols.length; ci++) {
+                        const col = cols[ci];
+                        let val = row[col] || '';
+                        const std = getStandardCol(col, '分部分项');
+                        if (col === '层级') {
+                            val = getLevelDisplayName(row);
+                        }
+                        let escapedVal = String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        escapedVal = escapedVal.replace(/\r\n/g, '&#10;').replace(/\n/g, '&#10;');
+
+                        let cellStyle = rowStyle;
+                        let dataType = 'String';
+                        let dataValue = escapedVal;
+
+                        if (hasCustomColor && !isDeleted) {
+                            const colorKey = rowColor.replace('#', '');
+                            cellStyle = 'Color_' + colorKey;
+                        }
+
+                        const isCenterCol = (col === '_序号' || std === '类别' || std === '单位');
+
+                        if (row._rowType === 'section' && !isDeleted) {
+                            if (isNumericColumn(col, '分部分项') && val) {
+                                const num = parseFloat(String(val).replace(/,/g, ''));
+                                if (!isNaN(num)) {
+                                    if (hasCustomColor) {
+                                        cellStyle = 'Color_' + rowColor.replace('#', '') + '_Num';
+                                    } else {
+                                        cellStyle = rowStyle + '_Num';
+                                    }
+                                    dataType = 'Number';
+                                    dataValue = num.toFixed(2);
+                                }
+                            }
+                        } else if (isDeleted) {
+                            if (isNumericColumn(col, '分部分项') && val) {
+                                const num = parseFloat(String(val).replace(/,/g, ''));
+                                if (!isNaN(num)) {
+                                    cellStyle = 'DeletedRow_Num';
+                                    dataType = 'Number';
+                                    dataValue = num.toFixed(2);
+                                } else {
+                                    cellStyle = 'DeletedRow';
+                                }
+                            } else {
+                                cellStyle = 'DeletedRow';
+                            }
+                        } else {
+                            if (isNumericColumn(col, '分部分项') && val) {
+                                const num = parseFloat(String(val).replace(/,/g, ''));
+                                if (!isNaN(num)) {
+                                    if (hasCustomColor) {
+                                        cellStyle = 'Color_' + rowColor.replace('#', '') + '_Num';
+                                    } else {
+                                        cellStyle = 'Number';
+                                    }
+                                    dataType = 'Number';
+                                    dataValue = num.toFixed(2);
+                                }
+                            } else if (std === '名称' || std === '项目特征' || std === '计算基数' || std === '基数说明' || std === '备注') {
+                                if (hasCustomColor) {
+                                    cellStyle = 'Color_' + rowColor.replace('#', '') + '_Wrap';
+                                } else if (std === '名称') {
+                                    cellStyle = 'WrapTextName';
+                                } else if (std === '项目特征') {
+                                    cellStyle = 'WrapTextFeature';
+                                } else {
+                                    cellStyle = 'WrapTextName';
+                                }
+                            }
+                        }
+
+                        if (isCenterCol) {
+                            cellStyle = hasCustomColor ? 'Color_' + rowColor.replace('#', '') + '_Center' : 'CenterCol';
+                            dataType = 'String';
+                            dataValue = escapedVal;
+                        }
+
+                        xml += '    <Cell ss:StyleID="' + cellStyle + '"><Data ss:Type="' + dataType + '">' + dataValue + '</Data></Cell>\n';
+                    }
+                    xml += '   </Row>\n';
+                }
+                xml += '  </Table>\n';
+                xml += '  <x:WorksheetOptions>\n';
+                xml += '   <x:DisplayGridlines/>\n   <x:FreezePanes/>\n   <x:SplitHorizontal>1</x:SplitHorizontal>\n';
+                xml += '   <x:TopRowBottomPane>1</x:TopRowBottomPane>\n   <x:ActivePane>2</x:ActivePane>\n';
+                xml += '  </x:WorksheetOptions>\n';
+                xml += ' </Worksheet>\n';
+                return xml;
+            }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xml += '<?mso-application progid="Excel.Sheet"?>\n';
+            xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+            xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+            xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+            xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+            xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+            const allData = t.parsedData || [];
+            const usedColors = new Set();
+            allData.forEach(row => {
+                if (row._color && row._color.length > 0) {
+                    usedColors.add(row._color);
+                }
+            });
+
+            xml += ' <Styles>\n';
+            xml += '  <Style ss:ID="Default" ss:Name="Normal">\n';
+            xml += '   <Font ss:FontName="微软雅黑" ss:Size="10" ss:Color="#333333"/>\n';
+            xml += '   <Alignment ss:Vertical="Center" ss:Horizontal="Left" ss:WrapText="0"/>\n';
+            xml += '   <Borders><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D1D5DB"/><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D1D5DB"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D1D5DB"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D1D5DB"/></Borders>\n';
+            xml += '  </Style>\n';
+            xml += '  <Style ss:ID="Header" ss:Parent="Default">\n';
+            xml += '   <Font ss:Bold="1" ss:Color="#374151" ss:Size="10"/>\n';
+            xml += '   <Interior ss:Color="#F3F4F6" ss:Pattern="Solid"/>\n';
+            xml += '   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n';
+            xml += '  </Style>\n';
+            xml += '  <Style ss:ID="CenterCol" ss:Parent="Default">\n';
+            xml += '   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n';
+            xml += '  </Style>\n';
+            xml += '  <Style ss:ID="Text" ss:Parent="Default"><NumberFormat ss:Format="@"/><Alignment ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="Number" ss:Parent="Default"><NumberFormat ss:Format="#,##0.00"/><Alignment ss:Horizontal="Right" ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="NumberNoComma" ss:Parent="Default"><NumberFormat ss:Format="0.00"/><Alignment ss:Horizontal="Right" ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="WrapTextName" ss:Parent="Default">\n';
+            xml += '   <Alignment ss:Vertical="Top" ss:WrapText="1"/>\n';
+            xml += '  </Style>\n';
+            xml += '  <Style ss:ID="WrapTextFeature" ss:Parent="Default">\n';
+            xml += '   <Alignment ss:Vertical="Top" ss:WrapText="1"/>\n';
+            xml += '  </Style>\n';
+
+            const sectionStyles = [
+                { id: 'Section1', bg: '#DBEAFE', color: '#1E40AF', size: 10 },
+                { id: 'Section2', bg: '#D1FAE5', color: '#166534', size: 10 },
+                { id: 'Section3', bg: '#FEF3C7', color: '#92400E', size: 10 },
+                { id: 'Section4', bg: '#EDE9FE', color: '#6B21A8', size: 10 },
+                { id: 'Section5', bg: '#FCE7F3', color: '#9D174D', size: 10 }
+            ];
+            sectionStyles.forEach(ss => {
+                xml += `  <Style ss:ID="${ss.id}" ss:Parent="Default">\n`;
+                xml += `   <Font ss:Bold="1" ss:Size="${ss.size}" ss:Color="${ss.color}"/>\n`;
+                xml += `   <Interior ss:Color="${ss.bg}" ss:Pattern="Solid"/>\n`;
+                xml += `   <Alignment ss:Vertical="Center" ss:WrapText="1"/>\n`;
+                xml += '  </Style>\n';
+                xml += `  <Style ss:ID="${ss.id}_Num" ss:Parent="Default">\n`;
+                xml += `   <Font ss:Bold="1" ss:Size="${ss.size}" ss:Color="${ss.color}"/>\n`;
+                xml += `   <Interior ss:Color="${ss.bg}" ss:Pattern="Solid"/>\n`;
+                xml += `   <NumberFormat ss:Format="0.00"/>\n`;
+                xml += `   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>\n`;
+                xml += '  </Style>\n';
+            });
+
+            usedColors.forEach(color => {
+                const key = color.replace('#', '');
+                xml += `  <Style ss:ID="Color_${key}" ss:Parent="Default">\n`;
+                xml += `   <Interior ss:Color="${color}" ss:Pattern="Solid"/>\n`;
+                xml += `   <Alignment ss:Vertical="Center" ss:WrapText="0"/>\n`;
+                xml += '  </Style>\n';
+                xml += `  <Style ss:ID="Color_${key}_Num" ss:Parent="Default">\n`;
+                xml += `   <Interior ss:Color="${color}" ss:Pattern="Solid"/>\n`;
+                xml += `   <NumberFormat ss:Format="#,##0.00"/>\n`;
+                xml += `   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>\n`;
+                xml += '  </Style>\n';
+                xml += `  <Style ss:ID="Color_${key}_Wrap" ss:Parent="Default">\n`;
+                xml += `   <Interior ss:Color="${color}" ss:Pattern="Solid"/>\n`;
+                xml += `   <Alignment ss:Vertical="Top" ss:WrapText="1"/>\n`;
+                xml += '  </Style>\n';
+                xml += `  <Style ss:ID="Color_${key}_Center" ss:Parent="Default">\n`;
+                xml += `   <Interior ss:Color="${color}" ss:Pattern="Solid"/>\n`;
+                xml += `   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n`;
+                xml += '  </Style>\n';
+            });
+
+            xml += '  <Style ss:ID="ItemRow" ss:Parent="Default"><Font ss:Bold="1" ss:Size="10"/><Alignment ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="QuotaRow" ss:Parent="Default"><Font ss:Size="10"/><Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/><Alignment ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="MaterialRow" ss:Parent="Default"><Font ss:Size="10"/><Alignment ss:Vertical="Center"/></Style>\n';
+            xml += '  <Style ss:ID="DeletedRow" ss:Parent="Default">\n';
+            xml += '   <Font ss:Size="10" ss:Color="#9CA3AF"/>\n';
+            xml += '   <Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/>\n';
+            xml += '   <Alignment ss:Vertical="Center" ss:Horizontal="Left"/>\n';
+            xml += '   <Font ss:StrikeThrough="1"/>\n';
+            xml += '  </Style>\n';
+            xml += '  <Style ss:ID="DeletedRow_Num" ss:Parent="Default">\n';
+            xml += '   <Font ss:Size="10" ss:Color="#9CA3AF"/>\n';
+            xml += '   <Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/>\n';
+            xml += '   <NumberFormat ss:Format="0.00"/>\n';
+            xml += '   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>\n';
+            xml += '   <Font ss:StrikeThrough="1"/>\n';
+            xml += '  </Style>\n';
+            xml += ' </Styles>\n';
+
+            const listData = allData.filter(row => row._rowType === 'section' || row._rowType === 'item');
+
+            xml += buildSheet(listData, listCols, '清单');
+            xml += buildSheet(allData, allCols, '全部');
+
+            xml += '</Workbook>';
+
+            const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = projectName + '.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ========================================================================
+        // 页面切换与初始化
+        // ========================================================================
+        function switchPasteTab(tabName) {
+            const ta = document.getElementById('pasteTextarea');
+            if (currentTab && project.tables[currentTab]) {
+                project.tables[currentTab].pasteText = ta.value;
+            }
+            currentTab = tabName;
+            document.querySelectorAll('.paste-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            const t = project.tables[tabName];
+            ta.value = t.pasteText || '';
+            const box = document.getElementById('pasteBox');
+            const info = document.getElementById('pasteDataInfo');
+            if (t.hasData) {
+                box.classList.add('has-data');
+                const cnt = t.hasLevels ? t.parsedData.length : t.rawData.length;
+                if (t.isValidData) info.innerHTML = `✅ 已加载 ${cnt} 行数据（数据有效）`;
+                else info.innerHTML = `⚠️ 已加载 ${cnt} 行数据（数据可能无效）`;
+            } else {
+                box.classList.remove('has-data');
+                info.textContent = '已加载 0 行数据';
+            }
+            updatePasteTabStatus();
+        }
+
+        function updatePasteTabStatus() {
+            document.querySelectorAll('.paste-tab').forEach(tab => {
+                const tn = tab.dataset.tab;
+                const t = project.tables[tn];
+                if (t) {
+                    tab.classList.remove('has-data', 'data-valid', 'data-invalid');
+                    if (t.hasData) {
+                        if (t.isValidData) tab.classList.add('has-data', 'data-valid');
+                        else tab.classList.add('has-data', 'data-invalid');
+                    }
+                }
+            });
+        }
+
+        function switchViewTab(tabName) {
+            currentViewTab = tabName;
+            document.querySelectorAll('#viewTabs .tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.getElementById('toolbar-分部分项').style.display = 'flex';
+            const dt = document.getElementById('dataTable');
+            if (dt) {
+                dt.classList.remove('table-auto', 'no-section-border', 'fee-summary-table', 'measure-table', 'other-table');
+                dt.classList.add('fenbu-table');
+            }
+            renderTable(tabName);
+        }
+
+        function showTablePage() {
+            const pn = document.getElementById('projectNameInput');
+            const name = (pn.value || '').trim();
+            if (!name || name === '' || name === '未命名项目') {
+                if (!confirm('项目名称为空，是否使用“未命名项目”继续？')) {
+                    pn.focus();
+                    pn.select();
+                    return;
+                }
+                project.name = '未命名项目';
+                pn.value = '未命名项目';
+            } else {
+                project.name = name;
+            }
+
+            let hasAny = false;
+            TABLE_NAMES.forEach(n => { if (project.tables[n].hasData) hasAny = true; });
+            if (!hasAny) { alert('请先粘贴至少一个表的数据'); return; }
+
+            document.getElementById('pastePage').style.display = 'none';
+            document.getElementById('tablePage').style.display = 'flex';
+            document.getElementById('backBtn').style.display = 'inline-block';
+            document.getElementById('exportBtn').style.display = 'inline-block';
+            document.getElementById('headerProjectName').textContent = ' | ' + project.name;
+            document.getElementById('headerTitle').textContent = '清单数据查看工具';
+
+            let first = '分部分项';
+            for (const n of TABLE_NAMES) { if (project.tables[n].hasData) { first = n; break; } }
+            switchViewTab(first);
+        }
+
+        function showPastePage() {
+            document.getElementById('pastePage').style.display = 'flex';
+            document.getElementById('tablePage').style.display = 'none';
+            document.getElementById('backBtn').style.display = 'none';
+            document.getElementById('exportBtn').style.display = 'none';
+            document.getElementById('statsBar').style.display = 'none';
+            document.getElementById('headerProjectName').textContent = '';
+            document.getElementById('headerTitle').textContent = '清单数据查看工具';
+        }
+
+        function validateData(text, tableName) {
+            const validators = { '分部分项': ['编码', '综合单价', '整个项目'] };
+            const keywords = validators[tableName] || [];
+            if (keywords.length === 0) return true;
+            for (const kw of keywords) { if (text.includes(kw)) return true; }
+            return false;
+        }
+
+        function handlePaste(text, tableName) {
+            const isValid = validateData(text, tableName);
+            const data = parseTSV(text, tableName);
+            if (!data || data.length === 0) {
+                alert('未能解析到有效数据，请确保复制了包含标题行的表格数据');
+                return false;
+            }
+            const t = project.tables[tableName];
+            t.isValidData = isValid;
+            if (!isValid) alert('数据格式可能不正确，请确认粘贴的是' + tableName + '数据');
+            t.rawData = data;
+            if (tableName === '分部分项') {
+                t.parsedData = processLevels(data, tableName);
+                t.hasLevels = true;
+                t.collapsedRows.clear();
+                t.currentLevel = 'all';
+            } else {
+                t.hasLevels = false;
+            }
+            t.hasData = true;
+            const ta = document.getElementById('pasteTextarea');
+            t.pasteText = ta.value;
+            updatePasteTabStatus();
+            const box = document.getElementById('pasteBox');
+            const info = document.getElementById('pasteDataInfo');
+            box.classList.add('has-data');
+            const cnt = t.hasLevels ? t.parsedData.length : t.rawData.length;
+            if (t.isValidData) info.innerHTML = `✅ 已加载 ${cnt} 行数据（数据有效）`;
+            else info.innerHTML = `⚠️ 已加载 ${cnt} 行数据（数据可能无效）`;
+
+            if (isValid && document.getElementById('pastePage').style.display !== 'none') {
+                showTablePage();
+            }
+            return true;
+        }
+
+        // ========================================================================
+        // 初始化
+        // ========================================================================
+        function init() {
+            // 取消自动聚焦输入框：移除 document.getElementById('projectNameInput').focus();
+
+            document.getElementById('projectNameInput').addEventListener('input', e => {
+                project.name = e.target.value || '未命名项目';
+            });
+
+            document.querySelectorAll('.paste-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchPasteTab(tab.dataset.tab));
+            });
+
+            document.querySelectorAll('#viewTabs .tab').forEach(tab => {
+                tab.addEventListener('click', () => switchViewTab(tab.dataset.tab));
+            });
+
+            const pasteBox = document.getElementById('pasteBox');
+            const pasteTextarea = document.getElementById('pasteTextarea');
+
+            pasteBox.addEventListener('click', () => {
+                pasteTextarea.style.display = 'block';
+                pasteTextarea.focus();
+                navigator.clipboard.readText().then(text => {
+                    if (text) {
+                        pasteTextarea.value = text;
+                        handlePaste(text, currentTab);
+                    }
+                }).catch(() => {});
+            });
+
+            pasteTextarea.addEventListener('paste', e => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text');
+                pasteTextarea.value = text;
+                setTimeout(() => handlePaste(text, currentTab), 100);
+            });
+
+            pasteTextarea.addEventListener('input', e => {
+                if (currentTab && project.tables[currentTab]) {
+                    project.tables[currentTab].pasteText = e.target.value;
+                }
+            });
+
+            document.addEventListener('paste', e => {
+                const target = e.target;
+                if (target.id === 'projectNameInput') return;
+                if (target.id === 'pasteTextarea') return;
+                const pastePage = document.getElementById('pastePage');
+                if (!pastePage.contains(target)) return;
+                if (pastePage.style.display !== 'none') {
+                    e.preventDefault();
+                    handlePaste(e.clipboardData.getData('text'), currentTab);
+                }
+            });
+
+            pasteBox.addEventListener('dragover', e => { e.preventDefault();
+                pasteBox.classList.add('dragover'); });
+            pasteBox.addEventListener('dragleave', () => { pasteBox.classList.remove('dragover'); });
+            pasteBox.addEventListener('drop', e => {
+                e.preventDefault();
+                pasteBox.classList.remove('dragover');
+                const text = e.dataTransfer.getData('text');
+                if (text) handlePaste(text, currentTab);
+            });
+
+            document.querySelectorAll('#toolbar-分部分项 [data-level]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#toolbar-分部分项 [data-level]').forEach(b => b.classList.remove(
+                    'active'));
+                    btn.classList.add('active');
+                    setLevelCollapse(btn.dataset.level, '分部分项');
+                    renderTable('分部分项');
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', e => {
+                project.tables['分部分项'].searchText = e.target.value;
+                renderTable('分部分项');
+            });
+
+            document.getElementById('clearSearchBtn').addEventListener('click', () => {
+                document.getElementById('searchInput').value = '';
+                project.tables['分部分项'].searchText = '';
+                renderTable('分部分项');
+            });
+
+            document.getElementById('expandAllBtn').addEventListener('click', () => expandAll('分部分项'));
+            document.getElementById('collapseAllBtn').addEventListener('click', () => collapseAll('分部分项'));
+
+            document.getElementById('startViewBtn').addEventListener('click', showTablePage);
+            document.getElementById('backBtn').addEventListener('click', showPastePage);
+            document.getElementById('exportBtn').addEventListener('click', exportExcel);
+
+            document.getElementById('clearAllBtn').addEventListener('click', () => {
+                if (confirm('确定要清空所有数据吗？')) {
+                    TABLE_NAMES.forEach(name => {
+                        const t = project.tables[name];
+                        t.rawData = [];
+                        t.parsedData = [];
+                        t.columns = [];
+                        t.columnMapping = {};
+                        t.columnWidths = {};
+                        t.columnOrder = [];
+                        t.visibleColumns = new Set();
+                        t.collapsedRows = new Set();
+                        t.hasData = false;
+                        t.hasLevels = false;
+                        t.isValidData = false;
+                        t.pasteText = '';
+                    });
+                    updatePasteTabStatus();
+                    pasteBox.classList.remove('has-data');
+                    document.getElementById('pasteDataInfo').textContent = '已加载 0 行数据';
+                    pasteTextarea.value = '';
+                }
+            });
+
+            document.addEventListener('click', hideContextMenu);
+            document.addEventListener('scroll', hideContextMenu, true);
+
+            switchPasteTab('分部分项');
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
