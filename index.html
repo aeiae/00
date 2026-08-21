@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>📚 导航首页</title>
+    <title>📚 HTML首页</title>
     <meta name="description" content="支持本地文件夹读取、拖拽排序、导入导出的静态导航页">
     <!-- JSZip 用于打包全部 HTML 为 ZIP -->
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js">
+    </script>
     <style>
         /* ============ CSS 变量（亮色主题） ============ */
         :root {
@@ -60,6 +61,17 @@
             --group-tab-bg: #ffffff;
             --group-tab-active: #4f8cff;
             --group-tab-text: #4a5a6a;
+
+            /* ---------- 密度变量（默认标准） ---------- */
+            --density-padding-grid: 18px 16px;
+            --density-padding-list: 14px 16px;
+            --density-grid-gap: 14px;
+            --density-list-gap: 8px;
+            --density-group-gap: 24px;
+            --density-card-radius: 14px;
+            --density-icon-size: 38px;
+            --density-font-size: 0.98rem;
+            --density-dir-font-size: 0.72rem;
         }
 
         /* 暗色主题 */
@@ -148,6 +160,7 @@
             overflow-x: hidden;
             touch-action: auto;
             -webkit-overflow-scrolling: touch;
+            position: relative;
         }
 
         /* 背景装饰 */
@@ -191,8 +204,14 @@
         }
 
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ============ 密码验证层 ============ */
@@ -333,7 +352,9 @@
             transform: scale(1.04);
         }
         .theme-btn:active,
-        .settings-btn:active { transform: scale(0.95); }
+        .settings-btn:active {
+            transform: scale(0.95);
+        }
 
         .site-title {
             font-size: clamp(1.8rem, 4vw, 2.4rem);
@@ -367,15 +388,34 @@
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
         }
 
+        /* ===== 搜索框（默认隐藏） ===== */
         .search-wrap {
             margin-top: 12px;
             display: flex;
             justify-content: center;
             padding: 0 4px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity 0.35s ease, margin 0.3s ease;
+            margin-top: 0;
+        }
+        .search-wrap.open {
+            max-height: 80px;
+            opacity: 1;
+            margin-top: 12px;
         }
         .search-box {
             position: relative;
@@ -394,7 +434,9 @@
             transition: all 0.3s;
             font-family: inherit;
         }
-        .search-box input::placeholder { color: var(--text-muted); }
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
         .search-box input:focus {
             border-color: var(--search-focus-border);
             box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.12);
@@ -407,54 +449,11 @@
             color: var(--text-muted);
             pointer-events: none;
         }
-        .search-box input:focus ~ .search-icon { color: var(--accent); }
+        .search-box input:focus~.search-icon {
+            color: var(--accent);
+        }
 
-        /* 视图切换 */
-        .view-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 14px;
-            flex-wrap: wrap;
-        }
-        .view-btn {
-            background: var(--view-btn-bg);
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            font-size: 20px;
-            color: var(--view-btn-color);
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: inherit;
-            position: relative;
-        }
-        .view-btn.active {
-            background: var(--view-btn-active);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(79, 140, 255, 0.3);
-            transform: scale(1.05);
-        }
-        .view-btn:hover {
-            transform: translateY(-2px);
-            background: var(--accent);
-            color: #fff;
-        }
-        .view-btn:active { transform: scale(0.95); }
-        .view-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            background: var(--view-btn-bg);
-            color: var(--view-btn-color);
-            box-shadow: none;
-        }
+        /* ===== 视图切换（已移至悬浮按钮组，此处无） ===== */
 
         /* ============ 分组筛选栏 ============ */
         .group-tabs {
@@ -466,7 +465,9 @@
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
-        .group-tabs::-webkit-scrollbar { display: none; }
+        .group-tabs::-webkit-scrollbar {
+            display: none;
+        }
         .group-tab {
             flex-shrink: 0;
             padding: 7px 16px;
@@ -489,13 +490,16 @@
             border-color: transparent;
             box-shadow: 0 4px 10px rgba(79, 140, 255, 0.25);
         }
-        .group-tab:hover { background: var(--accent); color: #fff; }
+        .group-tab:hover {
+            background: var(--accent);
+            color: #fff;
+        }
 
         /* ============ 内容区域 ============ */
         .file-groups {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: var(--density-group-gap);
         }
         .file-group {
             animation: fadeInGroup 0.4s ease-out;
@@ -504,8 +508,14 @@
             contain-intrinsic-size: 400px;
         }
         @keyframes fadeInGroup {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .group-title {
             font-size: 1.2rem;
@@ -523,13 +533,13 @@
         .file-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 14px;
+            gap: var(--density-grid-gap);
         }
         /* 列表模式 */
         .file-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: var(--density-list-gap);
         }
 
         /* 卡片通用样式 */
@@ -537,7 +547,7 @@
         .file-card-list {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 14px;
+            border-radius: var(--density-card-radius);
             cursor: pointer;
             text-decoration: none;
             color: var(--text-primary);
@@ -549,19 +559,18 @@
             align-items: flex-start;
             -webkit-tap-highlight-color: transparent;
             touch-action: auto;
-            padding: 16px;
             box-shadow: var(--card-shadow);
             will-change: transform;
             user-select: none;
         }
         .file-card-grid {
             flex-direction: column;
-            padding: 18px 16px;
+            padding: var(--density-padding-grid);
         }
         .file-card-list {
             flex-direction: row;
             align-items: center;
-            padding: 14px 16px;
+            padding: var(--density-padding-list);
         }
         .file-card-grid:hover,
         .file-card-list:hover {
@@ -581,12 +590,15 @@
             background: var(--accent-grad);
             opacity: 0;
             transition: opacity 0.3s;
-            border-radius: 14px 14px 0 0;
+            border-radius: var(--density-card-radius) var(--density-card-radius) 0 0;
         }
-        .file-card-grid:hover::before { opacity: 1; }
+        .file-card-grid:hover::before {
+            opacity: 1;
+        }
+
         .file-icon {
-            width: 38px;
-            height: 38px;
+            width: var(--density-icon-size);
+            height: var(--density-icon-size);
             border-radius: 10px;
             background: var(--badge-bg);
             display: flex;
@@ -602,11 +614,13 @@
             color: #fff;
             transform: rotate(-5deg) scale(1.05);
         }
-        .file-info { flex: 1; min-width: 0; }
-        /* 文件名称完整显示 */
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
         .file-name {
             font-weight: 700;
-            font-size: 0.98rem;
+            font-size: var(--density-font-size);
             color: var(--text-primary);
             transition: color 0.3s;
             word-break: break-word;
@@ -616,9 +630,11 @@
             display: block;
         }
         .file-card-grid:hover .file-name,
-        .file-card-list:hover .file-name { color: var(--accent); }
+        .file-card-list:hover .file-name {
+            color: var(--accent);
+        }
         .file-dir {
-            font-size: 0.72rem;
+            font-size: var(--density-dir-font-size);
             color: var(--text-muted);
             font-family: 'SF Mono', 'Consolas', monospace;
             letter-spacing: 0.01em;
@@ -665,18 +681,23 @@
             touch-action: none;
             z-index: 2;
         }
-        .drag-handle:active { cursor: grabbing; }
-        .drag-handle:hover { opacity: 1; background: var(--accent); color: #fff; }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .drag-handle:hover {
+            opacity: 1;
+            background: var(--accent);
+            color: #fff;
+        }
 
-        /* 拖拽克隆元素 */
         .drag-clone {
             position: fixed;
             z-index: 10001;
             pointer-events: none;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-            border-radius: 14px;
+            border-radius: var(--density-card-radius);
             background: var(--card-bg-hover);
-            padding: 16px;
+            padding: var(--density-padding-grid);
             max-width: 250px;
             display: flex;
             align-items: center;
@@ -705,7 +726,11 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
-        .status-msg .status-icon { font-size: 2.6rem; margin-bottom: 10px; display: block; }
+        .status-msg .status-icon {
+            font-size: 2.6rem;
+            margin-bottom: 10px;
+            display: block;
+        }
         .status-msg.error {
             border-color: var(--error-border);
             background: var(--error-bg);
@@ -716,13 +741,13 @@
         .loading-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 14px;
+            gap: var(--density-grid-gap);
             padding: 6px 0;
         }
         .skeleton-card {
             background: var(--skeleton-bg);
-            border-radius: 14px;
-            padding: 20px 16px;
+            border-radius: var(--density-card-radius);
+            padding: var(--density-padding-grid);
             height: 100px;
             position: relative;
             overflow: hidden;
@@ -738,8 +763,12 @@
             animation: slide 1.8s infinite;
         }
         @keyframes slide {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
         }
         .sk-line {
             height: 12px;
@@ -748,11 +777,19 @@
             margin-bottom: 8px;
             opacity: 0.6;
         }
-        .sk-line:first-child { width: 55%; height: 16px; }
-        .sk-line:nth-child(2) { width: 80%; }
-        .sk-line:last-child { width: 35%; margin-bottom: 0; }
+        .sk-line:first-child {
+            width: 55%;
+            height: 16px;
+        }
+        .sk-line:nth-child(2) {
+            width: 80%;
+        }
+        .sk-line:last-child {
+            width: 35%;
+            margin-bottom: 0;
+        }
 
-        /* 设置模态框 */
+        /* ============ 设置模态框 ============ */
         .settings-overlay {
             position: fixed;
             top: 0;
@@ -768,7 +805,9 @@
             -webkit-backdrop-filter: blur(6px);
             padding: 16px;
         }
-        .settings-overlay.open { display: flex; }
+        .settings-overlay.open {
+            display: flex;
+        }
         .settings-modal {
             background: var(--modal-bg);
             color: var(--modal-text);
@@ -806,7 +845,9 @@
             line-height: 1;
             transition: color 0.3s;
         }
-        .settings-close:hover { color: var(--text-primary); }
+        .settings-close:hover {
+            color: var(--text-primary);
+        }
         .settings-body {
             padding: 16px 20px;
             overflow-y: auto;
@@ -835,6 +876,74 @@
             accent-color: var(--accent);
             cursor: pointer;
         }
+
+        /* ===== 密度滑块 ===== */
+        .density-control {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 4px 16px 4px;
+            flex-wrap: wrap;
+        }
+        .density-control label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-width: 42px;
+        }
+        .density-slider-wrap {
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .density-slider-wrap input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--toggle-bg);
+            outline: none;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+        .density-slider-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-grad);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+            transition: transform 0.2s;
+        }
+        .density-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+        }
+        .density-slider-wrap input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent-grad);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+        }
+        .density-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--accent);
+            min-width: 52px;
+            text-align: center;
+            background: var(--badge-bg);
+            padding: 2px 10px;
+            border-radius: 20px;
+            line-height: 1.6;
+        }
+
         .settings-file-item {
             display: flex;
             align-items: center;
@@ -845,7 +954,9 @@
             flex-wrap: nowrap;
             white-space: nowrap;
         }
-        .settings-file-item:hover { background: var(--list-hover-bg); }
+        .settings-file-item:hover {
+            background: var(--list-hover-bg);
+        }
         .settings-file-item input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -911,7 +1022,9 @@
             background: var(--text-muted);
             color: #fff;
         }
-        .import-file-input { display: none; }
+        .import-file-input {
+            display: none;
+        }
         .local-folder-btn {
             background: var(--accent-grad);
             color: #fff;
@@ -930,31 +1043,131 @@
         }
 
         /* 滚动条 */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 5px; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 5px;
+        }
+
+        /* ===== 悬浮按钮组（视图切换 + 搜索） ===== */
+        .fab-group {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        .fab-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent-grad);
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 6px 24px rgba(79, 140, 255, 0.35);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: inherit;
+            padding: 0;
+        }
+        .fab-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 32px rgba(79, 140, 255, 0.5);
+        }
+        .fab-btn:active {
+            transform: scale(0.92);
+        }
+        .fab-btn svg {
+            width: 26px;
+            height: 26px;
+            stroke: currentColor;
+            stroke-width: 2.4;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        /* 搜索按钮激活状态（红色） */
+        .fab-btn.search-active {
+            background: var(--danger);
+            box-shadow: 0 6px 24px rgba(229, 62, 62, 0.35);
+        }
+        .fab-btn.search-active:hover {
+            box-shadow: 0 8px 32px rgba(229, 62, 62, 0.5);
+        }
+        .fab-btn .view-icon {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
 
         /* 响应式 */
         @media (max-width: 600px) {
-            .file-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-            .header { padding: 20px 12px 16px; }
-            .view-btn { width: 40px; height: 40px; font-size: 18px; }
-            .settings-modal { max-height: 95vh; }
-            .settings-footer { flex-direction: column; }
+            .file-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            .header {
+                padding: 20px 12px 16px;
+            }
+            .settings-modal {
+                max-height: 95vh;
+            }
+            .settings-footer {
+                flex-direction: column;
+            }
             .settings-btn-primary,
-            .settings-btn-secondary { width: 100%; }
+            .settings-btn-secondary {
+                width: 100%;
+            }
             .settings-file-item .file-name {
                 max-width: 40%;
             }
             .settings-file-item .file-path {
                 max-width: 40%;
             }
+            .fab-group {
+                bottom: 20px;
+                right: 20px;
+                gap: 10px;
+            }
+            .fab-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+            .fab-btn svg {
+                width: 22px;
+                height: 22px;
+            }
+            .density-control {
+                gap: 10px;
+            }
+            .density-slider-wrap {
+                min-width: 100px;
+            }
         }
         @media (max-width: 380px) {
-            .file-grid { grid-template-columns: 1fr; }
+            .file-grid {
+                grid-template-columns: 1fr;
+            }
         }
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+            *,
+            *::before,
+            *::after {
                 animation-duration: 0.01ms !important;
                 transition-duration: 0.01ms !important;
             }
@@ -984,10 +1197,21 @@
             <div class="settings-body">
                 <!-- 本地文件夹选择 -->
                 <div class="settings-section-title">本地文件夹</div>
-                <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+                <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <button class="local-folder-btn" id="selectLocalFolderBtn">📁 选择本地文件夹</button>
                     <span id="localFolderStatus" style="font-size:0.8rem; color:var(--text-muted);">未选择</span>
                 </div>
+
+                <!-- 显示密度 -->
+                <div class="settings-section-title" style="margin-top:6px;">显示密度</div>
+                <div class="density-control">
+                    <label>密度</label>
+                    <div class="density-slider-wrap">
+                        <input type="range" id="densitySlider" min="0" max="100" value="50" step="1">
+                        <span class="density-label" id="densityLabel">标准</span>
+                    </div>
+                </div>
+
                 <!-- 拖拽排序开关 -->
                 <div class="settings-option">
                     <input type="checkbox" id="enableSortCheckbox">
@@ -1019,12 +1243,13 @@
                     <span id="themeLabel">暗色</span>
                 </button>
             </div>
-            <h1 class="site-title">📚 导航首页</h1>
+            <h1 class="site-title">📚 HTML首页</h1>
             <div class="site-stats" id="siteStats" style="display:none;">
                 <span class="dot"></span>
                 <span id="statsText">加载中...</span>
             </div>
-            <div class="search-wrap">
+            <!-- 搜索框（默认隐藏） -->
+            <div class="search-wrap" id="searchWrap">
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="搜索 HTML 文件..." autocomplete="off" aria-label="搜索文件">
                     <span class="search-icon" aria-hidden="true">
@@ -1035,10 +1260,7 @@
                     </span>
                 </div>
             </div>
-            <div class="view-toggle" id="viewToggle">
-                <button class="view-btn" data-view="grid" id="gridViewBtn" title="宫格">🔲</button>
-                <button class="view-btn active" data-view="list" id="listViewBtn" title="列表">📋</button>
-            </div>
+            <!-- 视图切换已移至悬浮按钮组 -->
         </header>
 
         <!-- 分组筛选栏 -->
@@ -1056,6 +1278,19 @@
         </main>
     </div>
 
+    <!-- 悬浮按钮组：视图切换 + 搜索 -->
+    <div class="fab-group">
+        <button class="fab-btn" id="viewToggleFab" type="button" aria-label="切换视图">
+            <span class="view-icon" id="viewFabIcon">📋</span>
+        </button>
+        <button class="fab-btn" id="fabSearch" type="button" aria-label="搜索">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </button>
+    </div>
+
     <script>
         (function() {
             'use strict';
@@ -1069,6 +1304,7 @@
             const CONFIG_KEY = 'nav_config_v2';
             const VIEW_KEY = 'nav_view';
             const SORT_ENABLED_KEY = 'nav_sort_enabled';
+            const DENSITY_KEY = 'nav_density';
 
             /* ============ DOM ============ */
             const passwordOverlay = document.getElementById('passwordOverlay');
@@ -1093,17 +1329,21 @@
             const loadingContainer = document.getElementById('loadingContainer');
             const statusMessage = document.getElementById('statusMessage');
             const searchInput = document.getElementById('searchInput');
+            const searchWrap = document.getElementById('searchWrap');
+            const fabSearch = document.getElementById('fabSearch');
+            const viewToggleFab = document.getElementById('viewToggleFab');
+            const viewFabIcon = document.getElementById('viewFabIcon');
             const siteStats = document.getElementById('siteStats');
             const statsText = document.getElementById('statsText');
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
             const themeLabel = document.getElementById('themeLabel');
-            const gridViewBtn = document.getElementById('gridViewBtn');
-            const listViewBtn = document.getElementById('listViewBtn');
+            const densitySlider = document.getElementById('densitySlider');
+            const densityLabel = document.getElementById('densityLabel');
 
             /* ============ 状态 ============ */
-            let allFiles = [];          // 所有文件（来自files.json或本地文件夹）
-            let fileOrder = [];         // 排序后的文件路径数组
+            let allFiles = [];
+            let fileOrder = [];
             let hiddenFiles = {};
             let customGroups = {};
             let filteredFiles = [];
@@ -1113,10 +1353,60 @@
             let currentGroupFilter = '全部';
             let searchQuery = '';
             let dragging = false;
-            let longPressTimer = null;
             let dragData = null;
             let rafId = null;
-            let localFileHandles = {};   // path -> FileSystemFileHandle (仅本地文件)
+            let localFileHandles = {};
+            let searchOpen = false;
+
+            /* ============ 密度无极调节 ============ */
+            function updateDensity(value) {
+                // value: 0 ~ 100
+                const t = value / 100; // 0~1
+                // 映射各属性
+                const paddingGrid = 8 + 16 * t; // 8~24px
+                const paddingList = 8 + 16 * t; // 8~24px (可不同，但保持一致)
+                const gridGap = 6 + 16 * t; // 6~22px
+                const listGap = 4 + 10 * t; // 4~14px
+                const groupGap = 14 + 22 * t; // 14~36px
+                const radius = 10 + 8 * t; // 10~18px
+                const iconSize = 30 + 16 * t; // 30~46px
+                const fontSize = 0.85 + 0.23 * t; // 0.85~1.08rem
+                const dirFontSize = 0.65 + 0.13 * t; // 0.65~0.78rem
+
+                const root = document.documentElement;
+                root.style.setProperty('--density-padding-grid', paddingGrid + 'px ' + (paddingGrid - 2) + 'px');
+                root.style.setProperty('--density-padding-list', (paddingGrid - 4) + 'px ' + (paddingGrid - 2) + 'px');
+                root.style.setProperty('--density-grid-gap', gridGap + 'px');
+                root.style.setProperty('--density-list-gap', listGap + 'px');
+                root.style.setProperty('--density-group-gap', groupGap + 'px');
+                root.style.setProperty('--density-card-radius', radius + 'px');
+                root.style.setProperty('--density-icon-size', iconSize + 'px');
+                root.style.setProperty('--density-font-size', fontSize + 'rem');
+                root.style.setProperty('--density-dir-font-size', dirFontSize + 'rem');
+
+                // 更新标签文字（显示近似档位）
+                let label = '标准';
+                if (value < 30) label = '紧凑';
+                else if (value > 70) label = '宽松';
+                densityLabel.textContent = label;
+                // 保存
+                localStorage.setItem(DENSITY_KEY, String(value));
+            }
+
+            function initDensity() {
+                const saved = localStorage.getItem(DENSITY_KEY);
+                let val = 50;
+                if (saved !== null) {
+                    const parsed = parseInt(saved, 10);
+                    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) val = parsed;
+                }
+                densitySlider.value = val;
+                updateDensity(val);
+            }
+
+            densitySlider.addEventListener('input', function() {
+                updateDensity(parseInt(this.value));
+            });
 
             /* ============ 密码验证 ============ */
             function checkPassword() {
@@ -1127,6 +1417,7 @@
                 passwordOverlay.style.display = 'flex';
                 return false;
             }
+
             function verifyPassword() {
                 if (passwordInput.value.trim() === PASSWORD) {
                     localStorage.setItem(VERIFIED_KEY, 'true');
@@ -1146,35 +1437,77 @@
             function applyTheme(theme) {
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('nav-theme', theme);
-                if (theme === 'dark') { themeIcon.textContent = '☀️'; themeLabel.textContent = '亮色'; }
-                else { themeIcon.textContent = '🌙'; themeLabel.textContent = '暗色'; }
+                if (theme === 'dark') { themeIcon.textContent = '☀️';
+                    themeLabel.textContent = '亮色'; } else { themeIcon.textContent = '🌙';
+                    themeLabel.textContent = '暗色'; }
             }
-            applyTheme(localStorage.getItem('nav-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+            applyTheme(localStorage.getItem('nav-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ?
+                'dark' : 'light'));
             themeToggle.addEventListener('click', () => {
                 const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
                 applyTheme(next);
             });
 
-            /* ============ 视图切换 ============ */
+            /* ============ 视图切换（悬浮按钮） ============ */
             function setView(view) {
                 currentView = view;
                 localStorage.setItem(VIEW_KEY, view);
-                gridViewBtn.classList.toggle('active', view === 'grid');
-                listViewBtn.classList.toggle('active', view === 'list');
+                if (view === 'grid') {
+                    viewFabIcon.textContent = '🔲';
+                } else {
+                    viewFabIcon.textContent = '📋';
+                }
                 renderFiles(displayedFiles);
             }
-            gridViewBtn.addEventListener('click', () => setView('grid'));
-            listViewBtn.addEventListener('click', () => setView('list'));
+
+            viewToggleFab.addEventListener('click', () => {
+                const next = currentView === 'list' ? 'grid' : 'list';
+                setView(next);
+            });
+
+            /* ============ 搜索按钮 ============ */
+            function toggleSearch() {
+                searchOpen = !searchOpen;
+                searchWrap.classList.toggle('open', searchOpen);
+                fabSearch.classList.toggle('search-active', searchOpen);
+                if (searchOpen) {
+                    searchInput.focus();
+                } else {
+                    searchInput.blur();
+                }
+            }
+
+            fabSearch.addEventListener('click', toggleSearch);
+
+            // ESC关闭搜索
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && searchOpen) {
+                    toggleSearch();
+                    searchInput.value = '';
+                    searchQuery = '';
+                    refreshMain();
+                }
+                if (e.key === '/' && !searchOpen && document.activeElement !== searchInput) {
+                    e.preventDefault();
+                    toggleSearch();
+                }
+            });
 
             /* ============ 工具函数 ============ */
             function normalizePath(p) { return p.replace(/^\/+/, ''); }
+
             function getFileName(p) { const parts = normalizePath(p).split('/'); return parts[parts.length - 1]; }
+
             function getDisplayName(p) { return getFileName(p).replace(/\.html$/i, ''); }
-            function getOriginalDir(p) { const clean = normalizePath(p); const parts = clean.split('/'); return parts.length > 1 ? parts.slice(0, -1).join('/') : ''; }
+
+            function getOriginalDir(p) { const clean = normalizePath(p); const parts = clean.split('/'); return parts.length > 1 ?
+                    parts.slice(0, -1).join('/') : ''; }
+
             function getEffectiveDir(p) { return customGroups[p] !== undefined ? customGroups[p] : getOriginalDir(p); }
+
             function getGroupLabel(dir) { return dir === '' ? '根目录' : dir; }
 
-            /* ============ 加载文件（files.json + 手动列表） ============ */
+            /* ============ 加载文件 ============ */
             async function loadFilesFromJson() {
                 if (!AUTO_LOAD_FILES_JSON) return null;
                 try {
@@ -1196,6 +1529,7 @@
                 } catch (e) { /* ignore */ }
                 return null;
             }
+
             function loadManualFiles() {
                 return MANUAL_FILES.filter(item => item && (item.path || item.file || item.url)).map(item => {
                     const path = item.path || item.file || item.url;
@@ -1209,7 +1543,7 @@
                 }).filter(item => !EXCLUDED_FILENAMES.includes(getFileName(item.path).toLowerCase()));
             }
 
-            /* ============ 本地文件夹选择 ============ */
+            /* ============ 本地文件夹 ============ */
             async function selectLocalFolder() {
                 if (!('showDirectoryPicker' in window)) {
                     alert('当前浏览器不支持本地文件夹选择。请使用最新版 Chrome 或 Edge。');
@@ -1223,7 +1557,6 @@
                         alert('所选文件夹中没有找到 HTML 文件。');
                         return;
                     }
-                    // 将本地文件与 files.json 合并？这里我们选择完全使用本地文件，忽略 files.json 和手动列表
                     allFiles = files;
                     mergeConfig(files);
                     refreshMain();
@@ -1245,7 +1578,7 @@
                         files.push({
                             name: getDisplayName(path),
                             path: path,
-                            url: '#', // 点击时动态生成
+                            url: '#',
                             directory: getOriginalDir(path),
                             isLocal: true,
                         });
@@ -1271,11 +1604,14 @@
                     }
                 } catch (e) { /* ignore */ }
             }
+
             function saveConfig() {
                 try {
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ order: fileOrder, hidden: hiddenFiles, customGroups: customGroups }));
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify({ order: fileOrder, hidden: hiddenFiles,
+                        customGroups: customGroups }));
                 } catch (e) { console.warn('保存配置失败', e); }
             }
+
             function mergeConfig(files) {
                 if (!fileOrder.length) {
                     fileOrder = files.map(f => f.path);
@@ -1293,6 +1629,7 @@
                 });
                 saveConfig();
             }
+
             function getVisibleFiles() {
                 const map = {};
                 allFiles.forEach(f => map[f.path] = f);
@@ -1326,7 +1663,8 @@
                 sortedGroups.forEach(group => {
                     const tab = document.createElement('button');
                     tab.className = 'group-tab';
-                    const count = filteredFiles.filter(f => getGroupLabel(getEffectiveDir(f.path)) === group).length;
+                    const count = filteredFiles.filter(f => getGroupLabel(getEffectiveDir(f.path)) === group)
+                    .length;
                     tab.textContent = `${group} (${count})`;
                     tab.dataset.group = group;
                     tab.addEventListener('click', () => {
@@ -1342,7 +1680,8 @@
                 if (currentGroupFilter === '全部') {
                     displayedFiles = [...filteredFiles];
                 } else {
-                    displayedFiles = filteredFiles.filter(file => getGroupLabel(getEffectiveDir(file.path)) === currentGroupFilter);
+                    displayedFiles = filteredFiles.filter(file => getGroupLabel(getEffectiveDir(file.path)) ===
+                        currentGroupFilter);
                 }
                 renderFiles(displayedFiles);
                 updateStats();
@@ -1475,7 +1814,8 @@
             function startDrag(card, startEvent) {
                 dragging = true;
                 const path = card.dataset.path;
-                dragData = { path, card, clone: null, startX: startEvent.clientX, startY: startEvent.clientY, currentGroup: null };
+                dragData = { path, card, clone: null, startX: startEvent.clientX, startY: startEvent.clientY,
+                    currentGroup: null };
                 const clone = card.cloneNode(true);
                 clone.className = 'drag-clone';
                 clone.style.left = startEvent.clientX + 'px';
@@ -1505,7 +1845,8 @@
                     let targetGroup = null;
                     groups.forEach(g => {
                         const rect = g.getBoundingClientRect();
-                        if (e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right) {
+                        if (e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e
+                            .clientX <= rect.right) {
                             targetGroup = g;
                         }
                     });
@@ -1553,9 +1894,24 @@
             function openSettings() {
                 settingsOverlay.classList.add('open');
                 enableSortCheckbox.checked = sortEnabled;
+                // 同步密度滑块值
+                const saved = localStorage.getItem(DENSITY_KEY);
+                let val = 50;
+                if (saved !== null) {
+                    const parsed = parseInt(saved, 10);
+                    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) val = parsed;
+                }
+                densitySlider.value = val;
+                // 更新标签
+                let label = '标准';
+                if (val < 30) label = '紧凑';
+                else if (val > 70) label = '宽松';
+                densityLabel.textContent = label;
                 renderSettingsList();
             }
+
             function closeSettings() { settingsOverlay.classList.remove('open'); }
+
             function renderSettingsList() {
                 const map = {};
                 allFiles.forEach(f => map[f.path] = f);
@@ -1590,11 +1946,14 @@
             function refreshMain() {
                 const visible = getVisibleFiles();
                 if (searchQuery) {
-                    filteredFiles = visible.filter(f => f.name.toLowerCase().includes(searchQuery) || f.path.toLowerCase().includes(searchQuery) || getGroupLabel(getEffectiveDir(f.path)).toLowerCase().includes(searchQuery));
+                    filteredFiles = visible.filter(f => f.name.toLowerCase().includes(searchQuery) || f.path.toLowerCase()
+                        .includes(searchQuery) || getGroupLabel(getEffectiveDir(f.path)).toLowerCase().includes(
+                        searchQuery));
                 } else {
                     filteredFiles = [...visible];
                 }
-                if (currentGroupFilter !== '全部' && !filteredFiles.some(f => getGroupLabel(getEffectiveDir(f.path)) === currentGroupFilter)) {
+                if (currentGroupFilter !== '全部' && !filteredFiles.some(f => getGroupLabel(getEffectiveDir(f.path)) ===
+                        currentGroupFilter)) {
                     currentGroupFilter = '全部';
                 }
                 updateGroupTabs();
@@ -1615,11 +1974,13 @@
                     downloadBlob(blob, 'navigation-page.html');
                 }
             }
+
             async function exportAllHtmlSource() {
                 if (!confirm('确定要打包导出全部HTML文件吗？')) return;
                 const filesToExport = fileOrder.map(path => {
                     const f = allFiles.find(x => x.path === path);
-                    return f ? { path: f.path, name: f.name, isLocal: f.isLocal } : { path, name: getDisplayName(path) };
+                    return f ? { path: f.path, name: f.name, isLocal: f.isLocal } : { path, name: getDisplayName(
+                            path) };
                 });
                 if (!filesToExport.length) {
                     alert('没有可导出的文件');
@@ -1658,6 +2019,7 @@
                 const blob = await zip.generateAsync({ type: 'blob' });
                 downloadBlob(blob, 'all-html-source.zip');
             }
+
             function exportConfig() {
                 if (!confirm('确定要导出配置文件吗？')) return;
                 const data = {
@@ -1670,8 +2032,10 @@
                         return { path: p, name: f?.name || getDisplayName(p) };
                     }),
                 };
-                downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'navigation-config.json');
+                downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+                'navigation-config.json');
             }
+
             function downloadBlob(blob, filename) {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1704,24 +2068,10 @@
                 reader.readAsText(file);
             }
 
-            /* ============ 搜索 ============ */
+            /* ============ 搜索输入 ============ */
             searchInput.addEventListener('input', () => {
                 searchQuery = searchInput.value.trim().toLowerCase();
                 refreshMain();
-            });
-
-            /* ============ 键盘快捷键 ============ */
-            document.addEventListener('keydown', e => {
-                if (e.key === '/' && document.activeElement !== searchInput) {
-                    e.preventDefault();
-                    searchInput.focus();
-                }
-                if (e.key === 'Escape' && document.activeElement === searchInput) {
-                    searchInput.value = '';
-                    searchQuery = '';
-                    refreshMain();
-                    searchInput.blur();
-                }
             });
 
             /* ============ 事件绑定 ============ */
@@ -1737,6 +2087,7 @@
                 if (e.target.files[0]) importConfig(e.target.files[0]);
             });
             saveSettingsBtn.addEventListener('click', () => {
+                // 密度已随滑块实时更新，只需保存当前值（已在updateDensity中保存）
                 closeSettings();
                 refreshMain();
             });
@@ -1755,6 +2106,7 @@
                 statusMessage.className = 'status-msg error';
                 statusMessage.innerHTML = `<span class="status-icon">⚠️</span><strong>加载失败</strong><br>${msg}`;
             }
+
             function showLoading() {
                 loadingContainer.style.display = 'grid';
                 fileGroupsContainer.style.display = 'none';
@@ -1768,6 +2120,7 @@
                 showLoading();
                 try {
                     loadConfig();
+                    initDensity();
                     let files = [];
                     const json = await loadFilesFromJson();
                     if (json && json.length) files = json;
@@ -1775,11 +2128,8 @@
                     if (files.length) {
                         allFiles = files;
                         mergeConfig(files);
-                        if (sortEnabled) {
-                            currentView = 'list';
-                            gridViewBtn.disabled = true;
-                            listViewBtn.classList.add('active');
-                        }
+                        // 恢复视图
+                        setView(currentView);
                         refreshMain();
                     } else {
                         allFiles = [];
