@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>信息价查询工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f8fafc;
+            width: 100vw;
+            min-width: 0;
+        }
+
+        /* ===== 面板隐藏模式 ===== */
+        body.panel-hidden .filter-panel {
+            display: none !important;
+        }
+        body.panel-hidden .data-panel.mode-left {
+            margin-left: 0 !important;
+        }
+        body.panel-hidden .data-panel.mode-right {
+            margin-right: 0 !important;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .overlay.active {
+            opacity: 1;
+        }
+
+        /* ===== 筛选面板 ===== */
+        .filter-panel {
+            width: 400px;
+            padding: 20px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            min-width: 400px;
+            position: fixed;
+            height: 100%;
+            top: 0;
+            z-index: 100;
+            overflow-y: hidden;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s, right 0.3s;
+        }
+
+        .filter-panel .panel-scroll {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 模式：左侧 */
+        .filter-panel.mode-left {
+            left: 0;
+            right: auto;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+        .data-panel.mode-left {
+            margin-left: 400px;
+            margin-right: 0;
+        }
+
+        /* 模式：右侧 */
+        .filter-panel.mode-right {
+            left: auto;
+            right: 0;
+            border-left: 1px solid #e2e8f0;
+            border-right: none;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+        .data-panel.mode-right {
+            margin-left: 0;
+            margin-right: 400px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .import-area {
+            padding: 10px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .import-area:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+        .refresh-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f5f9;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .refresh-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        .import-btn {
+            padding: 6px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 0;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            flex: 1;
+        }
+        .import-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .import-btn.export-btn {
+            background: #8b5cf6;
+        }
+        .import-btn.export-btn:hover {
+            background: #7c3aed;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            justify-content: center;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .filter-group select {
+            flex: 1;
+            min-width: 0;
+            max-width: calc(100% - 60px);
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .filter-group input {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border 0.3s ease;
+            width: 100%;
+        }
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .clear-btn {
+            width: 50px;
+            padding: 8px 0;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            text-align: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .clear-btn:hover {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+        .period-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            scroll-behavior: smooth;
+        }
+        .period-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .period-item:hover {
+            background: #e2e8f0;
+        }
+        .period-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: 14px;
+            height: 14px;
+            accent-color: #3b82f6;
+            flex-shrink: 0;
+        }
+        .period-item label {
+            cursor: pointer;
+            font-weight: normal;
+            margin: 0;
+            flex: 1;
+            font-size: 13px;
+        }
+        .search-all-group {
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .search-all-group label {
+            color: #475569;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .search-all-group input {
+            width: 100%;
+            margin-top: 4px;
+        }
+        .search-btn {
+            padding: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            flex: 1;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        .data-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            min-width: 0;
+            transition: margin 0.3s;
+        }
+        .table-wrapper {
+            width: 100%;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            min-width: 0;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            table-layout: fixed;
+            min-width: 800px;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 48px;
+            line-height: 48px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .data-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+            font-weight: 600;
+            color: #1e293b;
+            position: sticky;
+            top: 0;
+            font-size: 13px;
+            z-index: 10;
+            white-space: nowrap;
+            height: 44px;
+            line-height: 44px;
+        }
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+        .empty-tip {
+            text-align: center;
+            padding: 60px;
+            color: #64748b;
+            font-size: 16px;
+        }
+        #fileInput {
+            display: none;
+        }
+        #importStatus {
+            margin-top: 8px;
+            color: #10b981;
+            font-size: 12px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .data-table th:nth-child(1),
+        .data-table td:nth-child(1) {
+            width: 3.5/16*100%;
+            min-width: 150px;
+        }
+        .data-table th:nth-child(2),
+        .data-table td:nth-child(2) {
+            width: 3.5/16*100%;
+            min-width: 150px;
+        }
+        .data-table th:nth-child(3),
+        .data-table td:nth-child(3) {
+            width: 3/16*100%;
+            min-width: 120px;
+        }
+        .data-table th:nth-child(4),
+        .data-table td:nth-child(4) {
+            width: 3/16*100%;
+            min-width: 120px;
+        }
+        .data-table th:nth-child(5),
+        .data-table td:nth-child(5) {
+            width: 1/16*100%;
+            min-width: 60px;
+        }
+        .data-table th:nth-child(6),
+        .data-table td:nth-child(6) {
+            width: 2/16*100%;
+            min-width: 80px;
+        }
+
+        .clear-all-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-top: 4px;
+            flex: 1;
+        }
+        .clear-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .price-cell {
+            cursor: copy;
+        }
+        .price-cell:hover {
+            background-color: #e8f4ea;
+        }
+        .data-table td {
+            cursor: copy;
+        }
+        .data-table td:hover {
+            background-color: #f8fafc;
+        }
+
+        /* 桌面端中等屏幕适配 */
+        @media screen and (max-width: 1400px) {
+            .filter-panel.mode-left,
+            .filter-panel.mode-right {
+                width: 380px;
+                min-width: 380px;
+                padding: 16px;
+            }
+            .data-panel.mode-left {
+                margin-left: 380px;
+            }
+            .data-panel.mode-right {
+                margin-right: 380px;
+            }
+            .data-panel {
+                padding: 16px;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 10px 12px;
+                font-size: 12px;
+                height: 42px;
+                line-height: 42px;
+            }
+            .data-table th {
+                height: 40px;
+                line-height: 40px;
+            }
+        }
+        @media screen and (max-width: 1200px) {
+            .filter-panel.mode-left,
+            .filter-panel.mode-right {
+                width: 360px;
+                min-width: 360px;
+                padding: 14px;
+            }
+            .data-panel.mode-left {
+                margin-left: 360px;
+            }
+            .data-panel.mode-right {
+                margin-right: 360px;
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            .clear-btn {
+                width: 40px;
+                padding: 6px 0;
+                font-size: 10px;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 8px 10px;
+                font-size: 12px;
+                height: 38px;
+                line-height: 38px;
+            }
+            .data-table th {
+                height: 36px;
+                line-height: 36px;
+            }
+        }
+
+        /* ===== 移动端适配 ===== */
+        @media screen and (max-width: 991px) {
+            body {
+                min-width: 0;
+                overflow: hidden;
+            }
+            body.panel-hidden .filter-panel {
+                display: block !important; /* 移动端不隐藏，用滑出 */
+            }
+            body.panel-hidden .data-panel.mode-left,
+            body.panel-hidden .data-panel.mode-right {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            .filter-panel {
+                width: 86% !important;
+                max-width: 400px !important;
+                min-width: 0 !important;
+                padding: 16px !important;
+                left: 0 !important;
+                right: auto !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                height: 100% !important;
+                transform: translateX(-105%) !important;
+                border-right: none !important;
+                border-radius: 0 16px 16px 0 !important;
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
+                overflow-y: auto !important;
+                z-index: 200 !important;
+            }
+            .filter-panel.open {
+                transform: translateX(0) !important;
+            }
+
+            .data-panel.mode-left,
+            .data-panel.mode-right {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            .overlay {
+                display: block;
+                pointer-events: none;
+            }
+            .overlay.active {
+                pointer-events: auto;
+            }
+
+            .data-panel {
+                padding: 12px;
+                padding-top: 64px;
+            }
+
+            .table-wrapper {
+                max-height: calc(100vh - 80px);
+                border-radius: 8px;
+            }
+
+            .data-table {
+                min-width: 700px;
+                font-size: 12px;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 6px 10px;
+                font-size: 11px;
+                height: 36px;
+                line-height: 36px;
+            }
+            .data-table th {
+                height: 34px;
+                line-height: 34px;
+                font-size: 11px;
+            }
+
+            .filter-group select,
+            .filter-group input {
+                padding: 10px 12px;
+                font-size: 14px;
+                min-height: 44px;
+            }
+            .clear-btn {
+                width: 52px;
+                padding: 10px 0;
+                font-size: 12px;
+                min-height: 44px;
+            }
+            .import-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+                min-height: 44px;
+            }
+            .search-btn,
+            .clear-all-btn {
+                padding: 12px;
+                font-size: 16px;
+                min-height: 48px;
+            }
+            .period-item {
+                padding: 8px 10px;
+            }
+            .period-item input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+            }
+            .period-item label {
+                font-size: 14px;
+            }
+            .period-control-btn {
+                padding: 8px 10px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+            .period-container {
+                max-height: 160px;
+            }
+
+            .empty-tip {
+                padding: 30px 16px;
+                font-size: 14px;
+            }
+            .empty-tip .hint {
+                display: block;
+                margin-top: 8px;
+                color: #f59e0b;
+                font-size: 13px;
+                font-weight: 500;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .filter-panel {
+                width: 92% !important;
+                padding: 12px !important;
+            }
+            .data-panel {
+                padding: 8px;
+                padding-top: 60px;
+            }
+            .data-table {
+                min-width: 600px;
+                font-size: 10px;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 4px 8px;
+                font-size: 10px;
+                height: 32px;
+                line-height: 32px;
+            }
+            .data-table th {
+                height: 30px;
+                line-height: 30px;
+                font-size: 10px;
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 8px 10px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+            .clear-btn {
+                width: 44px;
+                padding: 8px 0;
+                font-size: 10px;
+                min-height: 40px;
+            }
+            .import-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+            .search-btn,
+            .clear-all-btn {
+                padding: 10px;
+                font-size: 14px;
+                min-height: 44px;
+            }
+            .period-item {
+                padding: 6px 8px;
+            }
+            .period-item label {
+                font-size: 13px;
+            }
+            .period-container {
+                max-height: 140px;
+            }
+        }
+
+        /* ===== 右键菜单 ===== */
+        .custom-contextmenu {
+            position: absolute;
+            width: 180px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .contextmenu-item {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .contextmenu-item:hover {
+            background: #f0f9ff;
+            color: #3b82f6;
+        }
+        .contextmenu-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+
+        /* ===== 价格趋势浮窗 ===== */
+        .trend-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .trend-modal-content {
+            width: 60%;
+            max-width: 600px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .trend-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .trend-close:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .trend-title {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .trend-data-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .trend-data-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .trend-data-item:last-child {
+            border-bottom: none;
+        }
+        .trend-period {
+            font-weight: 600;
+            color: #475569;
+        }
+        .trend-price {
+            color: #10b981;
+            font-weight: 500;
+        }
+        .trend-selected {
+            color: #ef4444 !important;
+            font-weight: 600 !important;
+        }
+
+        /* ===== Toast提示 ===== */
+        .toast-notice {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.78);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            max-width: 90%;
+            text-align: center;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .period-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .period-control-btn {
+            flex: 1;
+            padding: 6px 8px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            color: #475569;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .period-control-btn:hover {
+            background: #cbd5e1;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+        .button-row button {
+            flex: 1;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .period-item.latest-period {
+            background: #dbeafe;
+            border-radius: 4px;
+        }
+        .period-item.latest-period label {
+            font-weight: 600;
+            color: #1e40af;
+        }
+
+        /* ===== 悬浮搜索按钮（可长按拖拽） ===== */
+        .float-search-btn {
+            position: fixed;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: transparent;
+            color: #2563eb;
+            border: none;
+            box-shadow: none;
+            font-size: 28px;
+            cursor: grab;
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+            user-select: none;
+            touch-action: none;
+            line-height: 1;
+            /* 默认位置，由JS控制 */
+            right: 30px;
+            bottom: 30px;
+            left: auto;
+            top: auto;
+        }
+        .float-search-btn:hover {
+            transform: scale(1.08);
+        }
+        .float-search-btn:active {
+            cursor: grabbing;
+        }
+        .float-search-btn .icon {
+            pointer-events: none;
+        }
+
+        /* ===== 搜索浮窗（数据区中间偏上） ===== */
+        .float-search-panel {
+            position: fixed;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            padding: 16px 20px 18px;
+            z-index: 9999;
+            display: none;
+            border: 1px solid #e2e8f0;
+            width: 340px;
+            max-width: 90vw;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            transform-origin: center;
+            /* 位置由JS控制 */;
+        }
+        .float-search-panel.open {
+            display: block;
+            animation: floatIn 0.25s ease forwards;
+        }
+        @keyframes floatIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .float-search-panel .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .float-search-panel .search-header label {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e293b;
+        }
+        .float-search-panel .search-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+        .float-search-panel .search-close:hover {
+            color: #ef4444;
+        }
+        .float-search-panel .search-input-wrap {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .float-search-panel .search-input-wrap input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .float-search-panel .search-input-wrap input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .float-search-panel .search-input-wrap .clear-float-btn {
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            color: #475569;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .float-search-panel .search-input-wrap .clear-float-btn:hover {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+
+        /* ===== 设置浮窗 ===== */
+        .settings-float-panel {
+            position: fixed;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            padding: 20px 24px;
+            z-index: 9999;
+            display: none;
+            border: 1px solid #e2e8f0;
+            min-width: 240px;
+            max-width: 90vw;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            transform-origin: top right;
+        }
+        .settings-float-panel.open {
+            display: block;
+            animation: floatIn 0.25s ease forwards;
+        }
+        .settings-float-panel .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .settings-float-panel .settings-header h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #1e293b;
+        }
+        .settings-float-panel .settings-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+        .settings-float-panel .settings-close:hover {
+            color: #ef4444;
+        }
+        .settings-float-panel .mode-options {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .settings-float-panel .mode-options button {
+            flex: 1;
+            padding: 8px 0;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            color: #334155;
+            text-align: center;
+        }
+        .settings-float-panel .mode-options button:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        .settings-float-panel .mode-options button.active-mode {
+            border-color: #3b82f6;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .settings-float-panel .size-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .settings-float-panel .size-control label {
+            font-size: 14px;
+            color: #475569;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .settings-float-panel .size-control input[type="range"] {
+            flex: 1;
+            min-width: 80px;
+            accent-color: #3b82f6;
+        }
+        .settings-float-panel .size-control .size-value {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 768px) {
+            .float-search-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+            .float-search-panel {
+                width: calc(100vw - 32px);
+                max-width: 400px;
+                padding: 14px 16px;
+            }
+            .float-search-panel .search-input-wrap input {
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+            .settings-float-panel {
+                padding: 16px 18px;
+                min-width: 200px;
+            }
+            .settings-float-panel .mode-options button {
+                font-size: 13px;
+                padding: 6px 0;
+            }
+        }
+        @media screen and (max-width: 480px) {
+            .float-search-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+            .float-search-panel {
+                padding: 12px 14px;
+            }
+            .settings-float-panel {
+                padding: 14px 16px;
+                min-width: 170px;
+            }
+            .settings-float-panel .mode-options button {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 遮罩层 ===== -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- ===== 筛选面板 ===== -->
+    <div class="filter-panel mode-left" id="filterPanel">
+        <div class="panel-scroll">
+            <div class="panel-header"></div>
+            <div class="import-area">
+                <button class="refresh-btn" onclick="reloadDataFile()" title="重新加载数据文件">↻</button>
+                <p style="color: #475569; font-size: 12px; margin-bottom: 4px;">Excel数据文件</p>
+                <div class="btn-group">
+                    <button class="import-btn" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                    <button class="import-btn export-btn" onclick="exportData()">导出数据</button>
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="importExcel(event)">
+                <p id="importStatus">⏳ 正在加载数据...</p>
+            </div>
+            <div class="filter-group">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="installFilter" onchange="refreshAllFilters()" style="width: 16px; height: 16px; accent-color: #3b82f6;" checked>
+                    <label for="installFilter" style="font-size: 13px; font-weight: 600;">仅显示【安装专业】数据</label>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label style="font-size: 12px;">选择期数</label>
+                <div class="period-controls">
+                    <button class="period-control-btn" onclick="selectAllPeriods()">全选</button>
+                    <button class="period-control-btn" onclick="unselectAllPeriods()">取消全选</button>
+                </div>
+                <div id="periodContainer" class="period-container">
+                    <div style="text-align:center;color:#999;padding:10px">请先导入数据</div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label for="category1" style="font-size: 12px;">分类Ⅰ</label>
+                <div class="select-wrapper">
+                    <select id="category1" onchange="updateCategory2Options(); autoSearch();">
+                        <option value="">全部</option>
+                    </select>
+                    <button class="clear-btn" onclick="clearSelect('category1')">清除</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label for="category2" style="font-size: 12px;">分类Ⅱ</label>
+                <div class="select-wrapper">
+                    <select id="category2" onchange="updateMaterialNameOptions(); autoSearch();">
+                        <option value="">全部</option>
+                    </select>
+                    <button class="clear-btn" onclick="clearSelect('category2')">清除</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label for="materialName" style="font-size: 12px;">材料名称</label>
+                <div class="select-wrapper">
+                    <select id="materialName" onchange="updateSpecOptions(); autoSearch();">
+                        <option value="">全部</option>
+                    </select>
+                    <button class="clear-btn" onclick="clearSelect('materialName')">清除</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label for="specModel" style="font-size: 12px;">规格型号</label>
+                <div class="select-wrapper">
+                    <select id="specModel" onchange="autoSearch();">
+                        <option value="">全部</option>
+                    </select>
+                    <button class="clear-btn" onclick="clearSelect('specModel')">清除</button>
+                </div>
+            </div>
+            <div class="filter-group search-all-group">
+                <label style="font-size: 12px;">搜索</label>
+                <div class="select-wrapper">
+                    <input type="text" id="searchAll" placeholder="输入关键词搜索所有内容" oninput="autoSearch()">
+                    <button class="clear-btn" onclick="clearSelect('searchAll')">清除</button>
+                </div>
+            </div>
+            <div class="button-row">
+                <button class="clear-all-btn" onclick="clearAllFilters()">清空筛选/关键词</button>
+                <button class="search-btn" onclick="searchData()">查询数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 数据面板 ===== -->
+    <div class="data-panel mode-left" id="dataPanel">
+        <div class="table-wrapper">
+            <table class="data-table" id="resultTable">
+                <thead>
+                    <tr>
+                        <th>分类Ⅰ</th>
+                        <th>分类Ⅱ</th>
+                        <th>材料名称</th>
+                        <th>型号规格</th>
+                        <th>单位</th>
+                        <th id="avgHeader">价格</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="6" class="empty-tip">⏳ 正在加载数据，请稍候...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== 右键菜单 ===== -->
+    <div class="custom-contextmenu" id="priceContextMenu">
+        <div class="contextmenu-item" id="menuPriceTrend">价格趋势</div>
+        <div class="contextmenu-divider" id="menuDivider1"></div>
+        <div id="multiplierMenuContainer"></div>
+        <div class="contextmenu-divider" id="pipeDivider"></div>
+        <div id="steelPipeMenuContainer"></div>
+        <div class="contextmenu-divider" id="unitConvertDivider"></div>
+        <div id="unitConvertMenuContainer"></div>
+        <div class="contextmenu-divider" id="menuDivider2"></div>
+    </div>
+
+    <!-- ===== 价格趋势浮窗 ===== -->
+    <div class="trend-modal" id="trendModal">
+        <div class="trend-modal-content">
+            <button class="trend-close" onclick="closeTrendModal()">×</button>
+            <h3 class="trend-title" id="trendTitle">材料价格趋势</h3>
+            <ul class="trend-data-list" id="trendDataList"></ul>
+        </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div class="toast-notice" id="toast"></div>
+
+    <!-- ===== 悬浮搜索按钮（单击搜索，双击切换面板，三击设置，长按拖拽） ===== -->
+    <button class="float-search-btn" id="floatSearchBtn" title="单击搜索，双击切换面板，三击设置，长按拖拽">
+        <span class="icon">🔍</span>
+    </button>
+
+    <!-- ===== 搜索浮窗（数据区中间偏上） ===== -->
+    <div class="float-search-panel" id="floatSearchPanel">
+        <div class="search-header">
+            <label>🔎 快速搜索</label>
+            <button class="search-close" id="floatSearchClose">✕</button>
+        </div>
+        <div class="search-input-wrap">
+            <input type="text" id="floatSearchInput" placeholder="输入关键词搜索...">
+            <button class="clear-float-btn" id="floatClearBtn">清除</button>
+        </div>
+    </div>
+
+    <!-- ===== 设置浮窗（三击搜索按钮弹出） ===== -->
+    <div class="settings-float-panel" id="settingsFloatPanel">
+        <div class="settings-header">
+            <h4>⚙️ 设置</h4>
+            <button class="settings-close" id="settingsFloatClose">✕</button>
+        </div>
+        <div class="mode-options">
+            <button data-mode="left" class="active-mode">⬅ 左侧</button>
+            <button data-mode="right">➡ 右侧</button>
+        </div>
+        <div class="size-control">
+            <label>按钮大小</label>
+            <input type="range" id="sizeSlider" min="32" max="72" value="56" step="1">
+            <span class="size-value" id="sizeDisplay">56px</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    </script>
+    <script>
+        // ==================== 配置 ====================
+        const DATA_FILE_NAMES = ['信息价数据.xlsx', 'data.xlsx'];
+
+        // ==================== 全局变量 ====================
+        let excelData = [];
+        let periodsList = [];
+        let fullDataMap = {
+            category1: [],
+            category2ByC1: {},
+            materialByC1C2: {},
+            specByC1C2Material: {},
+            allCategory2: [],
+            allMaterials: [],
+            allSpecs: []
+        };
+        let lastFile = null;
+        let currentRowData = null;
+        let currentPrice = 0;
+        let isDataLoaded = false;
+        let currentMode = 'left';
+        let floatBtnSize = 56;
+        let panelVisible = true;
+
+        // ==================== Toast ====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.opacity = 1;
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => {
+                toast.style.opacity = 0;
+            }, 3000);
+        }
+
+        // ==================== 面板模式切换 ====================
+        function setPanelMode(mode) {
+            currentMode = mode;
+            const panel = document.getElementById('filterPanel');
+            const dataPanel = document.getElementById('dataPanel');
+
+            panel.classList.remove('mode-left', 'mode-right');
+            dataPanel.classList.remove('mode-left', 'mode-right');
+
+            panel.classList.add('mode-' + mode);
+            dataPanel.classList.add('mode-' + mode);
+
+            localStorage.setItem('panelMode', mode);
+
+            document.querySelectorAll('#settingsFloatPanel .mode-options button').forEach(btn => {
+                btn.classList.toggle('active-mode', btn.dataset.mode === mode);
+            });
+
+            if (!panelVisible) {
+                document.body.classList.add('panel-hidden');
+            } else {
+                document.body.classList.remove('panel-hidden');
+            }
+
+            positionSearchPanel();
+            keepButtonOffPanel();
+
+            if (window.innerWidth <= 991) {
+                closeMobilePanel();
+            }
+        }
+
+        // ==================== 面板可见性切换 ====================
+        function togglePanelVisibility() {
+            // 移动端：双击搜索按钮等效于原左上角按钮，滑动开合面板
+            if (window.innerWidth <= 991) {
+                toggleMobilePanel();
+                return;
+            }
+            panelVisible = !panelVisible;
+            if (panelVisible) {
+                document.body.classList.remove('panel-hidden');
+            } else {
+                document.body.classList.add('panel-hidden');
+            }
+            positionSearchPanel();
+            keepButtonOffPanel();
+        }
+
+        // ==================== 按钮大小控制 ====================
+        function setFloatBtnSize(size) {
+            floatBtnSize = size;
+            const btn = document.getElementById('floatSearchBtn');
+            btn.style.width = size + 'px';
+            btn.style.height = size + 'px';
+            const fontSize = Math.max(16, size * 0.5);
+            btn.style.fontSize = fontSize + 'px';
+            document.getElementById('sizeDisplay').textContent = size + 'px';
+            localStorage.setItem('floatBtnSize', size);
+            keepButtonOffPanel();
+        }
+
+        // ==================== 搜索浮窗定位 ====================
+        function positionSearchPanel() {
+            const panel = document.getElementById('floatSearchPanel');
+            const dataPanel = document.getElementById('dataPanel');
+            if (!panel || !dataPanel) return;
+            const rect = dataPanel.getBoundingClientRect();
+            const pw = panel.offsetWidth || 340;
+            const ph = panel.offsetHeight || 120;
+            const left = rect.left + (rect.width - pw) / 2;
+            const top = rect.top + rect.height * 0.15;
+            panel.style.left = Math.max(10, left) + 'px';
+            panel.style.top = Math.max(10, top) + 'px';
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+            panel.style.transform = 'none';
+        }
+
+        // ==================== 按钮位置限制（不允许遮挡筛选面板） ====================
+        function clampButtonPosition(left, top, btnSize) {
+            const margin = 5;
+            let minLeft = margin;
+            let maxLeft = window.innerWidth - btnSize - margin;
+            const minTop = margin;
+            const maxTop = window.innerHeight - btnSize - margin;
+            const panel = document.getElementById('filterPanel');
+            if (panel) {
+                const pw = panel.offsetWidth || 400;
+                const isMobile = window.innerWidth <= 991;
+                const panelVisible = isMobile
+                    ? panel.classList.contains('open')
+                    : !document.body.classList.contains('panel-hidden');
+                if (panelVisible) {
+                    if (panel.classList.contains('mode-left')) {
+                        minLeft = pw + margin * 2;
+                    } else if (panel.classList.contains('mode-right')) {
+                        maxLeft = window.innerWidth - pw - btnSize - margin * 2;
+                    }
+                }
+            }
+            if (maxLeft < minLeft) {
+                // 横向可用空间不足：贴近远离面板的一侧边缘，避免遮挡面板
+                const isLeftMode = !!(panel && panel.classList.contains('mode-left'));
+                left = isLeftMode ? window.innerWidth - btnSize - margin : margin;
+                top = margin;
+                return { left, top };
+            }
+            left = Math.max(minLeft, Math.min(left, maxLeft));
+            top = Math.max(minTop, Math.min(top, maxTop));
+            return { left, top };
+        }
+
+        // 面板可见性变化或位置恢复后，确保按钮不遮挡面板
+        function keepButtonOffPanel() {
+            const btn = document.getElementById('floatSearchBtn');
+            if (!btn) return;
+            const btnSize = btn.offsetWidth || floatBtnSize || 56;
+            let left = parseFloat(btn.style.left);
+            let top = parseFloat(btn.style.top);
+            if (isNaN(left) || isNaN(top)) {
+                const rect = btn.getBoundingClientRect();
+                left = rect.left;
+                top = rect.top;
+            }
+            const res = clampButtonPosition(left, top, btnSize);
+            if (Math.abs(res.left - left) > 0.5 || Math.abs(res.top - top) > 0.5) {
+                btn.style.left = res.left + 'px';
+                btn.style.top = res.top + 'px';
+                btn.style.right = 'auto';
+                btn.style.bottom = 'auto';
+                try {
+                    localStorage.setItem('floatBtnLeft', btn.style.left);
+                    localStorage.setItem('floatBtnTop', btn.style.top);
+                } catch (ex) {}
+            }
+        }
+
+        // ==================== 移动端面板控制 ====================
+        function toggleMobilePanel() {
+            const panel = document.getElementById('filterPanel');
+            const overlay = document.getElementById('overlay');
+            if (window.innerWidth > 991) return;
+            const isOpen = panel.classList.contains('open');
+            if (isOpen) {
+                panel.classList.remove('open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                panel.classList.add('open');
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            keepButtonOffPanel();
+        }
+
+        function closeMobilePanel() {
+            const panel = document.getElementById('filterPanel');
+            const overlay = document.getElementById('overlay');
+            panel.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            keepButtonOffPanel();
+        }
+
+        document.getElementById('overlay').addEventListener('click', closeMobilePanel);
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 992) {
+                closeMobilePanel();
+            }
+            positionSearchPanel();
+            keepButtonOffPanel();
+        });
+
+        // ==================== 搜索浮窗逻辑 ====================
+        (function() {
+            const btn = document.getElementById('floatSearchBtn');
+            const panel = document.getElementById('floatSearchPanel');
+            const input = document.getElementById('floatSearchInput');
+            const closeBtn = document.getElementById('floatSearchClose');
+            const clearBtn = document.getElementById('floatClearBtn');
+            const mainSearch = document.getElementById('searchAll');
+
+            let isOpen = false;
+
+            function openPanel() {
+                panel.classList.add('open');
+                isOpen = true;
+                setTimeout(() => input.focus(), 100);
+                input.value = mainSearch.value;
+                positionSearchPanel();
+            }
+
+            function closePanel() {
+                panel.classList.remove('open');
+                isOpen = false;
+                input.blur();
+            }
+
+            function togglePanel() {
+                if (isOpen) closePanel();
+                else openPanel();
+            }
+
+            window.toggleSearchPanel = togglePanel;
+            window.closeSearchPanel = closePanel;
+
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closePanel();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (isOpen && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    closePanel();
+                }
+            });
+
+            panel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            input.addEventListener('input', function() {
+                const val = this.value;
+                mainSearch.value = val;
+                const evt = new Event('input', { bubbles: true });
+                mainSearch.dispatchEvent(evt);
+            });
+
+            clearBtn.addEventListener('click', function() {
+                input.value = '';
+                mainSearch.value = '';
+                const evt = new Event('input', { bubbles: true });
+                mainSearch.dispatchEvent(evt);
+                input.focus();
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closePanel();
+                    btn.focus();
+                }
+            });
+
+            mainSearch.addEventListener('input', function() {
+                if (isOpen) {
+                    input.value = this.value;
+                }
+            });
+
+            window.closeFloatSearch = closePanel;
+        })();
+
+        // ==================== 设置浮窗 ====================
+        (function() {
+            const panel = document.getElementById('settingsFloatPanel');
+            const closeBtn = document.getElementById('settingsFloatClose');
+            const modeBtns = panel.querySelectorAll('.mode-options button');
+            const sizeSlider = document.getElementById('sizeSlider');
+            const sizeDisplay = document.getElementById('sizeDisplay');
+
+            let isOpen = false;
+
+            function openPanel() {
+                panel.classList.add('open');
+                isOpen = true;
+                positionSettingsPanel();
+            }
+
+            function closePanel() {
+                panel.classList.remove('open');
+                isOpen = false;
+            }
+
+            function togglePanel() {
+                if (isOpen) closePanel();
+                else openPanel();
+            }
+
+            function positionSettingsPanel() {
+                const btn = document.getElementById('floatSearchBtn');
+                const rect = btn.getBoundingClientRect();
+                let left, top;
+
+                const pw = panel.offsetWidth || 240;
+                const ph = panel.offsetHeight || 200;
+
+                left = rect.left + rect.width / 2 - pw / 2;
+                top = rect.top - ph - 12;
+
+                if (top < 10) {
+                    top = rect.bottom + 12;
+                }
+                if (left < 10) {
+                    left = 10;
+                }
+                if (left + pw > window.innerWidth - 10) {
+                    left = window.innerWidth - pw - 10;
+                }
+
+                panel.style.left = left + 'px';
+                panel.style.top = top + 'px';
+                panel.style.right = 'auto';
+                panel.style.transform = 'none';
+                panel.style.transformOrigin = 'top center';
+            }
+
+            window.toggleSettingsPanel = togglePanel;
+            window.closeSettingsPanel = closePanel;
+
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closePanel();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (isOpen && !panel.contains(e.target) && e.target !== document.getElementById('floatSearchBtn')) {
+                    closePanel();
+                }
+            });
+
+            panel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    setPanelMode(mode);
+                });
+            });
+
+            sizeSlider.addEventListener('input', function() {
+                const val = parseInt(this.value);
+                sizeDisplay.textContent = val + 'px';
+                setFloatBtnSize(val);
+            });
+
+            const savedSize = localStorage.getItem('floatBtnSize');
+            if (savedSize) {
+                const sz = parseInt(savedSize);
+                if (sz >= 32 && sz <= 72) {
+                    floatBtnSize = sz;
+                    sizeSlider.value = sz;
+                    sizeDisplay.textContent = sz + 'px';
+                    setFloatBtnSize(sz);
+                }
+            }
+
+            window.addEventListener('resize', function() {
+                if (isOpen) {
+                    positionSettingsPanel();
+                }
+            });
+        })();
+
+        // ==================== 搜索按钮：单击搜索，双击切换面板，三击设置，长按拖拽 ====================
+        (function() {
+            const btn = document.getElementById('floatSearchBtn');
+            let clickTimer = null;
+            let clickCount = 0;
+
+            // 拖拽状态
+            let isDragging = false;
+            let isPointerDown = false;
+            let dragStartX = 0,
+                dragStartY = 0;
+            let dragOrigLeft = 0,
+                dragOrigTop = 0;
+
+            // ----- 开始：按下 -----
+            function onPointerDown(e) {
+                isPointerDown = true;
+                const touch = e.touches ? e.touches[0] : e;
+                dragStartX = touch.clientX;
+                dragStartY = touch.clientY;
+                const rect = btn.getBoundingClientRect();
+                dragOrigLeft = rect.left;
+                dragOrigTop = rect.top;
+
+                isDragging = false;
+                // 不在此处重置 clickCount 与点击计时器，
+                // 否则每次按下都会把连续点击计数清零，导致双击/三击永远无法触发
+                // 阻止默认行为
+                e.preventDefault();
+            }
+
+            // ----- 移动 -----
+            function onPointerMove(e) {
+                // 未按下时直接返回，避免按钮未按下就跟随鼠标移动
+                if (!isPointerDown) return;
+                const touch = e.touches ? e.touches[0] : e;
+                const dx = touch.clientX - dragStartX;
+                const dy = touch.clientY - dragStartY;
+
+                // 如果已经进入拖拽模式，更新位置
+                if (isDragging) {
+                    e.preventDefault();
+                    const btnSize = btn.offsetWidth || floatBtnSize || 56;
+                    const pos = clampButtonPosition(dragOrigLeft + dx, dragOrigTop + dy, btnSize);
+                    btn.style.left = pos.left + 'px';
+                    btn.style.top = pos.top + 'px';
+                    btn.style.right = 'auto';
+                    btn.style.bottom = 'auto';
+                    return;
+                }
+
+                // 检查移动距离是否超过阈值（10px）进入拖拽模式
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 10) {
+                    isDragging = true;
+                    btn.style.cursor = 'grabbing';
+                    // 第一次移动，设置位置
+                    const btnSize = btn.offsetWidth || floatBtnSize || 56;
+                    const pos = clampButtonPosition(dragOrigLeft + dx, dragOrigTop + dy, btnSize);
+                    btn.style.left = pos.left + 'px';
+                    btn.style.top = pos.top + 'px';
+                    btn.style.right = 'auto';
+                    btn.style.bottom = 'auto';
+                    e.preventDefault();
+                }
+            }
+
+            // ----- 结束：松开 -----
+            function onPointerUp(e) {
+                // 未按下时忽略
+                if (!isPointerDown) return;
+                isPointerDown = false;
+                // 如果是拖拽结束，保存位置并重置状态
+                if (isDragging) {
+                    // 保存位置（确保不遮挡面板）
+                    keepButtonOffPanel();
+                    try {
+                        localStorage.setItem('floatBtnLeft', btn.style.left);
+                        localStorage.setItem('floatBtnTop', btn.style.top);
+                    } catch (ex) {}
+                    // 重置拖拽状态与点击计数
+                    isDragging = false;
+                    btn.style.cursor = 'grab';
+                    clearTimeout(clickTimer);
+                    clickCount = 0;
+                    e.preventDefault();
+                    return;
+                }
+
+                // 不是拖拽，处理点击逻辑（单击/双击/三击）
+                // 重置拖拽状态（安全）
+                isDragging = false;
+                btn.style.cursor = 'grab';
+
+                clearTimeout(clickTimer);
+                clickCount++;
+
+                // 等待 350ms 后按累计次数统一判定，确保三击不被双击提前触发
+                clickTimer = setTimeout(() => {
+                    const count = clickCount;
+                    clickCount = 0;
+                    if (count >= 3) {
+                        // 三击：打开设置
+                        if (window.closeSearchPanel) window.closeSearchPanel();
+                        window.toggleSettingsPanel();
+                    } else if (count === 2) {
+                        // 双击：切换面板
+                        if (window.closeSearchPanel) window.closeSearchPanel();
+                        if (window.closeSettingsPanel) window.closeSettingsPanel();
+                        togglePanelVisibility();
+                    } else {
+                        // 单击：搜索
+                        if (window.closeSettingsPanel) window.closeSettingsPanel();
+                        window.toggleSearchPanel();
+                    }
+                }, 350);
+            }
+
+            // ----- 绑定事件 -----
+            btn.addEventListener('mousedown', onPointerDown);
+            document.addEventListener('mousemove', onPointerMove);
+            document.addEventListener('mouseup', onPointerUp);
+
+            btn.addEventListener('touchstart', onPointerDown, { passive: false });
+            document.addEventListener('touchmove', onPointerMove, { passive: false });
+            document.addEventListener('touchend', onPointerUp);
+            document.addEventListener('touchcancel', onPointerUp);
+
+            // 阻止默认点击事件（已由我们的逻辑处理）
+            btn.addEventListener('click', function(e) {
+                if (isDragging) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            });
+
+            // ----- 恢复保存的位置 -----
+            try {
+                const left = localStorage.getItem('floatBtnLeft');
+                const top = localStorage.getItem('floatBtnTop');
+                if (left && top) {
+                    btn.style.left = left;
+                    btn.style.top = top;
+                    btn.style.right = 'auto';
+                    btn.style.bottom = 'auto';
+                } else {
+                    // 默认
+                    btn.style.right = '30px';
+                    btn.style.bottom = '30px';
+                    btn.style.left = 'auto';
+                    btn.style.top = 'auto';
+                }
+            } catch (e) {
+                btn.style.right = '30px';
+                btn.style.bottom = '30px';
+                btn.style.left = 'auto';
+                btn.style.top = 'auto';
+            }
+
+            // 恢复后确保不遮挡面板
+            keepButtonOffPanel();
+
+            // 窗口大小变化时，确保按钮不超出边界且不遮挡面板
+            window.addEventListener('resize', function() {
+                keepButtonOffPanel();
+            });
+        })();
+
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            let savedMode = localStorage.getItem('panelMode') || 'left';
+            if (window.innerWidth <= 991) {
+                savedMode = 'left';
+            }
+            currentMode = savedMode;
+            const panel = document.getElementById('filterPanel');
+            const dataPanel = document.getElementById('dataPanel');
+            panel.classList.add('mode-' + savedMode);
+            dataPanel.classList.add('mode-' + savedMode);
+            document.querySelectorAll('#settingsFloatPanel .mode-options button').forEach(btn => {
+                btn.classList.toggle('active-mode', btn.dataset.mode === savedMode);
+            });
+
+            const savedSize = localStorage.getItem('floatBtnSize');
+            if (savedSize) {
+                const sz = parseInt(savedSize);
+                if (sz >= 32 && sz <= 72) {
+                    floatBtnSize = sz;
+                    document.getElementById('sizeSlider').value = sz;
+                    document.getElementById('sizeDisplay').textContent = sz + 'px';
+                    setFloatBtnSize(sz);
+                }
+            } else {
+                setFloatBtnSize(56);
+            }
+
+            panelVisible = true;
+            document.body.classList.remove('panel-hidden');
+
+            positionSearchPanel();
+            keepButtonOffPanel();
+
+            initDoubleClickCopy();
+            initContextMenu();
+
+            const saved = localStorage.getItem('priceData');
+            if (saved) {
+                try {
+                    excelData = JSON.parse(saved);
+                    const savedPeriods = localStorage.getItem('periodsList');
+                    if (savedPeriods) periodsList = JSON.parse(savedPeriods);
+                    if (excelData.length > 0) {
+                        isDataLoaded = true;
+                        refreshAllFilters();
+                        renderPeriods();
+                        document.getElementById('importStatus').textContent = '📂 已加载缓存数据';
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            autoLoadData();
+
+            window.addEventListener('resize', function() {
+                positionSearchPanel();
+            });
+        };
+
+        // ==================== 双击复制 ====================
+        function initDoubleClickCopy() {
+            const tbody = document.getElementById('tableBody');
+            tbody.addEventListener('dblclick', function(e) {
+                const td = e.target.closest('td');
+                if (!td) return;
+                const text = td.textContent.trim();
+                if (text && text !== '无数据' && text !== '未找到数据' && text !== '请先导入数据' && text !== '请先选择期数') {
+                    navigator.clipboard.writeText(text).then(() => {
+                        const orig = td.textContent;
+                        td.textContent = '✅ 已复制';
+                        setTimeout(() => td.textContent = orig, 800);
+                    }).catch(() => {
+                        showToast('复制失败');
+                    });
+                }
+            });
+        }
+
+        // ==================== 自动加载数据文件 ====================
+        async function autoLoadData() {
+            const statusEl = document.getElementById('importStatus');
+            statusEl.innerHTML = '<span class="loading-spinner"></span> 正在加载数据文件...';
+
+            let loaded = false;
+            for (const fileName of DATA_FILE_NAMES) {
+                try {
+                    const response = await fetch(fileName, { cache: 'no-cache' });
+                    if (!response.ok) continue;
+                    const arrayBuffer = await response.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+                    if (data.length < 2) continue;
+
+                    excelData = data;
+                    const headerRow = data[0];
+                    periodsList = headerRow.slice(6);
+                    isDataLoaded = true;
+
+                    localStorage.setItem('priceData', JSON.stringify(excelData));
+                    localStorage.setItem('periodsList', JSON.stringify(periodsList));
+
+                    refreshAllFilters();
+                    renderPeriods();
+                    statusEl.textContent = `✅ 已加载「${fileName}」，共 ${data.length - 1} 条数据`;
+                    loaded = true;
+                    break;
+                } catch (e) {
+                    console.log(`尝试加载 ${fileName} 失败:`, e);
+                }
+            }
+
+            if (!loaded) {
+                if (excelData.length > 0) {
+                    statusEl.textContent = '📂 使用缓存数据（未找到数据文件）';
+                } else {
+                    statusEl.textContent = '⚠️ 未找到数据文件，请点击「选择文件」手动导入';
+                    document.getElementById('tableBody').innerHTML =
+                        '<tr><td colspan="6" class="empty-tip">请先导入数据文件</td></tr>';
+                }
+            }
+        }
+
+        function reloadDataFile() {
+            document.getElementById('importStatus').textContent = '🔄 重新加载数据文件...';
+            autoLoadData();
+        }
+
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            lastFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+                    if (jsonData.length < 2) {
+                        showToast('数据不能为空');
+                        return;
+                    }
+                    excelData = jsonData;
+                    const headerRow = jsonData[0];
+                    periodsList = headerRow.slice(6);
+                    isDataLoaded = true;
+
+                    localStorage.setItem('priceData', JSON.stringify(excelData));
+                    localStorage.setItem('periodsList', JSON.stringify(periodsList));
+
+                    refreshAllFilters();
+                    renderPeriods();
+                    document.getElementById('importStatus').textContent =
+                        `✅ 已导入「${file.name}」，共 ${jsonData.length - 1} 条数据`;
+                    showToast(`✅ 导入成功！共 ${jsonData.length - 1} 条数据`);
+                } catch (error) {
+                    console.error(error);
+                    showToast('Excel解析失败');
+                    document.getElementById('importStatus').textContent = '❌ 解析失败';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        function exportData() {
+            if (excelData.length === 0) {
+                showToast('⚠️ 没有数据可导出');
+                return;
+            }
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `信息价数据_导出_${dateStr}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`✅ 导出成功！共 ${excelData.length - 1} 条数据`);
+            } catch (error) {
+                console.error(error);
+                showToast('❌ 导出失败：' + error.message);
+            }
+        }
+
+        // ==================== 期数选择 ====================
+        function selectAllPeriods() {
+            document.querySelectorAll('#periodContainer input[type="checkbox"]').forEach(cb => cb.checked = true);
+            autoSearch();
+        }
+
+        function unselectAllPeriods() {
+            document.querySelectorAll('#periodContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+            autoSearch();
+        }
+
+        function renderPeriods() {
+            const container = document.getElementById('periodContainer');
+            if (periodsList.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#999;padding:10px">请先导入数据</div>';
+                return;
+            }
+            let html = '';
+            const total = periodsList.length;
+            periodsList.forEach((p, i) => {
+                const checked = (i === total - 1) ? 'checked' : '';
+                const latestClass = (i === total - 1) ? 'latest-period' : '';
+                html += `<div class="period-item ${latestClass}">
+                            <input type="checkbox" id="p${i}" value="${i}" onchange="autoSearch()" ${checked}>
+                            <label for="p${i}">${p}</label>
+                        </div>`;
+            });
+            container.innerHTML = html;
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+        }
+
+        function getSelectedPeriods() {
+            const arr = [];
+            document.querySelectorAll('#periodContainer input:checked').forEach(cb => arr.push(parseInt(cb.value)));
+            return arr;
+        }
+
+        // ==================== 筛选选项构建 ====================
+        function buildFullDataMap() {
+            const onlyInstall = document.getElementById('installFilter').checked;
+            let data = excelData.slice(1);
+            if (onlyInstall) data = data.filter(row => (row[0] || "").trim() === "安装专业");
+
+            const map = { category1: [], category2ByC1: {}, materialByC1C2: {}, specByC1C2Material: {} };
+            data.forEach(row => {
+                const c1 = (row[1] || "").trim(),
+                    c2 = (row[2] || "").trim(),
+                    mat = (row[3] || "").trim(),
+                    spec = (row[4] || "").trim();
+                if (!c1) return;
+                if (!map.category1.includes(c1)) map.category1.push(c1);
+                if (!map.category2ByC1[c1]) map.category2ByC1[c1] = [];
+                if (c2 && !map.category2ByC1[c1].includes(c2)) map.category2ByC1[c1].push(c2);
+                const k1 = `${c1}|${c2}`;
+                if (!map.materialByC1C2[k1]) map.materialByC1C2[k1] = [];
+                if (mat && !map.materialByC1C2[k1].includes(mat)) map.materialByC1C2[k1].push(mat);
+                const k2 = `${c1}|${c2}|${mat}`;
+                if (!map.specByC1C2Material[k2]) map.specByC1C2Material[k2] = [];
+                if (spec && !map.specByC1C2Material[k2].includes(spec)) map.specByC1C2Material[k2].push(spec);
+            });
+
+            fullDataMap = map;
+            fullDataMap.allCategory2 = [...new Set(Object.values(map.category2ByC1).flat())].filter(Boolean);
+            fullDataMap.allMaterials = [...new Set(Object.values(map.materialByC1C2).flat())].filter(Boolean);
+            fullDataMap.allSpecs = [...new Set(Object.values(map.specByC1C2Material).flat())].filter(Boolean);
+        }
+
+        function updateCategory1Options() {
+            const el = document.getElementById('category1');
+            el.innerHTML = '<option value="">全部</option>';
+            fullDataMap.category1.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                el.appendChild(opt);
+            });
+        }
+
+        function updateCategory2Options() {
+            const c1 = document.getElementById('category1').value;
+            const el = document.getElementById('category2');
+            el.innerHTML = '<option value="">全部</option>';
+            const list = c1 ? (fullDataMap.category2ByC1[c1] || []) : fullDataMap.allCategory2;
+            list.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                el.appendChild(opt);
+            });
+            updateMaterialNameOptions();
+        }
+
+        function updateMaterialNameOptions() {
+            const c1 = document.getElementById('category1').value;
+            const c2 = document.getElementById('category2').value;
+            const el = document.getElementById('materialName');
+            el.innerHTML = '<option value="">全部</option>';
+            const key = `${c1}|${c2}`;
+            const list = (!c1) ? fullDataMap.allMaterials : (fullDataMap.materialByC1C2[key] || []);
+            list.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                el.appendChild(opt);
+            });
+            updateSpecOptions();
+        }
+
+        function updateSpecOptions() {
+            const c1 = document.getElementById('category1').value;
+            const c2 = document.getElementById('category2').value;
+            const mat = document.getElementById('materialName').value;
+            const el = document.getElementById('specModel');
+            el.innerHTML = '<option value="">全部</option>';
+            const key = `${c1}|${c2}|${mat}`;
+            const list = (!c1) ? fullDataMap.allSpecs : (fullDataMap.specByC1C2Material[key] || []);
+            list.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                el.appendChild(opt);
+            });
+        }
+
+        function refreshAllFilters() {
+            if (excelData.length === 0) return;
+            buildFullDataMap();
+            updateCategory1Options();
+            updateCategory2Options();
+            updateMaterialNameOptions();
+            updateSpecOptions();
+            autoSearch();
+        }
+
+        function clearSelect(id) {
+            if (id === 'searchAll') {
+                document.getElementById('searchAll').value = '';
+                autoSearch();
+                const floatInput = document.getElementById('floatSearchInput');
+                if (floatInput) floatInput.value = '';
+            } else {
+                document.getElementById(id).value = "";
+                if (id === 'category1') updateCategory2Options();
+                else if (id === 'category2') updateMaterialNameOptions();
+                else if (id === 'materialName') updateSpecOptions();
+                autoSearch();
+            }
+        }
+
+        function clearAllFilters() {
+            document.getElementById('category1').value = '';
+            document.getElementById('category2').value = '';
+            document.getElementById('materialName').value = '';
+            document.getElementById('specModel').value = '';
+            document.getElementById('searchAll').value = '';
+            const floatInput = document.getElementById('floatSearchInput');
+            if (floatInput) floatInput.value = '';
+            refreshAllFilters();
+        }
+
+        // ==================== 搜索与展示 ====================
+        function matchGlobalSearch(row, kw) {
+            return !kw || row.join('|').toLowerCase().includes(kw.toLowerCase());
+        }
+
+        let searchTimer;
+
+        function autoSearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => searchData(), 120);
+        }
+
+        function copyToClipboard(cell) {
+            const text = cell.textContent.trim();
+            if (text && text !== "无数据") {
+                navigator.clipboard.writeText(text).then(() => {
+                    const ori = cell.textContent;
+                    cell.textContent = "✅ 已复制";
+                    setTimeout(() => cell.textContent = ori, 1000);
+                }).catch(() => showToast("复制失败"));
+            }
+        }
+
+        function searchData() {
+            const tbody = document.getElementById('tableBody');
+            const $header = document.getElementById('avgHeader');
+            $header.textContent = '价格';
+
+            if (excelData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-tip">请先导入数据</td></tr>';
+                return;
+            }
+
+            const selected = getSelectedPeriods();
+            if (selected.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-tip">请先选择期数</td></tr>';
+                return;
+            }
+
+            const onlyInstall = document.getElementById('installFilter').checked;
+            const c1 = document.getElementById('category1').value.trim();
+            const c2 = document.getElementById('category2').value.trim();
+            const mat = document.getElementById('materialName').value.trim();
+            const spec = document.getElementById('specModel').value.trim();
+            const kw = document.getElementById('searchAll').value.trim();
+
+            $header.textContent = selected.length === 1 ? periodsList[selected[0]] : `选中期数均价(${selected.length}期)`;
+
+            let rows = excelData.slice(1);
+            if (onlyInstall) rows = rows.filter(row => (row[0] || "").trim() === "安装专业");
+
+            rows = rows.filter(row => {
+                const t1 = (row[1] || "").trim(),
+                    t2 = (row[2] || "").trim(),
+                    tm = (row[3] || "").trim(),
+                    ts = (row[4] || "").trim();
+                if (c1 && t1 !== c1) return false;
+                if (c2 && t2 !== c2) return false;
+                if (mat && tm !== mat) return false;
+                if (spec && ts !== spec) return false;
+                if (!matchGlobalSearch(row, kw)) return false;
+                return true;
+            });
+
+            if (rows.length === 0) {
+                const hint = onlyInstall ?
+                    '<span class="hint">💡 其他专业数据请取消勾选「仅显示【安装专业】数据」</span>' :
+                    '<span class="hint">💡 请调整筛选条件后重试</span>';
+                tbody.innerHTML =
+                    `<tr><td colspan="6" class="empty-tip">未找到数据${hint}</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            rows.forEach(row => {
+                let total = 0,
+                    cnt = 0;
+                selected.forEach(idx => {
+                    const v = parseFloat(row[6 + idx]);
+                    if (!isNaN(v)) { total += v;
+                        cnt++; }
+                });
+                const val = cnt > 0 ? (total / cnt).toFixed(2) : "无数据";
+                html += `<tr>
+                            <td>${row[1] || ''}</td>
+                            <td>${row[2] || ''}</td>
+                            <td>${row[3] || ''}</td>
+                            <td>${row[4] || ''}</td>
+                            <td>${row[5] || ''}</td>
+                            <td class="price-cell" ondblclick="copyToClipboard(this)">${val}</td>
+                        </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ==================== 右键菜单 ====================
+        function initContextMenu() {
+            const contextMenu = document.getElementById('priceContextMenu');
+            const tableBody = document.getElementById('tableBody');
+
+            tableBody.addEventListener('contextmenu', function(e) {
+                const target = e.target;
+                if (target.classList.contains('price-cell')) {
+                    e.preventDefault();
+                    const row = target.closest('tr');
+                    if (row) {
+                        const cells = row.querySelectorAll('td');
+                        currentRowData = {
+                            category1: cells[0].textContent.trim(),
+                            category2: cells[1].textContent.trim(),
+                            materialName: cells[2].textContent.trim(),
+                            specModel: cells[3].textContent.trim(),
+                            unit: cells[4].textContent.trim()
+                        };
+                        const priceText = cells[5].textContent.trim();
+                        currentPrice = priceText === "无数据" ? 0 : parseFloat(priceText) || 0;
+                    }
+
+                    generateMultiplierMenu();
+                    generateSteelPipeMenu();
+                    generateUnitConvertMenu();
+
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.clientX}px`;
+                    contextMenu.style.top = `${e.clientY}px`;
+                    if (contextMenu.offsetLeft + contextMenu.offsetWidth > window.innerWidth) {
+                        contextMenu.style.left = `${window.innerWidth - contextMenu.offsetWidth - 10}px`;
+                    }
+                    if (contextMenu.offsetTop + contextMenu.offsetHeight > window.innerHeight) {
+                        contextMenu.style.top = `${window.innerHeight - contextMenu.offsetHeight - 10}px`;
+                    }
+                }
+            });
+
+            document.addEventListener('click', function() {
+                document.getElementById('priceContextMenu').style.display = 'none';
+            });
+
+            document.getElementById('menuPriceTrend').addEventListener('click', function() {
+                document.getElementById('priceContextMenu').style.display = 'none';
+                if (currentRowData && excelData.length > 0) {
+                    showPriceTrendData();
+                } else {
+                    showToast('暂无该材料的价格数据');
+                }
+            });
+        }
+
+        // 生成乘系数菜单
+        function generateMultiplierMenu() {
+            const container = document.getElementById('multiplierMenuContainer');
+            const divider1 = document.getElementById('menuDivider1');
+            const category1 = currentRowData?.category1 || '';
+            const validCategories = ['电线', '塑料绝缘电力电缆', '交联塑料绝缘电力电缆(低压)'];
+
+            container.innerHTML = '';
+
+            if (!validCategories.includes(category1) || currentPrice === 0) {
+                divider1.style.display = 'none';
+                return;
+            }
+
+            divider1.style.display = 'block';
+
+            let multiplierConfig = [];
+            if (category1 === '电线') {
+                multiplierConfig = [
+                    { name: 'ZR', rate: 1.08 },
+                    { name: 'BYJ', rate: 1.12 },
+                    { name: 'WDZ-BYJ', rate: 1.27 },
+                    { name: 'WDZN-BYJ', rate: 1.42 }
+                ];
+            } else if (['塑料绝缘电力电缆', '交联塑料绝缘电力电缆(低压)'].includes(category1)) {
+                multiplierConfig = [
+                    { name: 'ZR', rate: 1.08 },
+                    { name: 'WDZ', rate: 1.15 },
+                    { name: 'WDZN（请选择NH）', rate: 1.15 }
+                ];
+            }
+
+            multiplierConfig.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'contextmenu-item';
+                menuItem.textContent = item.name;
+                menuItem.onclick = function() {
+                    calculateAndCopyMultiplier(item.rate, item.name);
+                };
+                container.appendChild(menuItem);
+            });
+        }
+
+        // 生成无缝钢管换算菜单
+        function generateSteelPipeMenu() {
+            const container = document.getElementById('steelPipeMenuContainer');
+            const divider = document.getElementById('pipeDivider');
+            const materialName = currentRowData?.materialName || '';
+
+            container.innerHTML = '';
+
+            if (materialName !== '无缝钢管' || currentPrice === 0) {
+                divider.style.display = 'none';
+                return;
+            }
+
+            divider.style.display = 'block';
+
+            const pipeConfigs = [
+                { name: 'D89*4', fn: (p) => p / 1000 * (0.02466 * 4 * (89 - 4)) },
+                { name: 'D133*4', fn: (p) => p / 1000 * (0.02466 * 4 * (133 - 4)) },
+                { name: 'D159*4.5', fn: (p) => p / 1000 * (0.02466 * 4.5 * (159 - 4.5)) },
+                { name: 'D219*6', fn: (p) => p / 1000 * (0.02466 * 6 * (219 - 6)) },
+                { name: 'D273*7', fn: (p) => p / 1000 * (0.02466 * 7 * (273 - 7)) },
+                { name: 'D325*8', fn: (p) => p / 1000 * (0.02466 * 8 * (325 - 8)) },
+                { name: 'D377*10', fn: (p) => p / 1000 * (0.02466 * 10 * (377 - 10)) },
+                { name: 'D426*10', fn: (p) => p / 1000 * (0.02466 * 10 * (426 - 10)) },
+                { name: 'D480*10', fn: (p) => p / 1000 * (0.02466 * 10 * (480 - 10)) },
+                { name: 'D530*10', fn: (p) => p / 1000 * (0.02466 * 10 * (530 - 10)) },
+                { name: 'D630*10', fn: (p) => p / 1000 * (0.02466 * 10 * (630 - 10)) }
+            ];
+
+            pipeConfigs.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'contextmenu-item';
+                menuItem.textContent = item.name;
+                menuItem.onclick = function() {
+                    calculateSteelPipe(item.fn, item.name);
+                };
+                container.appendChild(menuItem);
+            });
+        }
+
+        // 生成单位换算菜单（吨→千克）
+        function generateUnitConvertMenu() {
+            const container = document.getElementById('unitConvertMenuContainer');
+            const divider = document.getElementById('unitConvertDivider');
+            const unit = currentRowData?.unit || '';
+            const validUnits = ['T', 't', '吨'];
+
+            container.innerHTML = '';
+
+            if (!validUnits.includes(unit) || currentPrice === 0) {
+                divider.style.display = 'none';
+                return;
+            }
+
+            divider.style.display = 'block';
+
+            const menuItem = document.createElement('div');
+            menuItem.className = 'contextmenu-item';
+            menuItem.textContent = 'KG';
+            menuItem.onclick = function() {
+                convertToKg();
+            };
+            container.appendChild(menuItem);
+        }
+
+        // 计算系数并复制
+        function calculateAndCopyMultiplier(rate, name) {
+            if (currentPrice === 0) {
+                showToast('当前行无有效价格数据');
+                return;
+            }
+            const result = (currentPrice * rate).toFixed(2);
+            const calcText = `${currentPrice} × ${rate} = ${result}`;
+            navigator.clipboard.writeText(result).then(() => {
+                showToast(`已复制【${name}】：${result}\n计算过程：${calcText}`);
+            }).catch(() => {
+                showToast(`复制失败`);
+            });
+            document.getElementById('priceContextMenu').style.display = 'none';
+        }
+
+        // 无缝钢管换算
+        function calculateSteelPipe(calcFn, spec) {
+            if (currentPrice === 0) {
+                showToast('当前行无有效价格数据');
+                return;
+            }
+            const result = calcFn(currentPrice).toFixed(2);
+            const calcText = `${currentPrice} → ${spec} 换算 = ${result}`;
+            navigator.clipboard.writeText(result).then(() => {
+                showToast(`已复制【${spec}】：${result}\n计算过程：${calcText}`);
+            }).catch(() => {
+                showToast(`复制失败`);
+            });
+            document.getElementById('priceContextMenu').style.display = 'none';
+        }
+
+        // 吨转千克换算
+        function convertToKg() {
+            if (currentPrice === 0) {
+                showToast('当前行无有效价格数据');
+                return;
+            }
+            const result = (currentPrice / 1000).toFixed(4);
+            const calcText = `${currentPrice} ÷ 1000 = ${result}`;
+            navigator.clipboard.writeText(result).then(() => {
+                showToast(`已复制【KG】单价：${result}\n计算过程：${calcText}`);
+            }).catch(() => {
+                showToast(`复制失败`);
+            });
+            document.getElementById('priceContextMenu').style.display = 'none';
+        }
+
+        // ==================== 价格趋势浮窗 ====================
+        function showPriceTrendData() {
+            const materialRow = excelData.find(row =>
+                (row[1] || "").trim() === currentRowData.category1 &&
+                (row[2] || "").trim() === currentRowData.category2 &&
+                (row[3] || "").trim() === currentRowData.materialName &&
+                (row[4] || "").trim() === currentRowData.specModel
+            );
+
+            if (!materialRow) {
+                showToast('未找到该材料的完整价格数据');
+                return;
+            }
+
+            const trendDataList = document.getElementById('trendDataList');
+            const trendTitle = document.getElementById('trendTitle');
+            trendTitle.textContent = `${currentRowData.materialName}(${currentRowData.specModel}) - 价格趋势`;
+
+            trendDataList.innerHTML = '';
+
+            const selectedPeriods = getSelectedPeriods();
+            let hasValidData = false;
+            periodsList.forEach((period, idx) => {
+                const price = parseFloat(materialRow[6 + idx]);
+                const priceDisplay = isNaN(price) ? "无数据" : price.toFixed(2);
+
+                if (priceDisplay !== "无数据") {
+                    hasValidData = true;
+                }
+
+                const li = document.createElement('li');
+                li.className = 'trend-data-item';
+
+                const isSelected = selectedPeriods.includes(idx);
+                const periodClass = isSelected ? 'trend-period trend-selected' : 'trend-period';
+
+                li.innerHTML = `
+                            <span class="${periodClass}">${period}</span>
+                            <span class="trend-price">${priceDisplay}</span>
+                        `;
+                trendDataList.appendChild(li);
+            });
+
+            if (!hasValidData) {
+                const li = document.createElement('li');
+                li.className = 'trend-data-item';
+                li.style.textAlign = 'center';
+                li.style.color = '#999';
+                li.innerHTML = '无有效价格数据';
+                trendDataList.appendChild(li);
+            }
+
+            document.getElementById('trendModal').style.display = 'flex';
+        }
+
+        function closeTrendModal() {
+            document.getElementById('trendModal').style.display = 'none';
+        }
+
+        // ==================== 兼容旧版 ====================
+        function loadLocalData() {}
+        function refreshLocalData() { reloadDataFile(); }
+
+        // 暴露全局函数
+        window.selectAllPeriods = selectAllPeriods;
+        window.unselectAllPeriods = unselectAllPeriods;
+        window.autoSearch = autoSearch;
+        window.searchData = searchData;
+        window.clearSelect = clearSelect;
+        window.clearAllFilters = clearAllFilters;
+        window.refreshAllFilters = refreshAllFilters;
+        window.importExcel = importExcel;
+        window.exportData = exportData;
+        window.reloadDataFile = reloadDataFile;
+        window.copyToClipboard = copyToClipboard;
+        window.closeTrendModal = closeTrendModal;
+        window.updateCategory2Options = updateCategory2Options;
+        window.updateMaterialNameOptions = updateMaterialNameOptions;
+        window.updateSpecOptions = updateSpecOptions;
+        window.showToast = showToast;
+        window.toggleMobilePanel = toggleMobilePanel;
+        window.closeMobilePanel = closeMobilePanel;
+        window.setPanelMode = setPanelMode;
+        window.setFloatBtnSize = setFloatBtnSize;
+        window.closeFloatSearch = closeFloatSearch;
+        window.closeSettingsPanel = closeSettingsPanel;
+        window.toggleSettingsPanel = toggleSettingsPanel;
+        window.toggleSearchPanel = toggleSearchPanel;
+        window.togglePanelVisibility = togglePanelVisibility;
+        window.positionSearchPanel = positionSearchPanel;
+    </script>
+</body>
+</html>
