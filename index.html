@@ -518,11 +518,11 @@
             }
         }
         .group-title {
-            font-size: 1.2rem;
-            font-weight: 700;
+            font-size: 1rem;
+            font-weight: 600;
             color: var(--group-title-text);
             background: var(--group-title-bg);
-            padding: 6px 16px;
+            padding: 5px 14px;
             border-radius: 10px;
             margin-bottom: 12px;
             display: inline-block;
@@ -877,6 +877,25 @@
             cursor: pointer;
         }
 
+        .sort-select {
+            width: 100%;
+            max-width: 260px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .sort-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+        }
+
         /* ===== 密度滑块 ===== */
         .density-control {
             display: flex;
@@ -1103,11 +1122,11 @@
         }
         /* 搜索按钮激活状态（红色） */
         .fab-btn.search-active {
-            background: var(--danger);
-            box-shadow: 0 6px 24px rgba(229, 62, 62, 0.35);
+            background: #7a5cff;
+            box-shadow: 0 6px 24px rgba(122, 92, 255, 0.35);
         }
         .fab-btn.search-active:hover {
-            box-shadow: 0 8px 32px rgba(229, 62, 62, 0.5);
+            box-shadow: 0 8px 32px rgba(122, 92, 255, 0.5);
         }
         .fab-btn .view-icon {
             font-size: 1.2rem;
@@ -1217,6 +1236,17 @@
                     <input type="checkbox" id="enableSortCheckbox">
                     <label for="enableSortCheckbox" style="font-weight:600;cursor:pointer;">启用拖拽排序（显示手柄）</label>
                 </div>
+
+                <!-- 排序方式 -->
+                <div class="settings-section-title" style="margin-top:6px;">排序方式</div>
+                <div class="settings-option" style="align-items:flex-start;">
+                    <select id="sortModeSelect" class="sort-select">
+                        <option value="manual">手动（拖拽顺序）</option>
+                        <option value="name">按名称</option>
+                        <option value="time">按时间（最新在前）</option>
+                    </select>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">选择文件排列方式</span>
+                </div>
                 <div class="settings-section-title">显示 / 隐藏 文件</div>
                 <div id="settingsFileList"></div>
             </div>
@@ -1304,6 +1334,7 @@
             const CONFIG_KEY = 'nav_config_v2';
             const VIEW_KEY = 'nav_view';
             const SORT_ENABLED_KEY = 'nav_sort_enabled';
+            const SORT_MODE_KEY = 'nav_sort_mode';
             const DENSITY_KEY = 'nav_density';
 
             /* ============ DOM ============ */
@@ -1340,6 +1371,7 @@
             const themeLabel = document.getElementById('themeLabel');
             const densitySlider = document.getElementById('densitySlider');
             const densityLabel = document.getElementById('densityLabel');
+            const sortModeSelect = document.getElementById('sortModeSelect');
 
             /* ============ 状态 ============ */
             let allFiles = [];
@@ -1350,6 +1382,7 @@
             let displayedFiles = [];
             let currentView = localStorage.getItem(VIEW_KEY) || 'list';
             let sortEnabled = localStorage.getItem(SORT_ENABLED_KEY) === 'true';
+            let sortMode = localStorage.getItem(SORT_MODE_KEY) || 'name';
             let currentGroupFilter = '全部';
             let searchQuery = '';
             let dragging = false;
@@ -1575,12 +1608,18 @@
                         const fileHandle = entry;
                         const path = relativePath ? `${relativePath}/${entry.name}` : entry.name;
                         localFileHandles[path] = fileHandle;
+                        let mtime = 0;
+                        try {
+                            const f = await fileHandle.getFile();
+                            mtime = f.lastModified || 0;
+                        } catch (e) { /* ignore */ }
                         files.push({
                             name: getDisplayName(path),
                             path: path,
                             url: '#',
                             directory: getOriginalDir(path),
                             isLocal: true,
+                            mtime: mtime,
                         });
                     } else if (entry.kind === 'directory') {
                         const subDirHandle = entry;
@@ -1633,7 +1672,18 @@
             function getVisibleFiles() {
                 const map = {};
                 allFiles.forEach(f => map[f.path] = f);
-                return fileOrder.filter(p => map[p] && !hiddenFiles[p]).map(p => map[p]);
+                const list = fileOrder.filter(p => map[p] && !hiddenFiles[p]).map(p => map[p]);
+                return applySort(list);
+            }
+
+            function applySort(list) {
+                const arr = list.slice();
+                if (sortMode === 'name') {
+                    arr.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+                } else if (sortMode === 'time') {
+                    arr.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+                }
+                return arr;
             }
 
             /* ============ 分组筛选与渲染 ============ */
@@ -1714,7 +1764,7 @@
                 statusMessage.style.display = 'none';
                 fileGroupsContainer.style.display = 'flex';
                 fileGroupsContainer.innerHTML = '';
-                siteStats.style.display = 'inline-flex';
+                siteStats.style.display = 'none';
 
                 const groups = new Map();
                 files.forEach(file => {
@@ -1782,7 +1832,7 @@
                     </div>
                     <span class="file-arrow">→</span>
                 `;
-                if (sortEnabled) {
+                if (sortEnabled && sortMode === 'manual') {
                     const handle = document.createElement('span');
                     handle.className = 'drag-handle';
                     handle.innerHTML = '⠿';
@@ -1797,10 +1847,10 @@
             function attachDragEvents() {
                 const cards = document.querySelectorAll('.file-card-grid, .file-card-list');
                 cards.forEach(card => {
-                    card.removeEventListener('pointerdown', handlePointerDown);
-                    if (sortEnabled) {
-                        card.addEventListener('pointerdown', handlePointerDown);
-                    }
+                card.removeEventListener('pointerdown', handlePointerDown);
+                if (sortEnabled && sortMode === 'manual') {
+                    card.addEventListener('pointerdown', handlePointerDown);
+                }
                 });
             }
 
@@ -1907,6 +1957,7 @@
                 if (val < 30) label = '紧凑';
                 else if (val > 70) label = '宽松';
                 densityLabel.textContent = label;
+                sortModeSelect.value = sortMode;
                 renderSettingsList();
             }
 
@@ -2094,6 +2145,12 @@
             enableSortCheckbox.addEventListener('change', () => {
                 sortEnabled = enableSortCheckbox.checked;
                 localStorage.setItem(SORT_ENABLED_KEY, sortEnabled);
+                refreshMain();
+            });
+
+            sortModeSelect.addEventListener('change', () => {
+                sortMode = sortModeSelect.value;
+                localStorage.setItem(SORT_MODE_KEY, sortMode);
                 refreshMain();
             });
 
