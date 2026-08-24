@@ -6,21 +6,20 @@
     <title>本地网络管理控制台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script>
         tailwind.config = {
-            theme: { extend: { colors: { primary: '#165DFF', cardBg: '#f8fafc' } } }
+            theme: { extend: { colors: { primary: 'rgb(var(--c-primary-rgb) / <alpha-value>)', cardBg: '#f8fafc' } } }
         }
     </script>
     <style>
-        .card-shadow { box-shadow: 0 4px 20px rgba(22, 93, 255, 0.1); }
-        .grad-bg { background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%); }
+        :root { --c-primary-rgb: 22 93 255; }
+        .card-shadow { box-shadow: 0 4px 20px rgba(var(--c-primary-rgb), 0.1); }
+        .grad-bg { background: linear-gradient(135deg, rgb(var(--c-primary-rgb)) 0%, color-mix(in srgb, rgb(var(--c-primary-rgb)) 80%, #ffffff) 100%); }
         .context-menu { position: fixed; z-index: 9999; min-width: 140px; }
-        .site-item, .device-item, .port-item { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+        .site-item, .device-item, .port-item, .speed-item { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
         * { -webkit-tap-highlight-color: transparent; }
-        .port-actions { opacity: 0; transition: opacity 0.2s; }
-        .port-item.show-actions .port-actions { opacity: 1; }
         .syncing { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
@@ -28,32 +27,77 @@
 <body class="bg-gray-100 min-h-screen">
     <div id="app" class="max-w-5xl mx-auto p-4 py-8">
         <!-- 顶部标题 -->
-        <div class="grad-bg text-white rounded-2xl p-6 mb-6 card-shadow relative overflow-hidden">
+        <div class="grad-bg text-white rounded-2xl p-6 mb-4 card-shadow relative">
             <h1 class="text-[24px] font-bold flex items-center gap-2">
                 <i class="fa fa-wifi"></i> 本地网络控制台
             </h1>
-            <div id="sync-status" class="absolute top-6 right-6 text-xs bg-white/20 px-2 py-1 rounded flex items-center gap-1 cursor-pointer" onclick="manualSync()">
-                <i id="sync-icon" class="fa fa-cloud"></i>
-                <span id="sync-text">初始化...</span>
+            <button onclick="toggleSettings(event)" class="absolute top-6 right-6 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm">
+                <i class="fa fa-cog"></i> 设置
+            </button>
+        </div>
+
+        <!-- 设置下拉面板 -->
+        <div id="settings-dropdown" class="hidden fixed right-4 top-20 bg-white rounded-xl card-shadow p-3 z-50 w-60">
+            <div class="text-xs text-gray-400 px-1 pb-1 pt-1 font-medium">数据操作</div>
+            <div onclick="closeSettings(); exportData();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-download text-primary w-5 text-center"></i> 导出下载</div>
+            <div onclick="triggerImport()" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-upload text-primary w-5 text-center"></i> 文件导入</div>
+            <div onclick="closeSettings(); copyData();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-copy text-primary w-5 text-center"></i> 复制数据</div>
+            <div onclick="closeSettings(); openPasteImport();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-paste text-primary w-5 text-center"></i> 粘贴导入</div>
+            <div onclick="closeSettings(); openShareSelect();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-camera text-primary w-5 text-center"></i> 分享截图</div>
+            <div class="border-t border-gray-100 my-2"></div>
+            <div class="text-xs text-gray-400 px-1 pb-2 font-medium">显示设置</div>
+            <div class="px-1 pb-1">
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <span>显示模式</span>
+                    <div class="flex border border-gray-200 rounded-lg overflow-hidden">
+                        <button id="view-grid" onclick="setViewMode('grid')" class="px-2.5 py-1 text-xs bg-primary text-white">宫格</button>
+                        <button id="view-list" onclick="setViewMode('list')" class="px-2.5 py-1 text-xs bg-gray-100 text-gray-600">列表</button>
+                    </div>
+                </div>
+                <div class="text-sm mb-1 flex justify-between"><span>屏幕显示密度</span><span id="density-val" class="text-primary font-medium">85%</span></div>
+                <input type="range" id="density-slider" min="0.7" max="1.3" step="0.05" value="0.85" class="w-full accent-primary mb-3" oninput="setDensity(this.value)" onchange="setDensity(this.value)">
+                <div class="text-sm mb-1 flex justify-between"><span>宫格卡片密度</span><span id="card-density-grid-val" class="text-primary font-medium">60%</span></div>
+                <input type="range" id="card-density-grid-slider" min="0.6" max="1.4" step="0.05" value="0.6" class="w-full accent-primary mb-3" oninput="setCardDensityGrid(this.value)" onchange="setCardDensityGrid(this.value)">
+                <div class="text-sm mb-1 flex justify-between"><span>列表卡片密度</span><span id="card-density-list-val" class="text-primary font-medium">85%</span></div>
+                <input type="range" id="card-density-list-slider" min="0.6" max="1.4" step="0.05" value="0.85" class="w-full accent-primary" oninput="setCardDensityList(this.value)" onchange="setCardDensityList(this.value)">
+            </div>
+            <div class="border-t border-gray-100 my-2"></div>
+            <div class="text-xs text-gray-400 px-1 pb-2 font-medium">主题颜色</div>
+            <div class="flex flex-wrap gap-2 px-1 pb-2" id="theme-swatches">
+                <button data-rgb="22 93 255" class="w-7 h-7 rounded-full border-2" style="background:#165DFF" onclick="setThemeColor('22 93 255')" title="默认蓝"></button>
+                <button data-rgb="0 180 42" class="w-7 h-7 rounded-full border-2" style="background:#00B42A" onclick="setThemeColor('0 180 42')" title="青绿"></button>
+                <button data-rgb="255 125 0" class="w-7 h-7 rounded-full border-2" style="background:#FF7D00" onclick="setThemeColor('255 125 0')" title="橙黄"></button>
+                <button data-rgb="114 46 209" class="w-7 h-7 rounded-full border-2" style="background:#722ED1" onclick="setThemeColor('114 46 209')" title="紫色"></button>
+                <button data-rgb="245 63 63" class="w-7 h-7 rounded-full border-2" style="background:#F53F3F" onclick="setThemeColor('245 63 63')" title="红色"></button>
+                <button data-rgb="20 201 201" class="w-7 h-7 rounded-full border-2" style="background:#14C9C9" onclick="setThemeColor('20 201 201')" title="青色"></button>
+            </div>
+            <div class="flex items-center gap-2 px-1 pb-1">
+                <span class="text-sm">自定义</span>
+                <input type="color" id="theme-color-input" value="#165DFF" onchange="setThemeColorFromHex(this.value)" class="w-8 h-8 rounded cursor-pointer border border-gray-200 bg-white p-0">
             </div>
         </div>
 
-        <!-- 首页导航页 -->
+        <!-- 云同步状态（移至控制台下方） -->
+        <div id="sync-bar" class="bg-white rounded-xl p-3 mb-5 card-shadow flex items-center justify-between cursor-pointer hover:bg-gray-50 transition" onclick="manualSync()">
+            <div class="flex items-center gap-2">
+                <i id="sync-icon" class="fa fa-cloud text-primary"></i>
+                <span id="sync-text" class="text-sm text-gray-600">初始化...</span>
+            </div>
+            <span class="text-xs text-gray-400">点击手动同步</span>
+        </div>
+
+        <!-- 首页 -->
         <div id="page-home">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="site-list"></div>
             <button onclick="openSiteEdit()" class="mt-6 w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl text-lg hover:bg-primary/5 transition">
                 <i class="fa fa-plus mr-2"></i> 新增位置
             </button>
-            <div class="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
-                <button onclick="exportData()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-download mr-1"></i> 导出下载</button>
-                <button onclick="copyData()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-copy mr-1"></i> 复制数据</button>
-                <button onclick="document.getElementById('import-file').click()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-upload mr-1"></i> 文件导入</button>
-                <button onclick="openPasteImport()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-paste mr-1"></i> 粘贴导入</button>
-                <button onclick="openShareSelect()" class="py-3 bg-white text-primary rounded-xl card-shadow hover:bg-primary/5 transition text-sm"><i class="fa fa-camera mr-1"></i> 分享截图</button>
-                <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
-            </div>
+            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
             <div class="mt-8">
-                <h3 class="text-xl font-semibold mb-3 border-l-4 pl-3 border-primary">测速网站列表</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xl font-semibold border-l-4 pl-3 border-primary">测速网站列表</h3>
+                    <button onclick="openSpeedEdit()" class="text-sm text-primary border border-primary px-3 py-1 rounded hover:bg-primary/5 transition"><i class="fa fa-plus mr-1"></i> 添加</button>
+                </div>
                 <div class="bg-white rounded-xl p-4 card-shadow">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
@@ -61,6 +105,7 @@
                             <tbody id="speed-table-home"></tbody>
                         </table>
                     </div>
+                    <p class="text-gray-400 text-xs mt-2"><i class="fa fa-info-circle mr-1"></i> 长按网站记录可编辑或删除</p>
                 </div>
             </div>
         </div>
@@ -76,18 +121,18 @@
             <div class="bg-white rounded-xl p-4 card-shadow mb-4">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm mb-3">
-                        <thead class="bg-gray-100"><tr><th class="border p-2 text-left">网口</th><th class="border p-2 text-left">房间用途</th><th class="border p-2 w-20">操作</th></tr></thead>
+                        <thead class="bg-gray-100"><tr><th class="border p-2 text-left whitespace-nowrap">网口</th><th class="border p-2 text-left whitespace-nowrap">房间用途</th></tr></thead>
                         <tbody id="port-table-site"></tbody>
                     </table>
                 </div>
                 <p class="text-gray-600 text-xs mb-3">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p>
-                <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口记录可显示编辑、删除操作</p>
+                <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口记录可编辑或删除</p>
                 <button onclick="openPortEdit()" class="text-sm text-primary border border-primary px-3 py-1 rounded hover:bg-primary/5 transition"><i class="fa fa-plus mr-1"></i> 添加网口记录</button>
             </div>
         </div>
     </div>
 
-    <!-- 右键菜单 & 弹窗 (保持原有结构不变) -->
+    <!-- 右键菜单 -->
     <div id="ctx-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentSite()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 修改名称</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentSite()"><i class="fa fa-trash mr-2"></i> 删除位置</div>
@@ -96,9 +141,20 @@
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentDevice()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑设备</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentDevice()"><i class="fa fa-trash mr-2"></i> 删除设备</div>
     </div>
+    <div id="ctx-port-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentPort()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑网口</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentPort()"><i class="fa fa-trash mr-2"></i> 删除网口</div>
+    </div>
+    <div id="ctx-speed-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentSpeed()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑网站</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentSpeed()"><i class="fa fa-trash mr-2"></i> 删除网站</div>
+    </div>
+
+    <!-- 弹窗 -->
     <div id="modal-site" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-site-title">新增位置</h3><input type="hidden" id="edit-site-id"><label class="block mb-2 font-medium">位置名称</label><input id="site-name-input" class="w-full border rounded-lg p-3 mb-5" placeholder="如：家里、店里"><div class="flex gap-3"><button onclick="closeModal('modal-site')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSite()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
     <div id="modal-device" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-device-title">新增网络设备</h3><input type="hidden" id="edit-device-id"><label class="block mb-2 font-medium">设备名称</label><input id="dev-name" class="w-full border rounded-lg p-3 mb-3" placeholder="光猫 / 中兴路由器"><label class="block mb-2 font-medium">管理地址</label><input id="dev-ip" class="w-full border rounded-lg p-3 mb-3" placeholder="192.168.1.1"><label class="block mb-2 font-medium">管理密码</label><input id="dev-pwd" class="w-full border rounded-lg p-3 mb-3" placeholder="设备后台管理密码"><label class="block mb-2 font-medium">路由密码</label><input id="dev-route-pwd" class="w-full border rounded-lg p-3 mb-5" placeholder="WiFi路由密码"><div class="flex gap-3"><button onclick="closeModal('modal-device')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveDevice()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
     <div id="modal-port" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-port-title">添加网口记录</h3><input type="hidden" id="edit-port-id"><label class="block mb-2 font-medium">网口名称</label><input id="port-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：网口1、LAN1"><label class="block mb-2 font-medium">房间用途</label><input id="port-desc" class="w-full border rounded-lg p-3 mb-5" placeholder="如：次卧、客厅(T568B)"><div class="flex gap-3"><button onclick="closeModal('modal-port')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="savePort()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-speed" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-speed-title">添加测速网站</h3><input type="hidden" id="edit-speed-id"><label class="block mb-2 font-medium">网站名称</label><input id="speed-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：测速网"><label class="block mb-2 font-medium">网址</label><input id="speed-url" class="w-full border rounded-lg p-3 mb-5" placeholder="https://www.speedtest.cn/"><div class="flex gap-3"><button onclick="closeModal('modal-speed')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSpeed()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
     <div id="modal-share-select" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4">选择要截图的位置</h3><div id="share-site-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div><div class="flex gap-3"><button onclick="closeModal('modal-share-select')" class="flex-1 py-2 border rounded-lg">取消</button></div></div></div>
     <div id="modal-share-qr" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-sm p-6"><h3 class="text-xl font-bold mb-2 text-center" id="share-qr-title">分享截图</h3><p class="text-gray-500 text-sm mb-4 text-center">网络设备信息截图</p><div class="flex justify-center mb-4"><div id="qr-code-container" class="bg-gray-100 p-2 rounded-xl border border-gray-200 max-h-96 overflow-y-auto"></div></div><p class="text-center text-gray-400 text-xs mb-4">长按图片可保存到手机</p><div class="flex gap-3"><button onclick="closeModal('modal-share-qr')" class="flex-1 py-2 border rounded-lg">关闭</button></div></div></div>
     <div id="modal-paste-import" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-lg p-6"><h3 class="text-xl font-bold mb-4">粘贴导入数据</h3><p class="text-gray-500 text-sm mb-3">将之前复制的JSON数据粘贴到下方文本框中</p><textarea id="paste-data-textarea" class="w-full border rounded-lg p-3 mb-4 h-48 text-sm font-mono" placeholder="在此粘贴JSON数据..."></textarea><div class="flex gap-3"><button onclick="closeModal('modal-paste-import')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="doPasteImport()" class="flex-1 py-2 grad-bg text-white rounded-lg">确认导入</button></div></div></div>
@@ -106,10 +162,15 @@
         <div class="grad-bg text-white rounded-2xl p-6 mb-6 card-shadow"><h1 class="text-[24px] font-bold flex items-center gap-2"><i class="fa fa-wifi"></i> <span id="share-site-name">网络信息</span></h1><p class="text-white/80 text-sm mt-2">分享的网络设备信息</p></div>
         <h3 class="text-lg font-semibold mb-3">网络设备</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="share-device-list"></div>
         <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
-        <div class="bg-white rounded-xl p-4 card-shadow mb-4"><div class="overflow-x-auto"><table class="w-full text-sm mb-3"><thead class="bg-gray-100"><tr><th class="border p-2 text-left">网口</th><th class="border p-2 text-left">房间用途</th></tr></thead><tbody id="share-port-table"></tbody></table></div><p class="text-gray-600 text-xs">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div>
+        <div class="bg-white rounded-xl p-4 card-shadow mb-4"><div class="overflow-x-auto"><table class="w-full text-sm mb-3"><thead class="bg-gray-100"><tr><th class="border p-2 text-left whitespace-nowrap">网口</th><th class="border p-2 text-left whitespace-nowrap">房间用途</th></tr></thead><tbody id="share-port-table"></tbody></table></div><p class="text-gray-600 text-xs">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div>
         <button onclick="backHome()" class="w-full py-3 border border-primary text-primary rounded-xl mt-4"><i class="fa fa-home mr-2"></i> 返回控制台首页</button>
     </div>
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/85 text-white px-5 py-2 rounded-lg hidden z-[9999]">复制成功</div>
+        <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/85 text-white px-5 py-2 rounded-lg hidden z-[9999]">复制成功</div>
+
+        <!-- 悬浮返回上一级按钮（长按可拖动位置） -->
+        <button id="fab-back" class="hidden fixed bottom-6 right-6 w-14 h-14 rounded-full grad-bg text-white shadow-lg z-[9998] items-center justify-center text-xl hover:opacity-90 transition" style="touch-action:none" title="返回上一级（长按可拖动）">
+            <i class="fa fa-arrow-up"></i>
+        </button>
 
     <script>
         // ⚠️ 请填写你的 Supabase 项目信息
@@ -121,47 +182,74 @@
 
         const defaultData = {
             sites: [{ id: "zd", name: "家里", devices: [{ id: "zd-gm", name: "光猫", ip: "192.168.1.1", pwd: "62ay2ht5", routePwd: "" }, { id: "zd-zx", name: "中兴路由器", ip: "192.168.5.1", pwd: "25803699", routePwd: "" }], portList: [{ id: "p1", port: "网口1", desc: "次卧（客厅）(T568B)" }, { id: "p2", port: "网口2", desc: "次卧（飘窗）(T568B)" }, { id: "p3", port: "网口3", desc: "主卧(T568B)" }, { id: "p4", port: "网口4", desc: "客厅(T568B)" }] }],
-            speedList: [{ name: "测速网", url: "https://www.speedtest.cn/" }, { name: "speed.do", url: "http://speed.do/" }, { name: "中国联通宽带测速平台", url: "http://218.24.47.18" }]
+            speedList: [{ id: "sp1", name: "测速网", url: "https://www.speedtest.cn/" }, { id: "sp2", name: "speed.do", url: "http://speed.do/" }, { id: "sp3", name: "中国联通宽带测速平台", url: "http://218.24.47.18" }]
         };
 
         let data = JSON.parse(localStorage.getItem("netMgrData")) || JSON.parse(JSON.stringify(defaultData));
-        let currentSiteId = null, ctxSiteId = null, ctxDeviceId = null, ctxPortId = null, editPortId = null, currentShareSite = null;
+        let currentSiteId = null, ctxSiteId = null, ctxDeviceId = null, ctxPortId = null, editPortId = null, ctxSpeedId = null, editSpeedId = null, currentShareSite = null;
+        let viewMode = localStorage.getItem("netMgrViewMode") || "list";
+        let density = parseFloat(localStorage.getItem("netMgrDensity"));
+        if (isNaN(density) || density < 0.7 || density > 1.3) density = 0.85;
+        let cardDensityGrid = parseFloat(localStorage.getItem("netMgrCardDensityGrid"));
+        if (isNaN(cardDensityGrid) || cardDensityGrid < 0.6 || cardDensityGrid > 1.4) cardDensityGrid = 0.6;
+        let cardDensityList = parseFloat(localStorage.getItem("netMgrCardDensityList"));
+        if (isNaN(cardDensityList) || cardDensityList < 0.6 || cardDensityList > 1.4) cardDensityList = 0.85;
+        let themeRgb = localStorage.getItem("netMgrThemeRgb") || "22 93 255";
 
         // ========== Supabase 无登录同步逻辑 ==========
-        async function initSupabase() {
+        function initSupabase() {
             if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
                 updateSyncStatus('offline', '未配置云服务'); return;
             }
             try {
                 supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 updateSyncStatus('syncing', '连接云端...');
-                await loadFromCloud();
+                loadFromCloud();
             } catch (err) {
                 console.error('Supabase初始化失败:', err);
                 updateSyncStatus('error', '云服务异常');
             }
         }
 
+        // 给云端请求加超时，避免请求挂起时状态卡死
+        function withTimeout(promise, ms) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), ms))
+            ]);
+        }
+
         async function loadFromCloud() {
-            if (!supabaseClient) return;
+            if (!supabaseClient || isSyncing) return;
             isSyncing = true;
-            updateSyncStatus('syncing', '拉取数据...');
+            updateSyncStatus('syncing', '检查更新...');
             try {
-                const { data: row, error } = await supabaseClient.from('net_mgr_config').select('data, updated_at').eq('id', 1).maybeSingle();
-                if (error) throw error;
-                if (row && row.data && Object.keys(row.data).length > 0) {
-                    const cloudTime = new Date(row.updated_at).getTime();
+                const { data: meta, error: metaErr } = await withTimeout(
+                    supabaseClient.from('net_mgr_config').select('updated_at').eq('id', 1).maybeSingle(), 10000
+                );
+                if (metaErr) throw metaErr;
+                if (meta && meta.updated_at) {
+                    const cloudTime = new Date(meta.updated_at).getTime();
                     const localTime = parseInt(localStorage.getItem("netMgrData_ts") || "0");
                     if (cloudTime > localTime) {
-                        data = migrateDataStructure(row.data);
-                        saveLocal();
-                        refreshUI();
-                        updateSyncStatus('online', '云端数据已同步');
+                        updateSyncStatus('syncing', '拉取数据...');
+                        const { data: row, error } = await withTimeout(
+                            supabaseClient.from('net_mgr_config').select('data').eq('id', 1).maybeSingle(), 10000
+                        );
+                        if (error) throw error;
+                        if (row && row.data && Object.keys(row.data).length > 0) {
+                            data = migrateDataStructure(row.data);
+                            saveLocal();
+                            refreshUI();
+                            updateSyncStatus('online', '云端数据已同步');
+                        } else {
+                            await pushToCloud(true);
+                        }
                     } else {
-                        await pushToCloud();
+                        await pushToCloud(true);
                     }
                 } else {
-                    await pushToCloud();
+                    await pushToCloud(true);
                 }
             } catch (err) {
                 console.error('拉取失败:', err);
@@ -169,12 +257,15 @@
             } finally { isSyncing = false; }
         }
 
-        async function pushToCloud() {
-            if (!supabaseClient || isSyncing) return;
+        async function pushToCloud(force = false) {
+            // force=true 时由调用方（loadFromCloud）自行管理 isSyncing，跳过守卫避免死锁
+            if (!supabaseClient || (isSyncing && !force)) return;
             isSyncing = true;
             updateSyncStatus('syncing', '上传数据...');
             try {
-                const { error } = await supabaseClient.from('net_mgr_config').upsert({ id: 1, data: data, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                const { error } = await withTimeout(
+                    supabaseClient.from('net_mgr_config').upsert({ id: 1, data: data, updated_at: new Date().toISOString() }, { onConflict: 'id' }), 10000
+                );
                 if (error) throw error;
                 localStorage.setItem("netMgrData_ts", Date.now().toString());
                 updateSyncStatus('online', '已同步至云端');
@@ -188,7 +279,7 @@
         function updateSyncStatus(state, text) {
             const icon = document.getElementById('sync-icon');
             document.getElementById('sync-text').innerText = text;
-            icon.className = state === 'syncing' ? 'fa fa-refresh syncing' : state === 'online' ? 'fa fa-cloud' : state === 'error' ? 'fa fa-exclamation-circle' : 'fa fa-cloud-upload';
+            icon.className = state === 'syncing' ? 'fa fa-refresh syncing text-primary' : state === 'online' ? 'fa fa-cloud text-green-500' : state === 'error' ? 'fa fa-exclamation-circle text-red-500' : 'fa fa-cloud-upload text-primary';
         }
 
         // ========== 本地存储与迁移 ==========
@@ -196,43 +287,178 @@
             const d = JSON.parse(JSON.stringify(rawData));
             if (!d.sites) d.sites = [];
             d.sites.forEach(site => { if (!site.portList) site.portList = []; if (!site.devices) site.devices = []; site.devices.forEach(dev => { if (!dev.routePwd) dev.routePwd = ""; }); });
-            if (!d.speedList) d.speedList = defaultData.speedList;
+            if (!d.speedList) d.speedList = JSON.parse(JSON.stringify(defaultData.speedList));
+            d.speedList.forEach((s, i) => { if (!s.id) s.id = "speed_" + Date.now() + "_" + i; });
             return d;
         }
         function saveLocal() { localStorage.setItem("netMgrData", JSON.stringify(data)); localStorage.setItem("netMgrData_ts", Date.now().toString()); }
         function saveData() { saveLocal(); pushToCloud(); }
         function refreshUI() { renderSiteList(); renderSpeedTableHome(); if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) { renderDeviceList(site); renderPortTableSite(site); } } }
 
-        // ========== 原有 UI 逻辑 (完全保留) ==========
+        // ========== 设置面板 ==========
+        function toggleSettings(e) {
+            if (e) { e.stopPropagation(); e.preventDefault(); }
+            document.getElementById('settings-dropdown').classList.toggle('hidden');
+        }
+        function closeSettings() { document.getElementById('settings-dropdown').classList.add('hidden'); }
+        function triggerImport() { closeSettings(); document.getElementById('import-file').click(); }
+
+        // ========== 显示设置（宫格/列表 + 密度） ==========
+        function setViewMode(mode) {
+            viewMode = mode;
+            localStorage.setItem("netMgrViewMode", mode);
+            updateViewButtons();
+            renderSiteList();
+            if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
+        }
+        function updateViewButtons() {
+            const g = document.getElementById('view-grid'), l = document.getElementById('view-list');
+            if (!g || !l) return;
+            if (viewMode === 'grid') { g.className = "px-2.5 py-1 text-xs bg-primary text-white"; l.className = "px-2.5 py-1 text-xs bg-gray-100 text-gray-600"; }
+            else { l.className = "px-2.5 py-1 text-xs bg-primary text-white"; g.className = "px-2.5 py-1 text-xs bg-gray-100 text-gray-600"; }
+        }
+        function setDensity(val) {
+            density = parseFloat(val);
+            if (isNaN(density)) density = 0.85;
+            localStorage.setItem("netMgrDensity", density);
+            document.getElementById('app').style.zoom = density;
+            const label = document.getElementById('density-val');
+            if (label) label.innerText = Math.round(density * 100) + '%';
+        }
+        function setCardDensityGrid(val) {
+            cardDensityGrid = parseFloat(val);
+            if (isNaN(cardDensityGrid)) cardDensityGrid = 0.6;
+            localStorage.setItem("netMgrCardDensityGrid", cardDensityGrid);
+            const label = document.getElementById('card-density-grid-val');
+            if (label) label.innerText = Math.round(cardDensityGrid * 100) + '%';
+            renderSiteList();
+            if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
+        }
+        function setCardDensityList(val) {
+            cardDensityList = parseFloat(val);
+            if (isNaN(cardDensityList)) cardDensityList = 0.85;
+            localStorage.setItem("netMgrCardDensityList", cardDensityList);
+            const label = document.getElementById('card-density-list-val');
+            if (label) label.innerText = Math.round(cardDensityList * 100) + '%';
+            renderSiteList();
+            if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
+        }
+        // ========== 主题颜色 ==========
+        function applyTheme() {
+            document.documentElement.style.setProperty('--c-primary-rgb', themeRgb);
+            const ci = document.getElementById('theme-color-input');
+            if (ci) ci.value = rgbToHex(themeRgb);
+            updateThemeSwatches();
+        }
+        function setThemeColor(rgb) {
+            themeRgb = rgb;
+            localStorage.setItem("netMgrThemeRgb", rgb);
+            applyTheme();
+        }
+        function setThemeColorFromHex(hex) {
+            const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            setThemeColor(r + " " + g + " " + b);
+        }
+        function rgbToHex(rgb) {
+            const parts = rgb.split(' ').map(Number);
+            return '#' + parts.map(x => x.toString(16).padStart(2,'0')).join('');
+        }
+        function updateThemeSwatches() {
+            const wrap = document.getElementById('theme-swatches');
+            if (!wrap) return;
+            wrap.querySelectorAll('button').forEach(btn => {
+                const v = btn.getAttribute('data-rgb');
+                if (v === themeRgb) { btn.style.borderColor = '#1f2937'; btn.style.transform = 'scale(1.12)'; }
+                else { btn.style.borderColor = '#e5e7eb'; btn.style.transform = 'scale(1)'; }
+            });
+        }
+        function updateBackBtn() {
+            const btn = document.getElementById('fab-back');
+            if (!btn) return;
+            const onHome = !document.getElementById('page-home').classList.contains('hidden');
+            btn.style.display = onHome ? 'none' : 'flex';
+        }
+        function goBack() {
+            if (!document.getElementById('page-home').classList.contains('hidden')) return;
+            backHome();
+        }
+        function initFabDrag() {
+            const fab = document.getElementById('fab-back');
+            if (!fab) return;
+            try { const p = JSON.parse(localStorage.getItem('netMgrFabPos') || 'null'); if (p && typeof p.x === 'number') { fab.style.left = p.x + 'px'; fab.style.top = p.y + 'px'; fab.style.right = 'auto'; fab.style.bottom = 'auto'; } } catch (e) {}
+            let startX = 0, startY = 0, origX = 0, origY = 0, dragging = false, moved = false, longTimer = null, pointerId = null;
+            fab.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                pointerId = e.pointerId; moved = false;
+                const rect = fab.getBoundingClientRect();
+                startX = e.clientX; startY = e.clientY; origX = rect.left; origY = rect.top;
+                longTimer = setTimeout(() => { dragging = true; fab.style.transition = 'none'; fab.style.right = 'auto'; fab.style.bottom = 'auto'; fab.style.left = origX + 'px'; fab.style.top = origY + 'px'; }, 400);
+            });
+            fab.addEventListener('pointermove', (e) => {
+                if (pointerId !== null && e.pointerId !== pointerId) return;
+                if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) { moved = true; if (longTimer) { clearTimeout(longTimer); longTimer = null; } }
+                if (dragging) { fab.style.left = (origX + (e.clientX - startX)) + 'px'; fab.style.top = (origY + (e.clientY - startY)) + 'px'; }
+            });
+            const endDrag = () => {
+                if (longTimer) { clearTimeout(longTimer); longTimer = null; }
+                if (dragging) {
+                    dragging = false;
+                    const rect = fab.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(rect.left, window.innerWidth - rect.width));
+                    const y = Math.max(0, Math.min(rect.top, window.innerHeight - rect.height));
+                    fab.style.left = x + 'px'; fab.style.top = y + 'px';
+                    localStorage.setItem('netMgrFabPos', JSON.stringify({ x, y }));
+                } else if (!moved) { goBack(); }
+                pointerId = null;
+            };
+            fab.addEventListener('pointerup', endDrag);
+            fab.addEventListener('pointercancel', () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } dragging = false; pointerId = null; });
+        }
+
+        // ========== UI 逻辑 ==========
         function showToast(text = "复制成功") { const t = document.getElementById("toast"); t.innerText = text; t.classList.remove("hidden"); setTimeout(() => t.classList.add("hidden"), 1500); }
         function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
         function checkShareMode() { const params = new URLSearchParams(window.location.hash.slice(1)); const shareData = params.get('share'); if (shareData) { try { showSharePage(JSON.parse(decodeURIComponent(escape(atob(shareData))))); return true; } catch(e) {} } return false; }
-        function showSharePage(siteData) { document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.remove("hidden"); document.getElementById("share-site-name").innerText = siteData.name || "网络信息"; const devWrap = document.getElementById("share-device-list"); devWrap.innerHTML = ""; if (siteData.devices?.length > 0) { siteData.devices.forEach(dev => { const c = document.createElement("div"); c.className = "bg-white rounded-xl p-5 card-shadow"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; devWrap.appendChild(c); }); } else { devWrap.innerHTML = '<p class="text-gray-400">暂无设备信息</p>'; } const tb = document.getElementById("share-port-table"); tb.innerHTML = ""; if (siteData.portList?.length > 0) { siteData.portList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2">${item.port}</td><td class="border p-2">${item.desc}</td>`; tb.appendChild(tr); }); } else { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录</td></tr>'; } }
-        function renderSiteList() { const wrap = document.getElementById("site-list"); wrap.innerHTML = ""; data.sites.forEach(site => { const card = document.createElement("div"); card.className = "site-item bg-white rounded-xl p-6 card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; card.innerHTML = `<h3 class="text-xl font-bold text-primary mb-2"><i class="fa fa-server mr-2"></i>${site.name}</h3><p class="text-gray-500 text-sm">共 ${site.devices.length} 台网络设备</p>`; card.onclick = () => openSite(site.id); card.oncontextmenu = (e) => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.clientX, e.clientY); }; let pt; card.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); card.addEventListener("touchend", () => clearTimeout(pt)); card.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(card); }); }
-        function renderSpeedTableHome() { const tb = document.getElementById("speed-table-home"); tb.innerHTML = ""; data.speedList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2">${item.name}</td><td class="border p-2 text-blue-600 break-all">${item.url}</td><td class="border p-2 text-center"><a href="${item.url}" target="_blank" class="text-primary">打开</a></td>`; tb.appendChild(tr); }); }
+        function showSharePage(siteData) { document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.remove("hidden"); document.getElementById("share-site-name").innerText = siteData.name || "网络信息"; const devWrap = document.getElementById("share-device-list"); devWrap.innerHTML = ""; if (siteData.devices?.length > 0) { siteData.devices.forEach(dev => { const c = document.createElement("div"); c.className = "bg-white rounded-xl p-5 card-shadow"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; devWrap.appendChild(c); }); } else { devWrap.innerHTML = '<p class="text-gray-400">暂无设备信息</p>'; } const tb = document.getElementById("share-port-table"); tb.innerHTML = ""; if (siteData.portList?.length > 0) { siteData.portList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; tb.appendChild(tr); }); } else { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录</td></tr>'; } updateBackBtn(); }
+        function renderSiteList() { const wrap = document.getElementById("site-list"); wrap.innerHTML = ""; const isList = viewMode === 'list'; const cd = isList ? cardDensityList : cardDensityGrid; wrap.className = isList ? "grid grid-cols-1" : "grid grid-cols-1 md:grid-cols-3"; wrap.style.gap = ((isList ? 0.5 : 1.25) * cd) + "rem"; data.sites.forEach(site => { const card = document.createElement("div"); const base = "site-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; if (isList) { card.className = base + " flex items-center justify-between"; card.style.padding = (0.5 * cd) + "rem"; card.innerHTML = `<div class="flex items-center gap-2"><i class="fa fa-server text-primary"></i><span class="font-semibold text-gray-800">${site.name}</span></div><span class="text-gray-400 text-sm">${site.devices.length} 台设备</span>`; } else { card.className = base; card.style.padding = (1.0 * cd) + "rem"; card.innerHTML = `<h3 class="text-xl font-bold text-primary mb-2"><i class="fa fa-server mr-2"></i>${site.name}</h3><p class="text-gray-500 text-sm">共 ${site.devices.length} 台网络设备</p>`; } card.onclick = () => openSite(site.id); card.oncontextmenu = (e) => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.clientX, e.clientY); }; let pt; card.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); card.addEventListener("touchend", () => clearTimeout(pt)); card.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(card); }); }
+        function renderSpeedTableHome() { const tb = document.getElementById("speed-table-home"); tb.innerHTML = ""; data.speedList.forEach(item => { const tr = document.createElement("tr"); tr.className = "speed-item"; tr.innerHTML = `<td class="border p-2">${item.name}</td><td class="border p-2 text-blue-600 break-all">${item.url}</td><td class="border p-2 text-center"><a href="${item.url}" target="_blank" class="text-primary">打开</a></td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
         function showCtxMenu(x, y) { const m = document.getElementById("ctx-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
         function showDeviceCtxMenu(x, y) { const m = document.getElementById("ctx-device-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
-        function openSite(siteId) { currentSiteId = siteId; document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.remove("hidden"); const site = data.sites.find(s => s.id === siteId); document.getElementById("site-title").innerText = site.name; renderDeviceList(site); renderPortTableSite(site); }
-        function backHome() { document.getElementById("page-home").classList.remove("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.add("hidden"); if (window.location.hash) history.pushState("", document.title, window.location.pathname + window.location.search); refreshUI(); }
-        function renderDeviceList(site) { const wrap = document.getElementById("device-list"); wrap.innerHTML = ""; site.devices.forEach(dev => { const c = document.createElement("div"); c.className = "device-item bg-white rounded-xl p-5 card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; c.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.clientX, e.clientY); }; let pt; c.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); c.addEventListener("touchend", () => clearTimeout(pt)); c.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(c); }); }
+        function showPortCtxMenu(x, y) { const m = document.getElementById("ctx-port-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
+        function showSpeedCtxMenu(x, y) { const m = document.getElementById("ctx-speed-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
+        function openSite(siteId) { currentSiteId = siteId; document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.remove("hidden"); const site = data.sites.find(s => s.id === siteId); document.getElementById("site-title").innerText = site.name; renderDeviceList(site); renderPortTableSite(site); updateBackBtn(); }
+        function backHome() { document.getElementById("page-home").classList.remove("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.add("hidden"); if (window.location.hash) history.pushState("", document.title, window.location.pathname + window.location.search); refreshUI(); updateBackBtn(); }
+        function renderDeviceList(site) { const wrap = document.getElementById("device-list"); wrap.innerHTML = ""; wrap.className = "grid grid-cols-1 md:grid-cols-2"; wrap.style.gap = (1.0 * cardDensityGrid) + "rem"; site.devices.forEach(dev => { const c = document.createElement("div"); const base = "device-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; c.className = base; c.style.padding = (1.25 * cardDensityGrid) + "rem"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; c.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.clientX, e.clientY); }; let pt; c.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); c.addEventListener("touchend", () => clearTimeout(pt)); c.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(c); }); }
         async function copyText(str) { if (!str) { showToast("内容为空"); return; } try { await navigator.clipboard.writeText(str); showToast(); } catch (e) { const ta = document.createElement("textarea"); ta.value = str; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); showToast(); } }
-        function renderPortTableSite(site) { const tb = document.getElementById("port-table-site"); tb.innerHTML = ""; if (!site.portList?.length) { tb.innerHTML = '<tr><td colspan="3" class="border p-4 text-center text-gray-400">暂无网口记录，点击下方按钮添加</td></tr>'; return; } site.portList.forEach(item => { const tr = document.createElement("tr"); tr.className = "port-item"; tr.innerHTML = `<td class="border p-2">${item.port}</td><td class="border p-2">${item.desc}</td><td class="border p-2 text-center"><div class="port-actions flex justify-center gap-2"><button onclick="editPort('${item.id}')" class="text-primary text-xs"><i class="fa fa-pencil"></i></button><button onclick="delPort('${item.id}')" class="text-red-500 text-xs"><i class="fa fa-trash"></i></button></div></td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); document.querySelectorAll('.port-item').forEach(el => el.classList.remove('show-actions')); tr.classList.add('show-actions'); ctxPortId = item.id; }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); document.querySelectorAll('.port-item').forEach(el => el.classList.remove('show-actions')); tr.classList.add('show-actions'); ctxPortId = item.id; }; tb.appendChild(tr); }); }
+        function renderPortTableSite(site) { const tb = document.getElementById("port-table-site"); tb.innerHTML = ""; if (!site.portList?.length) { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录，点击下方按钮添加</td></tr>'; return; } site.portList.forEach(item => { const tr = document.createElement("tr"); tr.className = "port-item"; tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
         function openPortEdit() { editPortId = null; document.getElementById("modal-port-title").innerText = "添加网口记录"; document.getElementById("port-name").value = ""; document.getElementById("port-desc").value = ""; document.getElementById("modal-port").classList.remove("hidden"); }
         function editPort(portId) { const p = data.sites.find(s => s.id === currentSiteId)?.portList.find(i => i.id === portId); if(!p) return; editPortId = portId; document.getElementById("modal-port-title").innerText = "编辑网口记录"; document.getElementById("port-name").value = p.port; document.getElementById("port-desc").value = p.desc; document.getElementById("modal-port").classList.remove("hidden"); }
+        function editCurrentPort() { document.getElementById("ctx-port-menu").classList.add("hidden"); editPort(ctxPortId); }
         function delPort(portId) { if (!confirm("确定删除该网口记录？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.portList = site.portList.filter(p => p.id !== portId); saveData(); renderPortTableSite(site); }
+        function delCurrentPort() { document.getElementById("ctx-port-menu").classList.add("hidden"); delPort(ctxPortId); }
         function savePort() { const port = document.getElementById("port-name").value.trim(); const desc = document.getElementById("port-desc").value.trim(); if (!port) return showToast("网口名称不能为空"); const site = data.sites.find(s => s.id === currentSiteId); if (editPortId) { const p = site.portList.find(i => i.id === editPortId); p.port = port; p.desc = desc; } else { site.portList.push({ id: "port_" + Date.now(), port, desc }); } saveData(); renderPortTableSite(site); closeModal("modal-port"); }
+        // ========== 测速网站增删改 ==========
+        function openSpeedEdit() { editSpeedId = null; document.getElementById("modal-speed-title").innerText = "添加测速网站"; document.getElementById("edit-speed-id").value = ""; document.getElementById("speed-name").value = ""; document.getElementById("speed-url").value = ""; document.getElementById("modal-speed").classList.remove("hidden"); }
+        function editSpeed(speedId) { const s = data.speedList.find(i => i.id === speedId); if(!s) return; editSpeedId = speedId; document.getElementById("modal-speed-title").innerText = "编辑测速网站"; document.getElementById("edit-speed-id").value = speedId; document.getElementById("speed-name").value = s.name; document.getElementById("speed-url").value = s.url; document.getElementById("modal-speed").classList.remove("hidden"); }
+        function editCurrentSpeed() { document.getElementById("ctx-speed-menu").classList.add("hidden"); editSpeed(ctxSpeedId); }
+        function delSpeed(speedId) { if (!confirm("确定删除该测速网站？")) return; data.speedList = data.speedList.filter(s => s.id !== speedId); saveData(); renderSpeedTableHome(); }
+        function delCurrentSpeed() { document.getElementById("ctx-speed-menu").classList.add("hidden"); delSpeed(ctxSpeedId); }
+        function saveSpeed() { const name = document.getElementById("speed-name").value.trim(); const url = document.getElementById("speed-url").value.trim(); if (!name || !url) return showToast("名称和网址不能为空"); if (editSpeedId) { const s = data.speedList.find(i => i.id === editSpeedId); s.name = name; s.url = url; } else { data.speedList.push({ id: "speed_" + Date.now(), name, url }); } saveData(); renderSpeedTableHome(); closeModal("modal-speed"); }
+        // ========== 位置增删改 ==========
         function openSiteEdit() { document.getElementById("modal-site-title").innerText = "新增位置"; document.getElementById("edit-site-id").value = ""; document.getElementById("site-name-input").value = ""; document.getElementById("modal-site").classList.remove("hidden"); }
         function editCurrentSite() { const site = data.sites.find(s => s.id === ctxSiteId); document.getElementById("modal-site-title").innerText = "修改位置"; document.getElementById("edit-site-id").value = ctxSiteId; document.getElementById("site-name-input").value = site.name; document.getElementById("ctx-menu").classList.add("hidden"); document.getElementById("modal-site").classList.remove("hidden"); }
         function saveSite() { const name = document.getElementById("site-name-input").value.trim(); if (!name) return showToast("名称不能为空"); const editId = document.getElementById("edit-site-id").value; if (editId) { data.sites.find(i => i.id === editId).name = name; } else { data.sites.push({ id: "site_" + Date.now(), name, devices: [], portList: [] }); } saveData(); renderSiteList(); closeModal("modal-site"); }
         function delCurrentSite() { if (!confirm("确定删除该位置及所有设备？")) return; data.sites = data.sites.filter(s => s.id !== ctxSiteId); saveData(); renderSiteList(); document.getElementById("ctx-menu").classList.add("hidden"); }
+        // ========== 设备增删改 ==========
         function editCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); editDevice(ctxDeviceId); }
         function delCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); delDevice(ctxDeviceId); }
         function openDeviceEdit() { document.getElementById("modal-device-title").innerText = "新增网络设备"; document.getElementById("edit-device-id").value = ""; document.getElementById("dev-name").value = ""; document.getElementById("dev-ip").value = ""; document.getElementById("dev-pwd").value = ""; document.getElementById("dev-route-pwd").value = ""; document.getElementById("modal-device").classList.remove("hidden"); }
         function editDevice(devId) { const dev = data.sites.find(s => s.id === currentSiteId)?.devices.find(d => d.id === devId); if(!dev) return; document.getElementById("modal-device-title").innerText = "编辑设备"; document.getElementById("edit-device-id").value = devId; document.getElementById("dev-name").value = dev.name; document.getElementById("dev-ip").value = dev.ip; document.getElementById("dev-pwd").value = dev.pwd || ""; document.getElementById("dev-route-pwd").value = dev.routePwd || ""; document.getElementById("modal-device").classList.remove("hidden"); }
         function delDevice(devId) { if (!confirm("确定删除该设备？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.devices = site.devices.filter(d => d.id !== devId); saveData(); renderDeviceList(site); }
         function saveDevice() { const name = document.getElementById("dev-name").value.trim(); const ip = document.getElementById("dev-ip").value.trim(); const pwd = document.getElementById("dev-pwd").value.trim(); const routePwd = document.getElementById("dev-route-pwd").value.trim(); if (!name || !ip) return showToast("设备名称和地址必填"); const editId = document.getElementById("edit-device-id").value; const site = data.sites.find(s => s.id === currentSiteId); if (editId) { const dev = site.devices.find(d => d.id === editId); dev.name = name; dev.ip = ip; dev.pwd = pwd; dev.routePwd = routePwd; } else { site.devices.push({ id: "dev_" + Date.now(), name, ip, pwd, routePwd }); } saveData(); renderDeviceList(site); closeModal("modal-device"); }
+        // ========== 分享与导入导出 ==========
         function openShareSelect() { const list = document.getElementById("share-site-list"); list.innerHTML = ""; data.sites.forEach(site => { const item = document.createElement("div"); item.className = "p-3 border rounded-lg cursor-pointer hover:bg-gray-50 flex items-center justify-between"; item.innerHTML = `<span><i class="fa fa-server mr-2 text-primary"></i>${site.name}</span><span class="text-gray-400 text-sm">${site.devices.length} 台设备</span>`; item.onclick = () => { closeModal('modal-share-select'); generateShareScreenshot(site); }; list.appendChild(item); }); document.getElementById("modal-share-select").classList.remove("hidden"); }
-        function generateShareScreenshot(site) { currentShareSite = site; document.getElementById("share-qr-title").innerText = `分享：${site.name}`; document.getElementById("modal-share-qr").classList.remove("hidden"); const container = document.getElementById("qr-code-container"); container.innerHTML = '<p class="text-gray-400 text-sm p-4">生成截图中...</p>'; const renderBox = document.createElement("div"); renderBox.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:#f1f5f9;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;"; let dh = ''; site.devices.forEach(dev => { dh += `<div style="background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><h4 style="font-size:16px;font-weight:bold;margin:0 0 8px;color:#1e293b;">${dev.name}</h4><p style="font-size:14px;color:#64748b;margin:4px 0;">地址：${dev.ip}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">管理密码：${dev.pwd||'未设置'}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">路由密码：${dev.routePwd||'未设置'}</p></div>`; }); let ph = ''; if (site.portList?.length) { let pr = ''; site.portList.forEach(i => { pr += `<tr><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;">${i.port}</td><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;">${i.desc}</td></tr>`; }); ph = `<div><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网口分配记录</h3><div style="background:white;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;">网口</th><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;">房间用途</th></tr></thead><tbody>${pr}</tbody></table><p style="font-size:12px;color:#64748b;margin:12px 0 0;">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div></div>`; } renderBox.innerHTML = `<div style="background:linear-gradient(135deg,#165DFF,#4080FF);color:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(22,93,255,0.1);"><h2 style="font-size:20px;font-weight:bold;margin:0;display:flex;align-items:center;gap:8px;"><span>📶</span> ${site.name}</h2><p style="font-size:14px;opacity:.8;margin:8px 0 0;">网络设备信息</p></div><div style="margin-bottom:16px;"><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网络设备</h3>${dh}</div>${ph}`; document.body.appendChild(renderBox); setTimeout(() => { html2canvas(renderBox, { backgroundColor: '#f1f5f9', scale: 2, useCORS: true, logging: false }).then(canvas => { const img = document.createElement("img"); img.src = canvas.toDataURL('image/png'); img.style.cssText = "width:100%;border-radius:8px;"; container.innerHTML = ""; container.appendChild(img); document.body.removeChild(renderBox); }).catch(err => { container.innerHTML = '<p class="text-red-500 text-sm p-4">截图生成失败</p>'; document.body.contains(renderBox) && document.body.removeChild(renderBox); }); }, 100); }
+        function generateShareScreenshot(site) { currentShareSite = site; document.getElementById("share-qr-title").innerText = `分享：${site.name}`; document.getElementById("modal-share-qr").classList.remove("hidden"); const container = document.getElementById("qr-code-container"); container.innerHTML = '<p class="text-gray-400 text-sm p-4">生成截图中...</p>'; const renderBox = document.createElement("div"); renderBox.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:#f1f5f9;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;"; let dh = ''; site.devices.forEach(dev => { dh += `<div style="background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h4 style="font-size:16px;font-weight:bold;margin:0 0 8px;color:#1e293b;">${dev.name}</h4><p style="font-size:14px;color:#64748b;margin:4px 0;">地址：${dev.ip}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">管理密码：${dev.pwd||'未设置'}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">路由密码：${dev.routePwd||'未设置'}</p></div>`; }); let ph = ''; if (site.portList?.length) { let pr = ''; site.portList.forEach(i => { pr += `<tr><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.port}</td><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.desc}</td></tr>`; }); ph = `<div><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网口分配记录</h3><div style="background:white;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">网口</th><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">房间用途</th></tr></thead><tbody>${pr}</tbody></table><p style="font-size:12px;color:#64748b;margin:12px 0 0;">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div></div>`; } renderBox.innerHTML = `<div style="background:linear-gradient(135deg,#165DFF,#4080FF);color:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h2 style="font-size:20px;font-weight:bold;margin:0;display:flex;align-items:center;gap:8px;"><span>📶</span> ${site.name}</h2><p style="font-size:14px;opacity:.8;margin:8px 0 0;">网络设备信息</p></div><div style="margin-bottom:16px;"><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网络设备</h3>${dh}</div>${ph}`; document.body.appendChild(renderBox); setTimeout(() => { html2canvas(renderBox, { backgroundColor: '#f1f5f9', scale: 2, useCORS: true, logging: false }).then(canvas => { const img = document.createElement("img"); img.src = canvas.toDataURL('image/png'); img.style.cssText = "width:100%;border-radius:8px;"; container.innerHTML = ""; container.appendChild(img); document.body.removeChild(renderBox); }).catch(err => { container.innerHTML = '<p class="text-red-500 text-sm p-4">截图生成失败</p>'; document.body.contains(renderBox) && document.body.removeChild(renderBox); }); }, 100); }
         function exportData() { const b = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; const d = new Date(); a.download = `网络控制台数据_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); showToast("导出成功"); }
         function copyData() { copyText(JSON.stringify(data, null, 2)); showToast("数据已复制"); }
         function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("导入数据将覆盖当前所有数据，确定继续吗？")) { event.target.value = ""; return; } const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported.sites || !Array.isArray(imported.sites)) { showToast("数据格式错误"); return; } data = migrateDataStructure(imported); saveData(); refreshUI(); showToast("导入成功"); } catch { showToast("文件解析失败"); } }; reader.readAsText(file); event.target.value = ""; }
@@ -240,12 +466,31 @@
         function doPasteImport() { const text = document.getElementById("paste-data-textarea").value.trim(); if (!text) { showToast("请粘贴数据"); return; } if (!confirm("导入数据将覆盖当前所有数据，确定继续吗？")) return; try { const imported = JSON.parse(text); if (!imported.sites || !Array.isArray(imported.sites)) { showToast("数据格式错误"); return; } data = migrateDataStructure(imported); saveData(); refreshUI(); closeModal("modal-paste-import"); showToast("导入成功"); } catch { showToast("数据解析失败"); } }
 
         // ========== 初始化 ==========
-        window.onload = () => {
+        window.addEventListener('DOMContentLoaded', () => {
             if (checkShareMode()) return;
             data = migrateDataStructure(data);
             refreshUI();
+            // 应用显示设置
+            updateViewButtons();
+            document.getElementById('app').style.zoom = density;
+            const ds = document.getElementById('density-slider'); if (ds) ds.value = density;
+            const dv = document.getElementById('density-val'); if (dv) dv.innerText = Math.round(density * 100) + '%';
+            const cds = document.getElementById('card-density-grid-slider'); if (cds) cds.value = cardDensityGrid;
+            const cdv = document.getElementById('card-density-grid-val'); if (cdv) cdv.innerText = Math.round(cardDensityGrid * 100) + '%';
+            const cls = document.getElementById('card-density-list-slider'); if (cls) cls.value = cardDensityList;
+            const clv = document.getElementById('card-density-list-val'); if (clv) clv.innerText = Math.round(cardDensityList * 100) + '%';
+            updateBackBtn();
+            applyTheme();
+            initFabDrag();
             initSupabase();
-        };
+            document.addEventListener('click', (e) => {
+                const d = document.getElementById('settings-dropdown');
+                if (!d || d.classList.contains('hidden')) return;
+                if (d.contains(e.target)) return;
+                if (e.target.closest('[onclick*="toggleSettings"]')) return;
+                d.classList.add('hidden');
+            });
+        });
         window.addEventListener('hashchange', () => { if (!window.location.hash) { document.getElementById("page-share").classList.add("hidden"); document.getElementById("page-home").classList.remove("hidden"); refreshUI(); } });
     </script>
 </body>
