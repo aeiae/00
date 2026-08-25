@@ -28,6 +28,31 @@
   --radius: 12px;
   --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
   --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+  --fab-bg: #4338ca;
+  --fab-color: #ffffff;
+}
+[data-theme="dark"] {
+  --bg: #0f111a;
+  --card: #1a1d2b;
+  --card-hover: #22263a;
+  --border: #2d3348;
+  --border-light: #252a3d;
+  --text: #f1f2f6;
+  --text2: #a7adb8;
+  --text3: #6b7280;
+  --accent: #818cf8;
+  --accent-light: rgba(99,102,241,.18);
+  --accent2: #a5b4fc;
+  --danger: #f87171;
+  --danger-light: rgba(248,113,113,.15);
+  --success: #34d399;
+  --success-light: rgba(52,211,153,.15);
+  --warning: #fbbf24;
+  --warning-light: rgba(251,191,36,.15);
+  --shadow: 0 1px 3px rgba(0,0,0,.25), 0 4px 12px rgba(0,0,0,.2);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.35);
+  --fab-bg: #6366f1;
+  --fab-color: #ffffff;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -43,18 +68,110 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #4b5163; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #5c6275; }
+::selection { background: var(--accent); color: #fff; }
 
 /* ============ Main Layout ============ */
-#mainApp { display: block; }
+#mainApp { display: flex; flex-direction: column; height: 100vh; }
 .header {
   background: var(--card);
   border-bottom: 1px solid var(--border);
   padding: 12px 24px;
   display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
   position: sticky; top: 0; z-index: 100;
   box-shadow: 0 1px 4px rgba(0,0,0,.03);
   flex-wrap: wrap;
   gap: 8px;
+}
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.sidebar {
+  width: auto;
+  min-width: 200px;
+  max-width: 400px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar-title {
+  font-size: 12px; font-weight: 600; color: var(--text3);
+  letter-spacing: .5px; padding: 4px 12px 10px;
+}
+.cat-list {
+  display: flex; flex-direction: column; gap: 4px;
+}
+/* 分类树：图片风格 */
+.cat-item {
+  padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; color: var(--text2);
+  display: flex; align-items: center; gap: 8px;
+  transition: .15s; touch-action: manipulation;
+  user-select: none;
+}
+.cat-item:hover { background: var(--accent-light); color: var(--accent); }
+.cat-item.active { background: var(--accent); color: #fff; }
+
+.cat-arrow {
+  width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--text3); flex-shrink: 0; transition: .15s;
+}
+.cat-item.active .cat-arrow { color: rgba(255,255,255,.8); }
+.cat-folder, .cat-file {
+  font-size: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+}
+.cat-label {
+  flex: 1; min-width: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  flex-wrap: wrap;
+}
+.cat-label .cat-name {
+  line-height: 1.35; word-break: break-all;
+}
+.cat-count {
+  font-size: 11px; color: var(--text3);
+  background: var(--bg); padding: 1px 8px; border-radius: 50px;
+  flex-shrink: 0;
+}
+.cat-item.active .cat-count { background: rgba(255,255,255,.22); color: #fff; }
+
+.cat-default { color: var(--warning); font-size: 12px; }
+
+/* 卡片操作按钮：默认隐藏，长按/右键后显示 */
+.bm-actions { display: none !important; }
+.bm-card.activated .bm-actions,
+.bm-item.activated .bm-actions { display: flex !important; }
+.drag-handle { display: none !important; }
+.bm-card.activated .drag-handle,
+.bm-item.activated .drag-handle { display: inline-flex !important; opacity: 1 !important; }
+
+/* 分类按钮（桌面/移动均显示） */
+.cat-toggle-btn { display: inline-flex; }
+
+/* 侧边栏：桌面可折叠 */
+.sidebar {
+  transition: width .25s ease, padding .25s ease;
+}
+.sidebar.collapsed {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-right: none;
+  overflow: hidden;
+}
+
+/* 移动端侧边栏抽屉 */
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 3500; }
+.sidebar-backdrop.show { display: block; }
+.main-content {
+  flex: 1; min-width: 0; overflow-y: auto;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }
 .header-left h1 { font-size: 20px; font-weight: 700; color: var(--text); }
@@ -85,27 +202,124 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 .btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-sm { padding: 4px 10px; font-size: 12px; min-height: 32px; }
 
-/* 新增：链接按钮透明无背景，仅图标 */
+/* 链接按钮：和编辑/删除一样的带框按钮 */
 .btn-link {
-  background: transparent !important;
-  border: none !important;
-  color: var(--text3) !important;
-  padding: 4px 6px;
-  min-height: auto;
-  font-size: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 4px 8px;
+  min-height: 32px;
+  font-size: 13px;
   box-shadow: none;
 }
 .btn-link:hover {
-  color: var(--accent) !important;
-  background: transparent !important;
-  transform: none;
-  box-shadow: none;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-color: var(--accent);
 }
+
+/* 链接按钮右键/长按弹出的小菜单 */
+.link-menu-wrap { position: relative; display: inline-flex; }
+.link-popup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  white-space: nowrap;
+}
+.link-popup.show { display: inline-flex; }
+.link-popup::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border);
+}
+.link-popup .btn { min-height: 30px; padding: 3px 8px; font-size: 12px; }
+
+/* 视图列数菜单（右键视图按钮） */
+.view-cols-menu {
+  display: none;
+  position: fixed; z-index: 6000;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: var(--shadow-lg);
+  min-width: 168px;
+}
+.view-cols-menu.show { display: block; }
+.view-cols-menu .vc-title { font-size: 12px; color: var(--text2); padding: 2px 6px 8px; font-weight: 600; }
+.view-cols-menu .vc-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.view-cols-menu button {
+  flex: 1 0 44px; min-width: 44px; padding: 7px 0; font-size: 13px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 6px; cursor: pointer; min-height: 34px; touch-action: manipulation;
+}
+.view-cols-menu button:hover { border-color: var(--accent); color: var(--accent); }
+.view-cols-menu button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* 多选模式：勾选框 */
+.bm-card, .bm-item { position: relative; }
+.bm-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 2px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff; z-index: 5; cursor: pointer;
+  flex-shrink: 0;
+}
+.bm-check.checked { background: var(--accent); border-color: var(--accent); }
+.bm-card.selected, .bm-item.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 多选操作条 */
+.select-bar {
+  display: none;
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 8px 12px; gap: 8px; align-items: center; z-index: 4500;
+  box-shadow: var(--shadow-lg); flex-wrap: nowrap; max-width: 96vw;
+}
+.select-bar.show { display: flex; }
+.select-bar .sel-count { font-size: 13px; color: var(--text2); white-space: nowrap; }
+.select-bar .btn { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+
+/* 分类右键/长按菜单 */
+.cat-menu {
+  display: none; position: fixed; z-index: 6000;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px; box-shadow: var(--shadow-lg); min-width: 156px;
+}
+.cat-menu.show { display: block; }
+.cat-menu button {
+  display: block; width: 100%; text-align: left; padding: 9px 12px;
+  border: none; background: transparent; color: var(--text); cursor: pointer;
+  border-radius: 6px; font-size: 13px; min-height: 38px; touch-action: manipulation;
+  font-family: inherit;
+}
+.cat-menu button:hover { background: var(--accent-light); color: var(--accent); }
+
+/* 默认分类星标 */
 
 /* Search & Toolbar */
 .toolbar {
   padding: 16px 24px 0;
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.toolbar-right {
+  display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;
 }
 .search-input {
   flex: 1; min-width: 200px; padding: 10px 18px;
@@ -139,39 +353,7 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 .view-btn:hover { color: var(--text); background: var(--card); }
 .view-btn.active { background: var(--accent); color: #fff; }
 
-/* Sort indicator */
-.sort-info {
-  font-size: 12px; color: var(--text3);
-  display: flex; align-items: center; gap: 4px;
-}
-
-/* Category Tabs */
-.cat-tabs {
-  display: flex; gap: 6px; padding: 12px 24px 0;
-  overflow-x: auto; flex-wrap: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.cat-tabs::-webkit-scrollbar { display: none; }
-.cat-tab {
-  padding: 8px 18px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 50px;
-  cursor: pointer; font-size: 14px;
-  white-space: nowrap;
-  transition: .2s;
-  color: var(--text2);
-  touch-action: manipulation;
-  min-height: 38px;
-  display: flex; align-items: center;
-}
-.cat-tab:hover { border-color: var(--accent); color: var(--accent); }
-.cat-tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
+/* Category Tabs -> moved to sidebar (.cat-list) */
 
 /* ======== GRID VIEW ======== */
 .bm-grid {
@@ -243,7 +425,10 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 /* ======== LIST VIEW ======== */
 .bm-list {
   padding: 16px 24px 40px;
-  display: flex; flex-direction: column; gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 8px;
+  align-items: start;
 }
 .bm-list .bm-item {
   background: var(--card);
@@ -299,7 +484,10 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 /* ======== COMPACT LIST VIEW ======== */
 .bm-compact {
   padding: 16px 24px 40px;
-  display: flex; flex-direction: column; gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px;
+  align-items: start;
 }
 .bm-compact .bm-item {
   background: var(--card);
@@ -372,7 +560,7 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 .bm-large .bm-card .bm-icon {
   width: 48px; height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent-light), #e0e7ff);
+  background: linear-gradient(135deg, var(--accent-light), rgba(99,102,241,.15));
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; margin-bottom: 14px;
   overflow: hidden; color: var(--accent); font-weight: 600;
@@ -472,20 +660,182 @@ a:hover { text-decoration: underline; color: var(--accent2); }
 }
 .modal .close-x:hover { color: var(--text); }
 
-/* Settings sections */
-.settings-section {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px;
-  margin-bottom: 16px;
+/* Settings full page */
+.settings-page {
+  position: fixed; inset: 0; z-index: 200;
   background: var(--bg);
+  display: none; flex-direction: column;
 }
-.settings-section h3 {
-  font-size: 15px; margin-bottom: 12px;
+.settings-page.show { display: flex; }
+.settings-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; gap: 12px;
+}
+.settings-header h2 { font-size: 18px; font-weight: 600; }
+.settings-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 20px 24px 60px;
+}
+.settings-body-inner {
+  max-width: 720px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.settings-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.settings-card-title {
+  font-size: 16px; font-weight: 600; margin-bottom: 16px;
   display: flex; align-items: center; gap: 8px;
 }
-.settings-section .desc {
-  font-size: 12px; color: var(--text2); margin-top: 8px;
+.settings-card .desc { font-size: 13px; color: var(--text2); margin: 6px 0 12px; }
+.settings-card label {
+  display: block; font-size: 13px; color: var(--text2); margin: 12px 0 6px;
+}
+.settings-card input[type="text"],
+.settings-card input[type="password"],
+.settings-card textarea,
+.settings-card select {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text); font-size: 14px;
+  font-family: inherit; outline: none; transition: .2s;
+  min-height: 44px;
+}
+.settings-card input:focus,
+.settings-card textarea:focus,
+.settings-card select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+}
+.settings-card textarea { resize: vertical; min-height: 90px; }
+.settings-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* Import / Export big buttons */
+.ie-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ie-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 16px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: .15s; min-height: 56px;
+}
+.ie-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.ie-panel {
+  display: none; margin-top: 16px; padding: 16px;
+  background: var(--bg); border: 1px solid var(--border-light);
+  border-radius: 12px;
+}
+.ie-panel-title {
+  font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 12px;
+}
+.ie-option { margin-bottom: 14px; }
+.ie-option:last-child { margin-bottom: 0; }
+.ie-option-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+.ie-option-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.settings-card input[type="file"] {
+  width: 100%; padding: 8px 0; background: transparent; border: none; min-height: auto;
+}
+.settings-card .check-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text2); margin: 8px 0 12px;
+}
+.settings-card .check-label input { width: auto; min-height: auto; }
+
+/* Danger card */
+.danger-card { border-left: 4px solid var(--danger); }
+
+/* 分组排序页面 */
+.cat-sort-page {
+  position: fixed; inset: 0; z-index: 5000;
+  background: var(--bg);
+  display: none; flex-direction: column;
+}
+.cat-sort-page.show { display: flex; }
+.cs-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; gap: 12px;
+}
+.cs-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.cs-subtitle { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.cs-tabs {
+  padding: 14px 24px 0;
+  display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0;
+}
+.cs-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 50px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text2); font-size: 13px; cursor: pointer;
+  transition: .15s; touch-action: manipulation;
+}
+.cs-tab:hover { border-color: var(--accent); color: var(--accent); }
+.cs-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cs-tab .cs-tab-count { font-size: 11px; opacity: .9; }
+.cs-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 24px; }
+.cs-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
+.cs-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border-light);
+  border-radius: 10px; padding: 10px 12px;
+  user-select: none; touch-action: manipulation;
+}
+.cs-item.dragging { opacity: .6; }
+.cs-drag {
+  color: var(--text3); font-size: 14px; cursor: grab; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; width: 20px;
+}
+.cs-folder { font-size: 16px; flex-shrink: 0; }
+.cs-name {
+  flex: 1; min-width: 0;
+  font-size: 14px; color: var(--text); word-break: break-all; line-height: 1.35;
+}
+.cs-level {
+  flex-shrink: 0;
+  font-size: 11px; color: var(--text2);
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 50px;
+}
+.cs-select {
+  flex-shrink: 0; min-width: 72px;
+  padding: 4px 8px; font-size: 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+.cs-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.cs-btns button {
+  width: 30px; height: 30px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text2);
+  cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center;
+}
+.cs-btns button:hover { border-color: var(--accent); color: var(--accent); }
+.cs-btns button:disabled { opacity: .4; cursor: not-allowed; }
+.cs-footer {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex; gap: 10px; flex-shrink: 0; justify-content: flex-end;
+}
+
+/* Sync log */
+#syncLog {
+  margin-top: 12px; font-size: 12px; color: var(--text2);
+  max-height: 140px; overflow-y: auto; background: var(--bg);
+  border-radius: 8px; padding: 10px;
+}
+#syncLog div { margin-bottom: 4px; }
+#importLog {
+  margin-top: 10px; font-size: 12px; color: var(--text2);
+  max-height: 200px; overflow-y: auto;
 }
 
 /* Status badge */
@@ -526,10 +876,45 @@ a:hover { text-decoration: underline; color: var(--accent2); }
   .header-actions { width: 100%; justify-content: flex-start; overflow-x: auto; }
   .toolbar { padding: 12px 16px 0; flex-direction: column; align-items: stretch; }
   .search-input { min-width: 100%; }
+  .toolbar-right { align-self: flex-start; flex-wrap: nowrap; gap: 6px; }
   .view-switch { align-self: flex-start; }
-  .cat-tabs { padding: 10px 16px 0; }
+  .app-body { flex-direction: column; }
+  .main-content { overflow-y: visible; }
+  .cat-toggle-btn { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: max-content; min-width: 260px; max-width: 92vw; height: 100%;
+    border-right: 1px solid var(--border);
+    z-index: 4000; transform: translateX(-100%);
+    transition: transform .3s ease; box-shadow: var(--shadow-lg);
+    padding: 16px 12px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar.collapsed { width: 0; min-width: 0; max-width: 0; padding: 0; overflow: hidden; }
 
-  /* 网格 & 大卡片：单列，防止高度过长 */
+  /* 设置页移动端 */
+  .settings-header { padding: 10px 16px; }
+  .settings-body { padding: 16px 16px 40px; }
+  .settings-card { padding: 16px; }
+  .ie-grid { grid-template-columns: 1fr; }
+  .settings-actions { flex-direction: column; }
+  .settings-actions .btn { width: 100%; justify-content: center; }
+
+  /* 分组排序页移动端 */
+  .cs-header { padding: 12px 16px; }
+  .cs-title { font-size: 16px; }
+  .cs-subtitle { font-size: 11px; }
+  .cs-tabs { padding: 12px 16px 0; }
+  .cs-tab { padding: 6px 12px; font-size: 12px; }
+  .cs-body { padding: 12px 16px; }
+  .cs-item { padding: 8px 10px; gap: 8px; }
+  .cs-name { font-size: 13px; }
+  .cs-select { display: none; }
+  .cs-footer { padding: 10px 16px; }
+  .select-bar { padding: 8px; gap: 6px; }
+  .select-bar .sel-count { font-size: 12px; }
+
+  /* 移动端卡片统一占满宽度，防止溢出 */
   .bm-grid,
   .bm-large {
     grid-template-columns: 1fr !important;
@@ -537,55 +922,48 @@ a:hover { text-decoration: underline; color: var(--accent2); }
     padding: 12px 16px 30px;
   }
 
-  .bm-grid .bm-card {
-    padding: 14px;
+  .bm-grid .bm-card,
+  .bm-large .bm-card {
+    width: 100%;
     max-width: 100%;
-    max-height: 320px;
+    min-width: 0;
     overflow: hidden;
   }
-  .bm-grid .bm-card .bm-note {
+  .bm-grid .bm-card h3,
+  .bm-large .bm-card h3,
+  .bm-grid .bm-card .bm-url,
+  .bm-large .bm-card .bm-url,
+  .bm-grid .bm-card .bm-note,
+  .bm-large .bm-card .bm-note {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-height: 1.2em;
+    max-width: 100%;
   }
-  .bm-grid .bm-card .bm-url {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .bm-grid .bm-card .bm-note,
+  .bm-large .bm-card .bm-note {
+    max-height: 1.3em;
+    display: block;
+    -webkit-line-clamp: unset;
   }
   .bm-grid .bm-card h3 { font-size: 15px; }
-  .bm-grid .bm-card .bm-cat { font-size: 12px; }
+  .bm-large .bm-card h3 { font-size: 17px; }
 
-  .bm-large .bm-card {
-    padding: 18px;
+  .bm-list, .bm-compact { padding: 12px 16px 30px; display: flex; flex-direction: column; }
+  .bm-list .bm-item,
+  .bm-compact .bm-item {
+    width: 100%;
     max-width: 100%;
-    max-height: 380px;
-    overflow: hidden;
+    min-width: 0;
   }
-  .bm-large .bm-card .bm-note {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-height: 1.4em;
-  }
-  .bm-large .bm-card .bm-url {
+  .bm-list .bm-item h3,
+  .bm-compact .bm-item h3,
+  .bm-list .bm-item .bm-meta,
+  .bm-compact .bm-item .bm-meta {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .bm-large .bm-card h3 { font-size: 17px; }
-  .bm-large .bm-card .bm-cat { font-size: 12px; }
-
-  .bm-list, .bm-compact { padding: 12px 16px 30px; }
-
-  .bm-grid .bm-card .drag-handle,
-  .bm-list .bm-item .drag-handle,
-  .bm-compact .bm-item .drag-handle,
-  .bm-large .bm-card .drag-handle {
-    opacity: 1;
+    max-width: 100%;
   }
 
   .btn {
@@ -623,7 +1001,7 @@ a:hover { text-decoration: underline; color: var(--accent2); }
   .bm-large .bm-card .bm-url { font-size: 12px; }
   .bm-grid .bm-card .bm-cat,
   .bm-large .bm-card .bm-cat { font-size: 11px; }
-  .cat-tab { font-size: 13px; padding: 6px 14px; }
+  .cat-item { font-size: 13px; padding: 6px 14px; }
 }
 </style>
 </head>
@@ -639,30 +1017,43 @@ a:hover { text-decoration: underline; color: var(--accent2); }
       <span id="syncBadge" class="sync-status" style="display:none;"></span>
     </div>
     <div class="header-actions">
+      <button class="btn cat-toggle-btn" id="catToggleBtn" onclick="toggleSidebar()" title="分类">📂 分类</button>
+      <button class="btn" id="themeBtn" onclick="toggleTheme()" title="切换明暗主题">🌙</button>
       <button class="btn" onclick="openAddModal()">➕ 添加</button>
-      <button class="btn" onclick="openModal('importExportModal')">📦 导入/导出</button>
-      <button class="btn" onclick="openModal('syncModal')">☁️ 同步</button>
-      <button class="btn" onclick="openModal('settingsModal')">⚙️ 设置</button>
+      <button class="btn" onclick="showSettings()">⚙️ 设置</button>
     </div>
   </div>
 
-  <!-- Toolbar: Search + View Switch -->
-  <div class="toolbar">
-    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索书签..." oninput="renderBookmarks()">
-    <div class="view-switch">
-      <button class="view-btn active" data-view="grid" title="网格视图" onclick="switchView('grid')">▦</button>
-      <button class="view-btn" data-view="list" title="列表视图" onclick="switchView('list')">☰</button>
-      <button class="view-btn" data-view="compact" title="紧凑列表" onclick="switchView('compact')">≡</button>
-      <button class="view-btn" data-view="large" title="大卡片" onclick="switchView('large')">▣</button>
+  <div class="app-body">
+    <!-- Sidebar: Categories -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">分类</div>
+      <div class="cat-list" id="catList"></div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Toolbar: Search + View Switch + Select -->
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索书签..." oninput="renderBookmarks()">
+        <div class="toolbar-right">
+          <div class="view-switch">
+            <button class="view-btn active" data-view="grid" title="网格视图（右键设置列数）" onclick="switchView('grid')" oncontextmenu="openViewColumnsMenu(event, 'grid')">▦</button>
+            <button class="view-btn" data-view="list" title="列表视图（右键设置列数）" onclick="switchView('list')" oncontextmenu="openViewColumnsMenu(event, 'list')">☰</button>
+            <button class="view-btn" data-view="compact" title="紧凑列表（右键设置列数）" onclick="switchView('compact')" oncontextmenu="openViewColumnsMenu(event, 'compact')">≡</button>
+            <button class="view-btn" data-view="large" title="大卡片（右键设置列数）" onclick="switchView('large')" oncontextmenu="openViewColumnsMenu(event, 'large')">▣</button>
+          </div>
+          <button class="btn btn-sm" id="selectModeBtn" onclick="toggleSelectionMode()" title="多选模式（长按卡片也可进入）">☑ 选择</button>
+        </div>
+      </div>
+
+      <!-- Bookmark Container -->
+      <div id="bmContainer"></div>
     </div>
-    <div class="sort-info" id="sortInfo">💡 拖拽排序</div>
   </div>
 
-  <!-- Category Tabs -->
-  <div class="cat-tabs" id="catTabs"></div>
-
-  <!-- Bookmark Container -->
-  <div id="bmContainer"></div>
+  <!-- 移动端：分类抽屉遮罩 -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 </div>
 
 <!-- ==================== ADD/EDIT MODAL ==================== -->
@@ -693,125 +1084,151 @@ a:hover { text-decoration: underline; color: var(--accent2); }
   </div>
 </div>
 
-<!-- ==================== IMPORT/EXPORT MODAL ==================== -->
-<div class="modal-overlay" id="importExportModal">
-  <div class="modal" style="position:relative;">
-    <button class="close-x" onclick="closeModal('importExportModal')">&times;</button>
-    <h2>📦 导入 / 导出书签</h2>
-
-    <div class="settings-section">
-      <h3>📥 导入浏览器书签</h3>
-      <p class="desc">支持从 Chrome / Edge / Firefox / Safari 等浏览器导出的 HTML 书签文件（Netscape Bookmark 格式）。将正确识别文件夹层级。</p>
-      <label style="margin-top:12px;">选择 HTML 书签文件</label>
-      <input type="file" id="importFile" accept=".html,.htm" style="margin-top:6px;">
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <button class="btn btn-accent" onclick="importHTML()">📥 导入书签</button>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);margin:0;">
-          <input type="checkbox" id="importMerge" checked style="width:auto;"> 合并（不覆盖现有数据）
-        </label>
-      </div>
-      <div id="importLog" style="margin-top:10px;font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto;"></div>
-    </div>
-
-    <div class="settings-section">
-      <h3>📤 导出书签</h3>
-      <p class="desc">导出为浏览器可识别的 HTML 书签文件，可直接导入到任何浏览器。</p>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-accent" onclick="exportHTML()">📤 导出为 HTML</button>
-        <button class="btn" onclick="exportJSON()">📋 导出为 JSON（备份）</button>
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <h3>📥 从 JSON 恢复</h3>
-      <p class="desc">从之前导出的 JSON 备份文件恢复书签。</p>
-      <label style="margin-top:12px;">选择 JSON 文件</label>
-      <input type="file" id="importJsonFile" accept=".json" style="margin-top:6px;">
-      <div style="margin-top:12px;">
-        <button class="btn btn-accent" onclick="importJSON()">📥 导入 JSON</button>
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('importExportModal')">关闭</button>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== SYNC MODAL ==================== -->
-<div class="modal-overlay" id="syncModal">
-  <div class="modal" style="position:relative;">
-    <button class="close-x" onclick="closeModal('syncModal')">&times;</button>
-    <h2>☁️ GitHub 书签同步</h2>
-    <p class="desc" style="color:var(--text2);font-size:13px;margin-bottom:16px;">
-      使用 GitHub Gist 实现跨设备书签同步。请填写以下信息，保存后每次打开页面将自动从云端加载书签。
-    </p>
-
-    <div class="settings-section">
-      <h3>🔑 GitHub 配置</h3>
-      <label>GitHub Token <span style="font-size:11px;color:var(--text2);">（需要 gist 权限）</span></label>
-      <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-      <div class="desc">前往 <a href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a> 创建，勾选 <b>gist</b> 权限</div>
-
-      <label>Gist ID <span style="font-size:11px;color:var(--text2);">（留空将自动创建）</span></label>
-      <input type="text" id="ghGistId" placeholder="例如：a1b2c3d4e5f6g7h8">
-      <div class="desc">创建后会自动填入 Gist ID，用于后续同步</div>
-
-      <label>文件名</label>
-      <input type="text" id="ghFileName" value="bookmarks.json" placeholder="bookmarks.json">
-    </div>
-
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-accent" onclick="saveSyncConfig()">💾 保存配置</button>
-      <button class="btn" onclick="syncDownload()">📥 从云端下载</button>
-      <button class="btn" onclick="syncUpload()">📤 上传到云端</button>
-      <button class="btn btn-danger" onclick="clearSyncConfig()">🗑️ 清除配置</button>
-    </div>
-
-    <div id="syncLog" style="margin-top:16px;font-size:12px;color:var(--text2);max-height:120px;overflow-y:auto;"></div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('syncModal')">关闭</button>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== SETTINGS MODAL ==================== -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal" style="position:relative;">
-    <button class="close-x" onclick="closeModal('settingsModal')">&times;</button>
+<!-- ==================== SETTINGS PAGE ==================== -->
+<div class="settings-page" id="settingsPage">
+  <div class="settings-header">
+    <button class="btn" onclick="hideSettings()">← 返回</button>
     <h2>⚙️ 设置</h2>
+    <span style="width:64px;"></span>
+  </div>
+  <div class="settings-body">
+    <div class="settings-body-inner">
+      <!-- 导入 / 导出 -->
+      <div class="settings-card">
+        <div class="settings-card-title">📦 导入 / 导出</div>
+        <div class="ie-grid">
+          <button class="ie-btn" onclick="toggleImportPanel()">📥 导入书签</button>
+          <button class="ie-btn" onclick="toggleExportPanel()">📤 导出书签</button>
+        </div>
 
-    <div class="settings-section">
-      <h3>🔐 修改密码</h3>
-      <p class="desc">当前版本已取消密码锁，此功能保留但不再使用。</p>
-    </div>
+        <div class="ie-panel" id="importPanel">
+          <div class="ie-panel-title">选择导入方式</div>
 
-    <div class="settings-section">
-      <h3>🗑️ 数据管理</h3>
-      <p class="desc">清除所有本地书签数据（此操作不可恢复，建议先导出备份）。</p>
-      <div style="margin-top:12px;">
-        <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除所有书签</button>
+          <div class="ie-option">
+            <div class="ie-option-title">从浏览器 HTML 导入</div>
+            <p class="desc">支持 Chrome / Edge / Firefox / Safari 导出的书签 HTML 文件，自动识别文件夹层级。</p>
+            <input type="file" id="importFile" accept=".html,.htm">
+            <label class="check-label"><input type="checkbox" id="importMerge" checked> 合并现有数据</label>
+            <div class="ie-option-row">
+              <button class="btn btn-accent" onclick="importHTML()">导入 HTML</button>
+            </div>
+            <div id="importLog"></div>
+          </div>
+
+          <div class="ie-option">
+            <div class="ie-option-title">从 JSON 文件导入</div>
+            <input type="file" id="importJsonFile" accept=".json">
+            <div class="ie-option-row" style="margin-top:8px;">
+              <button class="btn btn-accent" onclick="importJSON()">导入 JSON 文件</button>
+            </div>
+          </div>
+
+          <div class="ie-option">
+            <div class="ie-option-title">粘贴 JSON 文本</div>
+            <textarea id="importJsonText" placeholder='[{"name":"示例","url":"https://example.com","category":"常用工具"}]'></textarea>
+            <div class="ie-option-row" style="margin-top:8px;">
+              <button class="btn" onclick="importJSONText()">从粘贴文本导入</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ie-panel" id="exportPanel">
+          <div class="ie-panel-title">选择导出方式</div>
+          <div class="ie-option-row">
+            <button class="btn btn-accent" onclick="exportHTML()">导出为 HTML</button>
+            <button class="btn" onclick="exportJSON()">导出为 JSON 文件</button>
+            <button class="btn" onclick="exportJSONClipboard()">复制 JSON 到剪贴板</button>
+          </div>
+          <textarea id="exportJsonPreview" readonly style="display:none;width:100%;margin-top:12px;min-height:140px;font-family:monospace;font-size:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);"></textarea>
+        </div>
+      </div>
+
+      <!-- GitHub 同步 -->
+      <div class="settings-card">
+        <div class="settings-card-title">☁️ GitHub 同步</div>
+        <p class="desc">使用 GitHub Gist 跨设备同步。保存配置后，每次打开页面会自动从云端加载书签。</p>
+        <label>GitHub Token <span style="font-size:11px;color:var(--text2);">（需 gist 权限）</span></label>
+        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+        <p class="desc">前往 <a href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a> 创建，勾选 <b>gist</b> 权限</p>
+
+        <label>Gist ID <span style="font-size:11px;color:var(--text2);">（留空将自动创建）</span></label>
+        <input type="text" id="ghGistId" placeholder="例如：a1b2c3d4e5f6g7h8">
+        <p class="desc">保存后会自动填入，用于后续同步</p>
+
+        <label>文件名</label>
+        <input type="text" id="ghFileName" value="bookmarks.json" placeholder="bookmarks.json">
+
+        <div class="settings-actions">
+          <button class="btn btn-accent" onclick="saveSyncConfig()">💾 保存配置</button>
+          <button class="btn" onclick="syncDownload()">📥 从云端下载</button>
+          <button class="btn" onclick="syncUpload()">📤 上传到云端</button>
+          <button class="btn" onclick="cleanDuplicateBookmarks()" title="保留第一条，删除重复 URL">🧹 清理重复</button>
+          <button class="btn btn-danger" onclick="clearSyncConfig()">🗑️ 清除配置</button>
+        </div>
+        <div id="syncLog"></div>
+      </div>
+
+      <!-- 数据管理 -->
+      <div class="settings-card danger-card">
+        <div class="settings-card-title">🗑️ 数据管理</div>
+        <p class="desc">清除所有本地书签数据，不可恢复，建议先导出备份。</p>
+        <button class="btn btn-danger" onclick="clearAllData()">清除所有书签</button>
+      </div>
+
+      <!-- 关于 -->
+      <div class="settings-card">
+        <div class="settings-card-title">ℹ️ 关于</div>
+        <p class="desc">
+          网址收藏夹 v3.6<br>
+          数据存储于浏览器 localStorage<br>
+          支持 GitHub Gist 云端同步（书签 + 全部设置）<br>
+          任何修改（添加/删除/排序/视图/分类/主题）自动同步到云端<br>
+          支持 HTML / JSON 导入导出（文件 & 文本）<br>
+          多视图，右键视图按钮可设每行显示列数<br>
+          分类为左侧层级树，默认折叠，点击展开<br>
+          右键 / 长按分类可设为默认、重命名、排序<br>
+          电脑端顶栏「📂 分类」按钮可展开/收起侧边栏<br>
+          移动端用顶栏「📂 分类」按钮唤出抽屉，双击折叠<br>
+          长按 / 右键卡片进入多选，可全选删除<br>
+          链接按钮右键/长按弹出 编辑·删除 菜单<br>
+          支持明暗主题切换
+        </p>
       </div>
     </div>
-
-    <div class="settings-section">
-      <h3>ℹ️ 关于</h3>
-      <p class="desc">
-        网址收藏夹 v3.0<br>
-        数据存储于浏览器 localStorage<br>
-        支持 GitHub Gist 云端同步<br>
-        支持 HTML/JSON 导入导出<br>
-        支持拖拽排序 & 多种视图<br>
-        点击卡片/行直接打开链接<br>
-        点击 🔗 按钮复制链接并打开
-      </p>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('settingsModal')">关闭</button>
-    </div>
   </div>
+</div>
+
+<!-- ==================== 分组排序页面 ==================== -->
+<div class="cat-sort-page" id="catSortPage">
+  <div class="cs-header">
+    <div class="cs-title-wrap">
+      <div class="cs-title">📂 分组排序</div>
+      <div class="cs-subtitle">拖拽分组调整顺序，点击文件夹折叠/展开，使用层级筛选快速定位。</div>
+    </div>
+    <button class="btn" onclick="closeCatSortPage(true)" title="关闭">✕</button>
+  </div>
+  <div class="cs-tabs" id="csTabs"></div>
+  <div class="cs-body">
+    <div class="cs-list" id="csList"></div>
+  </div>
+  <div class="cs-footer">
+    <button class="btn btn-sm" onclick="closeCatSortPage(true)">取消</button>
+    <button class="btn btn-sm btn-accent" onclick="saveCatSortOrder()">保存</button>
+  </div>
+</div>
+
+<!-- 视图列数菜单（右键视图按钮） -->
+<div class="view-cols-menu" id="viewColsMenu"></div>
+
+<!-- 分类右键/长按菜单 -->
+<div class="cat-menu" id="catMenu"></div>
+
+<!-- 多选操作条 -->
+<div class="select-bar" id="selectBar">
+  <span class="sel-count" id="selCount">已选 0 项</span>
+  <button class="btn btn-sm" onclick="selectAll()">全选</button>
+  <button class="btn btn-sm btn-danger" onclick="deleteSelected()">🗑 删除选中</button>
+  <button class="btn btn-sm" onclick="exitSelectionMode()">取消</button>
 </div>
 
 <!-- ==================== TOAST ==================== -->
@@ -835,6 +1252,28 @@ function loadConfig() {
 }
 function saveConfig(cfg) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+// ======================== THEME ========================
+function initTheme() {
+  const cfg = loadConfig();
+  const saved = cfg.theme;
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  setTheme(theme);
+}
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  const cfg = loadConfig();
+  cfg.theme = theme;
+  saveConfig(cfg);
+  scheduleAutoSync();
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  setTheme(current === 'dark' ? 'light' : 'dark');
 }
 
 // 不再需要密码
@@ -875,10 +1314,15 @@ function switchView(view) {
   });
 
   renderBookmarks();
+  scheduleAutoSync();
 }
 
 // ======================== CATEGORY ========================
 let activeCategory = '全部';
+
+// 多选模式状态
+let selectionMode = false;
+let selectedIds = new Set();
 
 function getCategories() {
   const data = loadData();
@@ -887,12 +1331,139 @@ function getCategories() {
   return ['全部', ...Array.from(cats).sort()];
 }
 
+let expandedCats = null;
+
+function escPath(p) {
+  return (p || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function buildCategoryTree() {
+  const data = loadData();
+  const root = { name: '全部', path: '全部', children: {}, isCat: false, count: 0 };
+  const nodes = { '': root };
+  const catSet = new Set();
+  data.forEach(b => { if (b.category) catSet.add(b.category); });
+
+  catSet.forEach(cat => {
+    const parts = cat.split('/').map(s => s.trim()).filter(s => s);
+    let cur = '';
+    parts.forEach(part => {
+      const acc = cur ? cur + '/' + part : part;
+      if (!nodes[acc]) {
+        const node = { name: part, path: acc, children: {}, isCat: false, count: 0 };
+        nodes[acc] = node;
+        nodes[cur].children[part] = node;
+      }
+      cur = acc;
+    });
+    if (nodes[cat]) nodes[cat].isCat = true;
+  });
+
+  // 计数：每个书签计入自身节点及所有祖先
+  data.forEach(b => {
+    const cat = b.category || '';
+    if (!cat) return;
+    const parts = cat.split('/').map(s => s.trim()).filter(s => s);
+    let acc = '';
+    parts.forEach(part => {
+      acc = acc ? acc + '/' + part : part;
+      if (nodes[acc]) nodes[acc].count++;
+    });
+  });
+  root.count = data.length;
+  return root;
+}
+
+function collectBranchPaths(node, set) {
+  const keys = Object.keys(node.children);
+  if (keys.length) {
+    set.add(node.path);
+    keys.forEach(k => collectBranchPaths(node.children[k], set));
+  }
+}
+
+function renderCatTree(node, depth) {
+  let html = '';
+  const cfg = loadConfig();
+  const sortMode = cfg.catSort || 'name';
+  const customOrder = (cfg.catOrder && cfg.catOrder[depth]) || [];
+  let keys = Object.keys(node.children);
+  if (sortMode === 'custom' && customOrder.length) {
+    keys.sort((a, b) => {
+      const pa = node.children[a].path;
+      const pb = node.children[b].path;
+      const ia = customOrder.indexOf(pa);
+      const ib = customOrder.indexOf(pb);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b, 'zh');
+    });
+  } else if (sortMode === 'count') {
+    keys.sort((a, b) => (node.children[b].count || 0) - (node.children[a].count || 0));
+  } else {
+    keys.sort((a, b) => a.localeCompare(b, 'zh'));
+  }
+  const pad = 10 + depth * 22;
+  const defCat = loadConfig().defaultCategory;
+  const isStar = node.path === defCat;
+  const star = isStar ? '<span class="cat-default" title="默认打开分类">★</span>' : '';
+  const isBranch = keys.length > 0;
+  const isOpen = expandedCats.has(node.path);
+  const active = node.path === activeCategory;
+
+  let arrow = '<span class="cat-arrow"></span>';
+  let icon = '<span class="cat-folder">📁</span>';
+  if (node.path === '全部') {
+    icon = '<span class="cat-folder">📁</span>';
+  } else if (isBranch) {
+    arrow = `<span class="cat-arrow">${isOpen ? '▼' : '▶'}</span>`;
+    icon = `<span class="cat-folder">${isOpen ? '📂' : '📁'}</span>`;
+  } else {
+    icon = '<span class="cat-file">📄</span>';
+  }
+
+  const cls = `cat-item cat-depth-${depth}${active ? ' active' : ''}`;
+  const hint = 'title="单击切换/展开；右键或长按打开菜单"';
+
+  if (node.path === '全部') {
+    html += `<div class="${cls}" ${hint} data-path="${escapeHtml(node.path)}" style="padding-left:${pad}px;" onclick="switchCat('全部')">
+      ${icon}<span class="cat-label"><span class="cat-name">${escapeHtml(node.name)}</span>${star}</span><span class="cat-count">${node.count}</span>
+    </div>`;
+  } else if (isBranch) {
+    html += `<div class="${cls}" ${hint} data-path="${escapeHtml(node.path)}" style="padding-left:${pad}px;" onclick="toggleCatNode('${escPath(node.path)}')">
+      ${arrow}${icon}<span class="cat-label"><span class="cat-name">${escapeHtml(node.name)}</span>${star}</span><span class="cat-count">${node.count}</span>
+    </div>`;
+  } else {
+    html += `<div class="${cls}" ${hint} data-path="${escapeHtml(node.path)}" style="padding-left:${pad}px;" onclick="switchCat('${escPath(node.path)}')">
+      ${arrow}${icon}<span class="cat-label"><span class="cat-name">${escapeHtml(node.name)}</span>${star}</span><span class="cat-count">${node.count}</span>
+    </div>`;
+  }
+
+  if (node.path === '全部') {
+    keys.forEach(k => { html += renderCatTree(node.children[k], depth + 1); });
+  } else if (isBranch && isOpen) {
+    keys.forEach(k => { html += renderCatTree(node.children[k], depth + 1); });
+  }
+  return html;
+}
+
 function renderCatTabs() {
-  const cats = getCategories();
-  const container = document.getElementById('catTabs');
-  container.innerHTML = cats.map(c =>
-    `<div class="cat-tab${c === activeCategory ? ' active' : ''}" onclick="switchCat('${c.replace(/'/g, "\\'")}')">${escapeHtml(c)}</div>`
-  ).join('');
+  const tree = buildCategoryTree();
+  if (!expandedCats) {
+    // 默认不展开：仅保留父级路径的"已展开"状态为空，全部折叠
+    expandedCats = new Set();
+  }
+  const container = document.getElementById('catList');
+  container.innerHTML = renderCatTree(tree, 0);
+}
+
+function toggleCatNode(path) {
+  if (expandedCats.has(path)) expandedCats.delete(path);
+  else expandedCats.add(path);
+  activeCategory = path;
+  renderCatTabs();
+  renderBookmarks();
 }
 
 function switchCat(cat) {
@@ -907,6 +1478,435 @@ function showCatSelect() {
   sel.innerHTML = '<option value="">-- 选择分类 --</option>' +
     cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   document.getElementById('catSelectBox').style.display = 'block';
+}
+
+// ======================== 视图列数（右键视图按钮） ========================
+function getViewColumns() {
+  const cfg = loadConfig();
+  return cfg.viewColumns || {};
+}
+function applyViewColumns() {
+  if (window.innerWidth <= 768) return; // 移动端强制单列
+  const cols = getViewColumns()[currentView];
+  const grid = document.getElementById('sortableList');
+  if (!grid) return;
+  if (cols && cols >= 1) {
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+  } else {
+    grid.style.gridTemplateColumns = ''; // 恢复 CSS 默认（auto-fill）
+  }
+}
+function viewName(v) {
+  return ({ grid: '网格', list: '列表', compact: '紧凑', large: '大卡片' })[v] || v;
+}
+function openViewColumnsMenu(e, view) {
+  e.preventDefault();
+  e.stopPropagation();
+  const menu = document.getElementById('viewColsMenu');
+  const cur = getViewColumns()[view];
+  const opts = [
+    { n: null, label: '自动' },
+    { n: 1, label: '1 列' },
+    { n: 2, label: '2 列' },
+    { n: 3, label: '3 列' },
+    { n: 4, label: '4 列' },
+    { n: 5, label: '5 列' }
+  ];
+  let html = '<div class="vc-title">' + viewName(view) + ' · 每行列数</div><div class="vc-row">';
+  opts.forEach(o => {
+    const active = (cur === o.n) ? ' active' : '';
+    const val = (o.n === null) ? 'null' : String(o.n);
+    html += '<button class="' + active + '" onclick="setViewColumns(\'' + view + '\', ' + val + '); closeViewColsMenu();">' + o.label + '</button>';
+  });
+  html += '</div>';
+  menu.innerHTML = html;
+  menu.classList.add('show');
+  const w = 180, h = 120;
+  let x = e.clientX, y = e.clientY;
+  if (x + w > window.innerWidth) x = window.innerWidth - w - 8;
+  if (y + h > window.innerHeight) y = window.innerHeight - h - 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function closeViewColsMenu() {
+  const m = document.getElementById('viewColsMenu');
+  if (m) m.classList.remove('show');
+}
+function setViewColumns(view, n) {
+  const cfg = loadConfig();
+  cfg.viewColumns = cfg.viewColumns || {};
+  cfg.viewColumns[view] = n; // n 为数字或 null（自动）
+  saveConfig(cfg);
+  if (currentView === view) applyViewColumns();
+  showToast('✅ ' + viewName(view) + ' 视图已设为' + (n ? (n + ' 列') : '自动'));
+  scheduleAutoSync();
+}
+
+// ======================== 默认分类（右键/长按分类） ========================
+function setDefaultCategory(path) {
+  if (path === null || path === undefined) return;
+  const cfg = loadConfig();
+  cfg.defaultCategory = path;
+  saveConfig(cfg);
+  switchCat(path);
+  showToast('⭐ 已设「' + path + '」为默认打开分类');
+  scheduleAutoSync();
+}
+
+// ======================== 多选模式 ========================
+function getSelectBar() { return document.getElementById('selectBar'); }
+
+function enterSelectionMode(id) {
+  selectionMode = true;
+  selectedIds = new Set();
+  if (id) selectedIds.add(id);
+  document.getElementById('bmContainer').classList.add('selecting');
+  getSelectBar().classList.add('show');
+  renderBookmarks();
+  updateSelectBar();
+}
+
+function exitSelectionMode() {
+  selectionMode = false;
+  selectedIds.clear();
+  document.getElementById('bmContainer').classList.remove('selecting');
+  getSelectBar().classList.remove('show');
+  deactivateAllCards();
+  renderBookmarks();
+}
+
+function toggleSelectionMode() {
+  if (selectionMode) exitSelectionMode();
+  else enterSelectionMode();
+}
+
+function onLongPressCard(card) {
+  if (!selectionMode) enterSelectionMode(card.dataset.id);
+  else toggleSelect(card.dataset.id);
+}
+
+function toggleSelect(id) {
+  const card = document.querySelector('.bm-card[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"], .bm-item[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (!card) return;
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    card.classList.remove('selected');
+    const chk = card.querySelector('.bm-check');
+    if (chk) { chk.classList.remove('checked'); chk.textContent = ''; }
+  } else {
+    selectedIds.add(id);
+    card.classList.add('selected');
+    const chk = card.querySelector('.bm-check');
+    if (chk) { chk.classList.add('checked'); chk.textContent = '✓'; }
+  }
+  updateSelectBar();
+}
+
+function selectAll() {
+  document.querySelectorAll('#sortableList [data-id]').forEach(c => {
+    const id = c.dataset.id;
+    selectedIds.add(id);
+    c.classList.add('selected');
+    const chk = c.querySelector('.bm-check');
+    if (chk) { chk.classList.add('checked'); chk.textContent = '✓'; }
+  });
+  updateSelectBar();
+}
+
+function updateSelectBar() {
+  const el = document.getElementById('selCount');
+  if (el) el.textContent = '已选 ' + selectedIds.size + ' 项';
+}
+
+function deleteSelected() {
+  if (selectedIds.size === 0) { showToast('请先选择要删除的书签'); return; }
+  if (!confirm('确定删除选中的 ' + selectedIds.size + ' 个书签吗？此操作不可恢复。')) return;
+  let data = loadData();
+  data = data.filter(b => !selectedIds.has(b.id));
+  saveData(data);
+  showToast('🗑️ 已删除 ' + selectedIds.size + ' 个书签');
+  exitSelectionMode();
+  renderAll();
+  scheduleAutoSync();
+}
+
+// ======================== 分类菜单（重命名 / 排序） ========================
+function hideCatMenu() {
+  const m = document.getElementById('catMenu');
+  if (m) m.classList.remove('show');
+}
+
+function positionMenu(menu, x, y) {
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  let px = x, py = y;
+  if (px + w > window.innerWidth) px = window.innerWidth - w - 8;
+  if (py + h > window.innerHeight) py = window.innerHeight - h - 8;
+  if (px < 8) px = 8;
+  if (py < 8) py = 8;
+  menu.style.left = px + 'px';
+  menu.style.top = py + 'px';
+}
+
+function showCatMenu(e, path) {
+  hideCatMenu();
+  const menu = document.getElementById('catMenu');
+  let html = '';
+  if (path && path !== '全部') {
+    html += '<button onclick="setDefaultCategory(\'' + escPath(path) + '\'); hideCatMenu();">⭐ 设为默认</button>';
+    html += '<button onclick="renameCategoryPrompt(\'' + escPath(path) + '\'); hideCatMenu();">✏️ 重命名</button>';
+  }
+  html += '<button onclick="openCatSortPage(); hideCatMenu();">🔃 分组排序</button>';
+  menu.innerHTML = html;
+  menu.classList.add('show');
+  // 先显示再测量尺寸以正确定位
+  menu.style.left = (e.clientX || 0) + 'px';
+  menu.style.top = (e.clientY || 0) + 'px';
+  positionMenu(menu, e.clientX || 0, e.clientY || 0);
+}
+
+function renameCategoryPrompt(path) {
+  if (!path || path === '全部') return;
+  const cur = path.split('/').pop();
+  const newName = prompt('重命名分类（仅修改此级名称，其子分类与书签自动跟随）：', cur);
+  if (newName === null) return;
+  const name = newName.trim();
+  if (!name) { showToast('❌ 名称不能为空'); return; }
+  if (name === cur) return;
+  doRenameCategory(path, name);
+}
+
+function doRenameCategory(oldPath, newName) {
+  // 计算新完整路径（保留父级）
+  const idx = oldPath.lastIndexOf('/');
+  const parent = idx >= 0 ? oldPath.substring(0, idx) : '';
+  const newFullPath = parent ? parent + '/' + newName : newName;
+
+  let data = loadData();
+  data.forEach(b => {
+    const c = b.category || '';
+    if (c === oldPath) b.category = newFullPath;
+    else if (c.startsWith(oldPath + '/')) b.category = newFullPath + c.slice(oldPath.length);
+  });
+  saveData(data);
+
+  // 同步默认分类配置
+  const cfg = loadConfig();
+  if (cfg.defaultCategory === oldPath) { cfg.defaultCategory = newFullPath; saveConfig(cfg); }
+  // 同步展开状态
+  if (expandedCats) {
+    const next = new Set();
+    expandedCats.forEach(v => {
+      if (v === oldPath) next.add(newFullPath);
+      else if (v.startsWith(oldPath + '/')) next.add(newFullPath + v.slice(oldPath.length));
+      else next.add(v);
+    });
+    expandedCats = next;
+  }
+  // 同步自定义排序中的路径
+  if (cfg.catOrder) {
+    const nextOrder = {};
+    Object.keys(cfg.catOrder).forEach(d => {
+      nextOrder[d] = cfg.catOrder[d].map(p => {
+        if (p === oldPath) return newFullPath;
+        if (p.startsWith(oldPath + '/')) return newFullPath + p.slice(oldPath.length);
+        return p;
+      });
+    });
+    cfg.catOrder = nextOrder;
+    saveConfig(cfg);
+  }
+
+  renderAll();
+  if (activeCategory === oldPath) activeCategory = newFullPath;
+  showToast('✅ 分类已重命名为「' + newFullPath + '」');
+  scheduleAutoSync();
+}
+
+function setCatSort(mode) {
+  const cfg = loadConfig();
+  cfg.catSort = mode;
+  saveConfig(cfg);
+  renderCatTabs();
+  showToast('🔃 分类已按' + (mode === 'count' ? '数量' : '名称') + '排序');
+}
+
+// ======================== 分组排序页面 ========================
+let csOrderMap = {};
+let csFilterDepth = 'all';
+let csMaxDepth = 1;
+let csSortable = null;
+
+function csDepthLabel(d) {
+  const labels = ['','一级','二级','三级','四级','五级','六级','七级','八级'];
+  return labels[d] || ('第' + d + '级');
+}
+
+function collectCategoryNodes(node, depth, arr) {
+  Object.keys(node.children || {}).forEach(k => {
+    const child = node.children[k];
+    if (depth >= 1) {
+      arr.push({ name: child.name, path: child.path, depth: depth, count: child.count });
+    }
+    collectCategoryNodes(child, depth + 1, arr);
+  });
+}
+
+function buildCsOrderMap() {
+  const tree = buildCategoryTree();
+  const nodes = [];
+  collectCategoryNodes(tree, 1, nodes);
+  const current = {};
+  nodes.forEach(n => {
+    if (!current[n.depth]) current[n.depth] = [];
+    current[n.depth].push(n.path);
+  });
+  const map = {};
+  // 优先使用已保存的顺序，再把新出现的分类补到末尾
+  const cfg = loadConfig();
+  Object.keys(current).forEach(d => {
+    const saved = (cfg.catOrder && cfg.catOrder[d]) || [];
+    const ordered = saved.filter(p => current[d].includes(p));
+    current[d].forEach(p => {
+      if (!ordered.includes(p)) ordered.push(p);
+    });
+    map[d] = ordered;
+  });
+  if (cfg.catOrder) {
+    Object.keys(cfg.catOrder).forEach(d => {
+      if (!map[d]) map[d] = cfg.catOrder[d].filter(p => current[d] ? current[d].includes(p) : false);
+    });
+  }
+  return { map, maxDepth: Math.max(1, ...nodes.map(n => n.depth)) };
+}
+
+function openCatSortPage() {
+  const built = buildCsOrderMap();
+  csOrderMap = built.map;
+  csMaxDepth = built.maxDepth;
+  csFilterDepth = 'all';
+  document.getElementById('catSortPage').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  renderCatSortPage();
+}
+
+function closeCatSortPage(cancel) {
+  document.getElementById('catSortPage').classList.remove('show');
+  document.body.style.overflow = '';
+  if (csSortable) { csSortable.destroy(); csSortable = null; }
+  if (cancel) {
+    csOrderMap = {};
+    csFilterDepth = 'all';
+  }
+}
+
+function renderCatSortPage() {
+  renderCsTabs();
+  renderCsList();
+}
+
+function renderCsTabs() {
+  const tabs = document.getElementById('csTabs');
+  const counts = {};
+  let total = 0;
+  Object.keys(csOrderMap).forEach(d => {
+    counts[d] = csOrderMap[d].length;
+    total += csOrderMap[d].length;
+  });
+  let html = `<div class="cs-tab${csFilterDepth === 'all' ? ' active' : ''}" onclick="setCsFilter('all')">📁 全部 <span class="cs-tab-count">${total}</span></div>`;
+  for (let d = 1; d <= csMaxDepth; d++) {
+    html += `<div class="cs-tab${csFilterDepth == d ? ' active' : ''}" onclick="setCsFilter(${d})">📁 ${csDepthLabel(d)} <span class="cs-tab-count">${counts[d] || 0}</span></div>`;
+  }
+  tabs.innerHTML = html;
+}
+
+function setCsFilter(depth) {
+  csFilterDepth = depth;
+  renderCatSortPage();
+}
+
+function getCsDisplayedItems() {
+  const tree = buildCategoryTree();
+  const nodes = [];
+  collectCategoryNodes(tree, 1, nodes);
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.path] = n);
+
+  if (csFilterDepth === 'all') {
+    // 按深度分组，再按当前顺序展示
+    const items = [];
+    for (let d = 1; d <= csMaxDepth; d++) {
+      (csOrderMap[d] || []).forEach(path => {
+        if (nodeMap[path]) items.push(nodeMap[path]);
+      });
+    }
+    return items;
+  }
+  return (csOrderMap[csFilterDepth] || [])
+    .map(path => nodeMap[path])
+    .filter(Boolean);
+}
+
+function renderCsList() {
+  const list = document.getElementById('csList');
+  const items = getCsDisplayedItems();
+  const editable = csFilterDepth !== 'all';
+  list.innerHTML = items.map((n, i) => {
+    const pad = 10 + n.depth * 22;
+    const upDisabled = !editable || i === 0;
+    const downDisabled = !editable || i === items.length - 1;
+    return `
+      <div class="cs-item" data-path="${escapeHtml(n.path)}" style="padding-left:${pad}px;">
+        <span class="cs-drag" title="拖拽排序">⠿</span>
+        <span class="cs-folder">📁</span>
+        <span class="cs-name">${escapeHtml(n.name)}</span>
+        <span class="cs-level">${csDepthLabel(n.depth)}</span>
+        <select class="cs-select" disabled title="当前层级">
+          ${Array.from({length: csMaxDepth}, (_, idx) => `<option value="${idx+1}"${idx+1 === n.depth ? ' selected' : ''}>${csDepthLabel(idx+1)}</option>`).join('')}
+        </select>
+        <div class="cs-btns">
+          <button title="上移" ${upDisabled ? 'disabled' : ''} onclick="moveCsItem(${i}, -1)">↑</button>
+          <button title="下移" ${downDisabled ? 'disabled' : ''} onclick="moveCsItem(${i}, 1)">↓</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (csSortable) { csSortable.destroy(); csSortable = null; }
+  if (editable && items.length > 1 && window.Sortable) {
+    csSortable = new Sortable(list, {
+      animation: 200,
+      handle: '.cs-drag',
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: function() {
+        const paths = Array.from(list.querySelectorAll('.cs-item')).map(el => el.getAttribute('data-path'));
+        csOrderMap[csFilterDepth] = paths;
+        renderCsList();
+      }
+    });
+  }
+}
+
+function moveCsItem(index, dir) {
+  if (csFilterDepth === 'all') return;
+  const arr = csOrderMap[csFilterDepth];
+  if (!arr || arr.length < 2) return;
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= arr.length) return;
+  const tmp = arr[index];
+  arr[index] = arr[newIndex];
+  arr[newIndex] = tmp;
+  renderCsList();
+}
+
+function saveCatSortOrder() {
+  const cfg = loadConfig();
+  cfg.catOrder = JSON.parse(JSON.stringify(csOrderMap));
+  cfg.catSort = 'custom';
+  saveConfig(cfg);
+  closeCatSortPage(false);
+  renderAll();
+  showToast('✅ 分组排序已保存');
+  scheduleAutoSync();
 }
 
 // ======================== BOOKMARKS CRUD ========================
@@ -968,6 +1968,7 @@ function saveBookmark() {
   saveData(data);
   closeModal('addEditModal');
   renderAll();
+  scheduleAutoSync();
 }
 
 function deleteBookmark(id, event) {
@@ -978,6 +1979,7 @@ function deleteBookmark(id, event) {
   saveData(data);
   showToast('🗑️ 已删除');
   renderAll();
+  scheduleAutoSync();
 }
 
 // ======================== 复制链接并跳转 ========================
@@ -997,6 +1999,7 @@ function openAndCopy(url, event) {
   }
   // 打开链接
   window.open(url, '_blank');
+  deactivateAllCards();
 }
 
 function fallbackCopy(text) {
@@ -1014,13 +2017,21 @@ function fallbackCopy(text) {
 }
 
 // ======================== RENDERING ========================
+function bookmarkMatchesCategory(b, sel) {
+  if (sel === '全部') return true;
+  const bc = b.category || '未分类';
+  if (bc === sel) return true;
+  if (bc.startsWith(sel + '/')) return true;
+  return false;
+}
+
 function getFilteredBookmarks() {
   const data = loadData();
   const query = (document.getElementById('searchInput').value || '').toLowerCase();
 
   let filtered = data;
   if (activeCategory !== '全部') {
-    filtered = filtered.filter(b => b.category === activeCategory);
+    filtered = filtered.filter(b => bookmarkMatchesCategory(b, activeCategory));
   }
   if (query) {
     filtered = filtered.filter(b =>
@@ -1071,6 +2082,7 @@ function renderBookmarks() {
   }
 
   initSortable();
+  applyViewColumns();
 }
 
 function getDomain(url) {
@@ -1078,19 +2090,44 @@ function getDomain(url) {
   catch { return ''; }
 }
 
+// 通用操作按钮（含链接按钮的右键/长按菜单）
+function renderCardActions(b, linkLabel) {
+  const url = escapeHtml(b.url);
+  return `
+    <span class="link-menu-wrap" data-id="${b.id}" data-url="${url}" oncontextmenu="onLinkContextMenu(event, this)">
+      <button class="btn btn-sm btn-link link-main-btn" onclick="openAndCopy('${url}', event)" title="复制链接并打开">${linkLabel || '🔗'}</button>
+      <span class="link-popup">
+        <button class="btn btn-sm" onclick="openEditModal('${b.id}'); hideLinkPopup();" title="编辑">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event); hideLinkPopup();" title="删除">🗑️</button>
+      </span>
+    </span>
+    <button class="btn btn-sm" onclick="openEditModal('${b.id}'); event.stopPropagation();" title="编辑">✏️</button>
+    <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+  `;
+}
+
+// 多选勾选框
+function selMarkup(b) {
+  if (!selectionMode) return '';
+  const checked = selectedIds.has(b.id);
+  return `<span class="bm-check${checked ? ' checked' : ''}" data-check="${b.id}">${checked ? '✓' : ''}</span>`;
+}
+
 // 通用卡片模板（用于 grid 和 large）
 function createBookmarkCardHTML(b, actionsHTML) {
   const domain = getDomain(b.url);
   const favicon = `https://favicon.im/${domain}`;
   const initial = (b.name || '?')[0].toUpperCase();
+  const selCls = selectionMode ? ' selecting' : '';
+  const seldCls = (selectionMode && selectedIds.has(b.id)) ? ' selected' : '';
 
   return `
-    <div class="bm-card" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+    <div class="bm-card${selCls}${seldCls}" data-id="${b.id}" data-url="${escapeHtml(b.url)}" oncontextmenu="onCardContextMenu(event, this)">
+      ${selMarkup(b)}
       <span class="drag-handle" title="拖拽排序">⠿</span>
       <div class="bm-icon">
         <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
       </div>
-      <div class="bm-cat">${escapeHtml(b.category || '未分类')}</div>
       <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
       <div class="bm-url" title="${escapeHtml(b.url)}">${escapeHtml(b.url)}</div>
       ${b.note ? `<div class="bm-note" title="${escapeHtml(b.note)}">${escapeHtml(b.note)}</div>` : ''}
@@ -1103,14 +2140,7 @@ function createBookmarkCardHTML(b, actionsHTML) {
 
 function renderGridView(items, container) {
   container.innerHTML = `<div class="bm-grid" id="sortableList">
-    ${items.map(b => {
-      const actions = `
-        <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
-        <button class="btn btn-sm" onclick="openEditModal('${b.id}'); event.stopPropagation();" title="编辑">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
-      `;
-      return createBookmarkCardHTML(b, actions);
-    }).join('')}
+    ${items.map(b => createBookmarkCardHTML(b, renderCardActions(b, '🔗'))).join('')}
   </div>`;
 }
 
@@ -1121,7 +2151,8 @@ function renderListView(items, container) {
       const favicon = `https://favicon.im/${domain}`;
       const initial = (b.name || '?')[0].toUpperCase();
       return `
-      <div class="bm-item" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+      <div class="bm-item${selectionMode ? ' selecting' : ''}${(selectionMode && selectedIds.has(b.id)) ? ' selected' : ''}" data-id="${b.id}" data-url="${escapeHtml(b.url)}" oncontextmenu="onCardContextMenu(event, this)">
+        ${selMarkup(b)}
         <span class="drag-handle" title="拖拽排序">⠿</span>
         <div class="bm-icon">
           <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
@@ -1129,14 +2160,11 @@ function renderListView(items, container) {
         <div class="bm-info">
           <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
           <div class="bm-meta">
-            <span class="bm-cat-sm">${escapeHtml(b.category || '未分类')}</span>
             <span title="${escapeHtml(b.url)}">${escapeHtml(b.url)}</span>
           </div>
         </div>
         <div class="bm-actions" onclick="event.stopPropagation();">
-          <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
-          <button class="btn btn-sm" onclick="openEditModal('${b.id}')" title="编辑">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+          ${renderCardActions(b, '🔗')}
         </div>
       </div>`;
     }).join('')}
@@ -1150,19 +2178,18 @@ function renderCompactView(items, container) {
       const favicon = `https://favicon.im/${domain}`;
       const initial = (b.name || '?')[0].toUpperCase();
       return `
-      <div class="bm-item" data-id="${b.id}" data-url="${escapeHtml(b.url)}" onclick="openBookmark('${escapeHtml(b.url)}', event)">
+      <div class="bm-item${selectionMode ? ' selecting' : ''}${(selectionMode && selectedIds.has(b.id)) ? ' selected' : ''}" data-id="${b.id}" data-url="${escapeHtml(b.url)}" oncontextmenu="onCardContextMenu(event, this)">
+        ${selMarkup(b)}
         <span class="drag-handle" title="拖拽排序">⠿</span>
         <div class="bm-icon">
           <img src="${favicon}" onerror="this.style.display='none';this.parentNode.innerHTML='${initial}';" alt="">
         </div>
         <div class="bm-info">
           <h3 title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</h3>
-          <div class="bm-meta" title="${escapeHtml(b.url)}">${escapeHtml(b.category || '未分类')} · ${escapeHtml(domain)}</div>
+          <div class="bm-meta" title="${escapeHtml(b.url)}">${escapeHtml(domain)}</div>
         </div>
         <div class="bm-actions" onclick="event.stopPropagation();">
-          <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗</button>
-          <button class="btn btn-sm" onclick="openEditModal('${b.id}')" title="编辑">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
+          ${renderCardActions(b, '🔗')}
         </div>
       </div>`;
     }).join('')}
@@ -1171,14 +2198,7 @@ function renderCompactView(items, container) {
 
 function renderLargeView(items, container) {
   container.innerHTML = `<div class="bm-large" id="sortableList">
-    ${items.map(b => {
-      const actions = `
-        <button class="btn btn-sm btn-link" onclick="openAndCopy('${escapeHtml(b.url)}', event)" title="复制链接并打开">🔗 打开</button>
-        <button class="btn btn-sm" onclick="openEditModal('${b.id}'); event.stopPropagation();" title="编辑">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${b.id}', event)" title="删除">🗑️</button>
-      `;
-      return createBookmarkCardHTML(b, actions);
-    }).join('')}
+    ${items.map(b => createBookmarkCardHTML(b, renderCardActions(b, '🔗 打开'))).join('')}
   </div>`;
 }
 
@@ -1220,6 +2240,7 @@ function initSortable() {
       });
       saveData(data);
       showToast('✅ 排序已保存');
+      scheduleAutoSync();
     }
   });
 }
@@ -1328,7 +2349,7 @@ function parseDL(dl, folderPath, results) {
         if (url && name) {
           const addDateAttr = a.getAttribute('add_date');
           const addDate = addDateAttr ? parseInt(addDateAttr) * 1000 : Date.now();
-          const category = folderPath.length > 0 ? folderPath[folderPath.length - 1] : '未分类';
+          const category = folderPath.length > 0 ? folderPath.join('/') : '未分类';
           results.push({ name, url, category, addDate });
         }
       }
@@ -1384,6 +2405,47 @@ function exportJSON() {
   showToast('✅ JSON 备份已导出');
 }
 
+async function exportJSONClipboard() {
+  const data = loadData();
+  if (data.length === 0) { showToast('⚠️ 没有书签可导出'); return; }
+  const json = JSON.stringify(data, null, 2);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(json);
+      showToast('✅ JSON 已复制到剪贴板');
+    } else {
+      throw new Error('clipboard unsupported');
+    }
+  } catch(err) {
+    const ta = document.getElementById('exportJsonPreview');
+    if (ta) {
+      ta.value = json;
+      ta.style.display = 'block';
+    }
+    showToast('⚠️ 自动复制失败，已填入文本框，请手动复制');
+  }
+}
+
+function applyImportedJSON(imported) {
+  if (!Array.isArray(imported)) throw new Error('格式无效');
+  let count = 0;
+  imported.forEach((item) => {
+    if (item.url && item.name) {
+      if (!item.id) item.id = 'bm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + count;
+      if (!item.category) item.category = '未分类';
+      if (!item.created) item.created = Date.now();
+      if (item.sort === undefined) item.sort = count;
+      item.updated = Date.now();
+      count++;
+    }
+  });
+  const valid = imported.filter(i => i.url && i.name);
+  saveData(valid);
+  renderAll();
+  scheduleAutoSync();
+  return count;
+}
+
 function importJSON() {
   const fileInput = document.getElementById('importJsonFile');
   const file = fileInput.files[0];
@@ -1393,22 +2455,7 @@ function importJSON() {
   reader.onload = function(e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error('Invalid format');
-
-      let count = 0;
-      imported.forEach(item => {
-        if (item.url && item.name) {
-          if (!item.id) item.id = 'bm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + count;
-          if (!item.category) item.category = '未分类';
-          if (!item.created) item.created = Date.now();
-          if (item.sort === undefined) item.sort = count;
-          item.updated = Date.now();
-          count++;
-        }
-      });
-
-      saveData(imported.filter(i => i.url && i.name));
-      renderAll();
+      const count = applyImportedJSON(imported);
       showToast(`✅ 从 JSON 恢复了 ${count} 个书签`);
       fileInput.value = '';
     } catch(err) {
@@ -1416,6 +2463,20 @@ function importJSON() {
     }
   };
   reader.readAsText(file);
+}
+
+function importJSONText() {
+  const ta = document.getElementById('importJsonText');
+  const text = (ta.value || '').trim();
+  if (!text) { showToast('❌ 请粘贴 JSON 文本'); return; }
+  try {
+    const imported = JSON.parse(text);
+    const count = applyImportedJSON(imported);
+    showToast(`✅ 从粘贴文本恢复了 ${count} 个书签`);
+    ta.value = '';
+  } catch(err) {
+    showToast('❌ JSON 文本格式错误: ' + err.message);
+  }
 }
 
 function downloadFile(filename, content, type) {
@@ -1446,16 +2507,99 @@ function loadSyncConfig() {
   };
 }
 
-const _origOpenModal = openModal;
-openModal = function(id) {
-  if (id === 'syncModal') {
-    const cfg = loadSyncConfig();
-    document.getElementById('ghToken').value = cfg.token;
-    document.getElementById('ghGistId').value = cfg.gistId;
-    document.getElementById('ghFileName').value = cfg.fileName;
+// 云端存储格式：{ data: 书签, config: 全部设置 }
+function buildCloudPayload() {
+  return {
+    data: loadData(),
+    config: loadConfig()
+  };
+}
+
+// 合并配置（云端优先合并到本地，但令牌/gistId 规则见下）
+function mergeConfig(localCfg, cloudCfg) {
+  if (!cloudCfg || typeof cloudCfg !== 'object') return localCfg || {};
+  const merged = Object.assign({}, localCfg || {}, cloudCfg);
+  if (localCfg) {
+    // 令牌以本地为准，gistId 以云端为准（多端指向同一 gist）
+    merged.ghToken = localCfg.ghToken || cloudCfg.ghToken || '';
+    merged.ghFileName = localCfg.ghFileName || cloudCfg.ghFileName || 'bookmarks.json';
+    merged.ghGistId = cloudCfg.ghGistId || localCfg.ghGistId || '';
   }
-  document.getElementById(id).classList.add('show');
-};
+  return merged;
+}
+
+// ======================== 自动同步（有修改即上传） ========================
+let _autoSyncTimer = null;
+let _autoSyncBusy = false;
+
+function scheduleAutoSync(delay) {
+  delay = delay || 800;
+  const cfg = loadSyncConfig();
+  if (!cfg.token || !cfg.gistId) return;
+  if (_autoSyncBusy) return;
+  if (_autoSyncTimer) clearTimeout(_autoSyncTimer);
+  _autoSyncTimer = setTimeout(function() {
+    _autoSyncTimer = null;
+    autoSyncUploadOnly();
+  }, delay);
+}
+
+async function autoSyncUploadOnly() {
+  const cfg = loadSyncConfig();
+  if (!cfg.token || !cfg.gistId) return;
+  _autoSyncBusy = true;
+  try {
+    const payload = buildCloudPayload();
+    const content = JSON.stringify(payload, null, 2);
+    const fileName = cfg.fileName || 'bookmarks.json';
+    const resp = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'token ' + cfg.token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({ files: { [fileName]: { content } } })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setSyncBadge('✅ 已同步', 'ok');
+  } catch (e) {
+    console.warn('Auto upload failed:', e);
+  } finally {
+    _autoSyncBusy = false;
+  }
+}
+
+
+// ======================== SETTINGS PAGE ========================
+function showSettings() {
+  const cfg = loadSyncConfig();
+  document.getElementById('ghToken').value = cfg.token;
+  document.getElementById('ghGistId').value = cfg.gistId;
+  document.getElementById('ghFileName').value = cfg.fileName;
+  document.getElementById('settingsPage').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function hideSettings() {
+  document.getElementById('settingsPage').classList.remove('show');
+  document.body.style.overflow = '';
+  closeViewColsMenu();
+  hideCatMenu();
+}
+function toggleImportPanel() {
+  const p = document.getElementById('importPanel');
+  const other = document.getElementById('exportPanel');
+  const show = (p.style.display === 'none' || !p.style.display);
+  p.style.display = show ? 'block' : 'none';
+  if (show) other.style.display = 'none';
+}
+function toggleExportPanel() {
+  const p = document.getElementById('exportPanel');
+  const other = document.getElementById('importPanel');
+  const show = (p.style.display === 'none' || !p.style.display);
+  p.style.display = show ? 'block' : 'none';
+  if (show) other.style.display = 'none';
+}
 
 function saveSyncConfig() {
   const token = document.getElementById('ghToken').value.trim();
@@ -1508,10 +2652,11 @@ async function syncUpload() {
   if (!cfg.token) { showToast('❌ 请先配置 GitHub Token'); return; }
 
   setSyncBadge('上传中...', 'loading');
-  syncLog('开始上传书签到 GitHub Gist...');
+  syncLog('开始上传书签与设置到 GitHub Gist...');
 
-  const data = loadData();
-  const content = JSON.stringify(data, null, 2);
+  const payload = buildCloudPayload();
+  payload.data = dedupBookmarks(payload.data);
+  const content = JSON.stringify(payload, null, 2);
   const fileName = cfg.fileName || 'bookmarks.json';
 
   try {
@@ -1531,7 +2676,7 @@ async function syncUpload() {
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + (await resp.text()));
       syncLog('✅ 已更新 Gist: ' + cfg.gistId);
       setSyncBadge('✅ 已上传', 'ok');
-      showToast('✅ 书签已上传到云端');
+      showToast('✅ 书签与设置已上传到云端');
     } else {
       const resp = await fetch('https://api.github.com/gists', {
         method: 'POST',
@@ -1557,7 +2702,7 @@ async function syncUpload() {
 
       syncLog('✅ 已创建新 Gist: ' + result.id);
       setSyncBadge('✅ 已创建并上传', 'ok');
-      showToast('✅ Gist 已创建，书签已上传！');
+      showToast('✅ Gist 已创建，书签与设置已上传！');
     }
   } catch(err) {
     syncLog('❌ 上传失败: ' + err.message);
@@ -1590,14 +2735,23 @@ async function syncDownload() {
     if (!fileData) throw new Error('文件 "' + fileName + '" 不存在于 Gist 中');
 
     const cloudData = JSON.parse(fileData.content);
-    if (!Array.isArray(cloudData)) throw new Error('数据格式无效');
+    const cloudArr = Array.isArray(cloudData) ? cloudData : (cloudData.data || []);
+    if (!Array.isArray(cloudArr)) throw new Error('数据格式无效');
 
     const localData = loadData();
-    const merged = mergeBookmarks(localData, cloudData);
+    const merged = mergeBookmarks(localData, cloudArr);
     saveData(merged);
 
+    // 合并设置（分类排序、视图列数、主题、默认分类等）
+    if (cloudData.config) {
+      const mergedCfg = mergeConfig(loadConfig(), cloudData.config);
+      saveConfig(mergedCfg);
+      if (mergedCfg.theme) setTheme(mergedCfg.theme);
+      if (mergedCfg.viewMode) { currentView = mergedCfg.viewMode; document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === currentView)); }
+    }
+
     renderAll();
-    syncLog(`✅ 下载成功，共 ${merged.length} 个书签（云端 ${cloudData.length} 个）`);
+    syncLog(`✅ 下载成功，共 ${merged.length} 个书签（含设置）`);
     setSyncBadge('✅ 已同步', 'ok');
     showToast(`✅ 同步完成，共 ${merged.length} 个书签`);
   } catch(err) {
@@ -1607,9 +2761,37 @@ async function syncDownload() {
   }
 }
 
+// 按 URL 去重（保留第一条）
+function dedupBookmarks(data) {
+  const seen = new Set();
+  return data.filter(b => {
+    const key = (b.url || '').toLowerCase();
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function cleanDuplicateBookmarks() {
+  const data = loadData();
+  const deduped = dedupBookmarks(data);
+  const removed = data.length - deduped.length;
+  if (removed <= 0) { showToast('没有重复书签'); return; }
+  if (!confirm('发现 ' + removed + ' 个重复书签（按 URL），保留第一条并删除其余。确定清理吗？')) return;
+  saveData(deduped);
+  renderAll();
+  showToast('🧹 已清理 ' + removed + ' 个重复书签');
+  scheduleAutoSync();
+}
+
 function mergeBookmarks(local, cloud) {
   const map = new Map();
-  local.forEach(b => map.set(b.id, b));
+  const urlSet = new Set();
+  local.forEach(b => {
+    map.set(b.id, b);
+    if (b.url) urlSet.add(b.url.toLowerCase());
+  });
   cloud.forEach(b => {
     const existing = map.get(b.id);
     if (existing) {
@@ -1617,7 +2799,10 @@ function mergeBookmarks(local, cloud) {
         map.set(b.id, b);
       }
     } else {
+      const key = (b.url || '').toLowerCase();
+      if (key && urlSet.has(key)) return; // 跳过重复 URL
       map.set(b.id, b);
+      if (key) urlSet.add(key);
     }
   });
   return Array.from(map.values());
@@ -1647,12 +2832,22 @@ async function autoSyncOnLoad() {
     if (!fileData) throw new Error('文件不存在');
 
     const cloudData = JSON.parse(fileData.content);
-    if (!Array.isArray(cloudData)) throw new Error('格式无效');
+    const cloudArr = Array.isArray(cloudData) ? cloudData : (cloudData.data || []);
+    if (!Array.isArray(cloudArr)) throw new Error('格式无效');
 
     const localData = loadData();
-    const merged = mergeBookmarks(localData, cloudData);
+    const merged = mergeBookmarks(localData, cloudArr);
 
     saveData(merged);
+
+    // 合并设置
+    if (cloudData.config) {
+      const mergedCfg = mergeConfig(loadConfig(), cloudData.config);
+      saveConfig(mergedCfg);
+      if (mergedCfg.theme) setTheme(mergedCfg.theme);
+      if (mergedCfg.viewMode) { currentView = mergedCfg.viewMode; document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === currentView)); }
+    }
+
     renderAll();
 
     if (localData.length > 0) {
@@ -1668,7 +2863,8 @@ async function autoSyncOnLoad() {
 
 async function autoUpload(data, cfg) {
   try {
-    const content = JSON.stringify(data, null, 2);
+    const payload = { data: dedupBookmarks(data), config: loadConfig() };
+    const content = JSON.stringify(payload, null, 2);
     await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
       method: 'PATCH',
       headers: {
@@ -1692,9 +2888,172 @@ function clearAllData() {
   localStorage.removeItem(STORAGE_KEY);
   renderAll();
   showToast('🗑️ 所有书签已清除');
+  scheduleAutoSync();
 }
 
+// ======================== 卡片激活（长按/右键显示操作） ========================
+function activateCard(el) {
+  document.querySelectorAll('.bm-card.activated, .bm-item.activated').forEach(c => { if (c !== el) c.classList.remove('activated'); });
+  el.classList.add('activated');
+}
+function deactivateAllCards() {
+  document.querySelectorAll('.bm-card.activated, .bm-item.activated').forEach(c => c.classList.remove('activated'));
+}
+function onCardContextMenu(e, el) {
+  e.preventDefault();
+  activateCard(el);
+}
+
+// ======================== 链接按钮右键/长按菜单 ========================
+function showLinkPopup(wrap) {
+  hideLinkPopup();
+  wrap.querySelector('.link-popup').classList.add('show');
+  // 同时激活卡片，让其它操作按钮也显示出来
+  const card = wrap.closest('.bm-card, .bm-item');
+  if (card) activateCard(card);
+}
+function hideLinkPopup() {
+  document.querySelectorAll('.link-popup.show').forEach(p => p.classList.remove('show'));
+}
+function onLinkContextMenu(e, wrap) {
+  e.preventDefault();
+  e.stopPropagation();
+  showLinkPopup(wrap);
+}
+
+// ======================== 侧边栏显隐（桌面折叠 / 移动抽屉） ========================
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  if (window.innerWidth <= 768) {
+    const open = sb.classList.toggle('open');
+    bd.classList.toggle('show', open);
+  } else {
+    sb.classList.toggle('collapsed');
+  }
+}
+function closeSidebarIfMobile() {
+  if (window.innerWidth <= 768) {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebarBackdrop');
+    sb.classList.remove('open');
+    bd.classList.remove('show');
+  }
+}
+
+// 移动端：双击分类栏折叠抽屉
+document.getElementById('sidebar').addEventListener('dblclick', function() {
+  if (window.innerWidth <= 768) closeSidebarIfMobile();
+});
+
+// 分类栏：右键 / 长按 打开菜单（默认 / 重命名 / 排序）
+(function setupCatDefault() {
+  const catListEl = document.getElementById('catList');
+
+  catListEl.addEventListener('contextmenu', function(e) {
+    const item = e.target.closest('.cat-item');
+    if (!item) return;
+    e.preventDefault();
+    e.stopPropagation();
+    showCatMenu(e, item.getAttribute('data-path'));
+  });
+
+  let timer = null, sx = 0, sy = 0;
+  catListEl.addEventListener('touchstart', function(e) {
+    const item = e.target.closest('.cat-item');
+    if (!item) return;
+    const path = item.getAttribute('data-path');
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    timer = setTimeout(function() {
+      timer = null;
+      showCatMenu({ clientX: sx, clientY: sy }, path);
+    }, 600);
+  }, { passive: true });
+  catListEl.addEventListener('touchend', function() {
+    if (timer) { clearTimeout(timer); timer = null; }
+  });
+  catListEl.addEventListener('touchmove', function(e) {
+    if (!timer) return;
+    const dx = Math.abs(e.touches[0].clientX - sx);
+    const dy = Math.abs(e.touches[0].clientY - sy);
+    if (dx > 10 || dy > 10) { clearTimeout(timer); timer = null; }
+  }, { passive: true });
+})();
+
+// 事件委托：左键点击卡片打开链接；触屏长按 / 右键显示操作按钮
+let suppressClick = false;
+(function setupCardActivation() {
+  const container = document.getElementById('bmContainer');
+
+  container.addEventListener('click', function(e) {
+    if (suppressClick) { suppressClick = false; return; }
+    const card = e.target.closest('.bm-card, .bm-item');
+    if (!card) {
+      if (selectionMode) exitSelectionMode();
+      return;
+    }
+    if (e.target.closest('.bm-actions')) return;
+    if (e.target.closest('.drag-handle')) return;
+    if (selectionMode) {
+      toggleSelect(card.dataset.id);
+      return;
+    }
+    const url = card.dataset.url;
+    if (url) window.open(url, '_blank');
+  });
+
+  container.addEventListener('contextmenu', function(e) {
+    const card = e.target.closest('.bm-card, .bm-item');
+    if (card) { e.preventDefault(); activateCard(card); }
+  });
+
+  let pressTimer = null;
+  let startX = 0, startY = 0;
+  container.addEventListener('touchstart', function(e) {
+    const linkWrap = e.target.closest('.link-menu-wrap');
+    const card = linkWrap ? linkWrap.closest('.bm-card, .bm-item') : e.target.closest('.bm-card, .bm-item');
+    if (!card && !linkWrap) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    pressTimer = setTimeout(function() {
+      pressTimer = null;
+      suppressClick = true;
+      if (card) onLongPressCard(card);
+      else if (linkWrap) showLinkPopup(linkWrap);
+    }, 500);
+  }, { passive: true });
+
+  function cancelPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
+
+  container.addEventListener('touchend', function() {
+    if (pressTimer) cancelPress();
+    else if (suppressClick) { setTimeout(function() { suppressClick = false; }, 60); }
+  });
+  container.addEventListener('touchmove', function(e) {
+    if (!pressTimer) return;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dx > 10 || dy > 10) cancelPress();
+  }, { passive: true });
+})();
+
+document.addEventListener('click', function(e) {
+  hideLinkPopup();
+  if (!e.target.closest || !e.target.closest('#viewColsMenu')) closeViewColsMenu();
+  if (!e.target.closest || !e.target.closest('#catMenu')) hideCatMenu();
+  const insideActions = e.target.closest && e.target.closest('.bm-actions');
+  const insideActivated = e.target.closest && e.target.closest('.bm-card.activated, .bm-item.activated');
+  if (insideActions || insideActivated) return;
+  deactivateAllCards();
+});
+
 // ======================== INIT ========================
+initTheme();
+
+// 应用默认打开分类
+const _initDefCat = loadConfig().defaultCategory;
+if (_initDefCat) activeCategory = _initDefCat;
+
 document.querySelectorAll('.view-btn').forEach(b => {
   b.classList.toggle('active', b.dataset.view === currentView);
 });
