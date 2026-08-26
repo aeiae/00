@@ -317,16 +317,11 @@
         }
         .data-table th,
         .data-table td {
-            padding: 12px 16px;
+            padding: 10px 16px;
             text-align: left;
             border-bottom: 1px solid #e2e8f0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            height: 48px;
-            line-height: 48px;
-            padding-top: 0;
-            padding-bottom: 0;
+            vertical-align: middle;
+            word-break: break-word;
         }
         .data-table th {
             background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
@@ -337,8 +332,31 @@
             font-size: 13px;
             z-index: 10;
             white-space: nowrap;
-            height: 44px;
-            line-height: 44px;
+        }
+        /* 单行显示（默认）：禁止换行，省略溢出 */
+        .data-table.single-line th,
+        .data-table.single-line td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 46px;
+            line-height: 46px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .data-table.single-line th {
+            height: 42px;
+            line-height: 42px;
+        }
+        /* 多行显示：完整展示内容，自动行高 */
+        .data-table.multi-line th,
+        .data-table.multi-line td {
+            white-space: normal !important;
+            height: auto !important;
+            line-height: 1.5 !important;
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
+            overflow: visible !important;
         }
         .data-table tr:hover {
             background: #f8fafc;
@@ -375,35 +393,28 @@
             background: #94a3b8;
         }
 
-        .data-table th:nth-child(1),
-        .data-table td:nth-child(1) {
-            width: 3.5/16*100%;
-            min-width: 150px;
+        .data-table th .th-inner {
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            vertical-align: middle;
         }
-        .data-table th:nth-child(2),
-        .data-table td:nth-child(2) {
-            width: 3.5/16*100%;
-            min-width: 150px;
+        .col-resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 12;
+            user-select: none;
+            touch-action: none;
         }
-        .data-table th:nth-child(3),
-        .data-table td:nth-child(3) {
-            width: 3/16*100%;
-            min-width: 120px;
-        }
-        .data-table th:nth-child(4),
-        .data-table td:nth-child(4) {
-            width: 3/16*100%;
-            min-width: 120px;
-        }
-        .data-table th:nth-child(5),
-        .data-table td:nth-child(5) {
-            width: 1/16*100%;
-            min-width: 60px;
-        }
-        .data-table th:nth-child(6),
-        .data-table td:nth-child(6) {
-            width: 2/16*100%;
-            min-width: 80px;
+        .col-resizer:hover,
+        .col-resizer.resizing {
+            background: linear-gradient(to right, rgba(59,130,246,0), rgba(59,130,246,0.45), rgba(59,130,246,0));
         }
 
         .clear-all-btn {
@@ -884,10 +895,10 @@
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: transparent;
+            background: #ffffff;
             color: #2563eb;
-            border: none;
-            box-shadow: none;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
             font-size: 28px;
             cursor: grab;
             z-index: 9998;
@@ -950,6 +961,17 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
+            cursor: move;
+            touch-action: none;
+        }
+        .float-search-panel .search-header .drag-hint {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-left: 4px;
+        }
+        .float-search-panel.dragging {
+            user-select: none;
         }
         .float-search-panel .search-header label {
             font-weight: 600;
@@ -1098,6 +1120,58 @@
             min-width: 40px;
             text-align: center;
         }
+        .settings-float-panel .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #eef2f7;
+        }
+        .settings-float-panel .setting-row > label {
+            font-size: 14px;
+            color: #475569;
+            font-weight: 500;
+        }
+        /* 开关样式 */
+        .settings-float-panel .switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .settings-float-panel .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .settings-float-panel .switch .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 24px;
+            transition: background 0.2s ease;
+        }
+        .settings-float-panel .switch .slider::before {
+            content: "";
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .settings-float-panel .switch input:checked + .slider {
+            background: #3b82f6;
+        }
+        .settings-float-panel .switch input:checked + .slider::before {
+            transform: translateX(18px);
+        }
 
         /* 移动端适配 */
         @media screen and (max-width: 768px) {
@@ -1231,15 +1305,16 @@
     <!-- ===== 数据面板 ===== -->
     <div class="data-panel mode-left" id="dataPanel">
         <div class="table-wrapper">
-            <table class="data-table" id="resultTable">
+            <table class="data-table single-line" id="resultTable">
+                <colgroup id="tableColgroup"></colgroup>
                 <thead>
-                    <tr>
-                        <th>分类Ⅰ</th>
-                        <th>分类Ⅱ</th>
-                        <th>材料名称</th>
-                        <th>型号规格</th>
-                        <th>单位</th>
-                        <th id="avgHeader">价格</th>
+                    <tr id="tableHeadRow">
+                        <th data-col="0">分类Ⅰ<span class="col-resizer"></span></th>
+                        <th data-col="1">分类Ⅱ<span class="col-resizer"></span></th>
+                        <th data-col="2">材料名称<span class="col-resizer"></span></th>
+                        <th data-col="3">型号规格<span class="col-resizer"></span></th>
+                        <th data-col="4">单位<span class="col-resizer"></span></th>
+                        <th data-col="5" id="avgHeader">价格</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -1282,8 +1357,8 @@
 
     <!-- ===== 搜索浮窗（数据区中间偏上） ===== -->
     <div class="float-search-panel" id="floatSearchPanel">
-        <div class="search-header">
-            <label>🔎 快速搜索</label>
+        <div class="search-header" id="floatSearchHeader">
+            <label>🔎 快速搜索<span class="drag-hint">⇕ 可拖动</span></label>
             <button class="search-close" id="floatSearchClose">✕</button>
         </div>
         <div class="search-input-wrap">
@@ -1306,6 +1381,13 @@
             <label>按钮大小</label>
             <input type="range" id="sizeSlider" min="32" max="72" value="56" step="1">
             <span class="size-value" id="sizeDisplay">56px</span>
+        </div>
+        <div class="setting-row">
+            <label for="multiLineToggle">数据多行显示</label>
+            <label class="switch">
+                <input type="checkbox" id="multiLineToggle">
+                <span class="slider"></span>
+            </label>
         </div>
     </div>
 
@@ -1334,6 +1416,8 @@
         let currentMode = 'left';
         let floatBtnSize = 56;
         let panelVisible = true;
+        let searchPanelSavedPos = null;
+        let colWidths = null;
 
         // ==================== Toast ====================
         function showToast(msg) {
@@ -1413,6 +1497,15 @@
             const panel = document.getElementById('floatSearchPanel');
             const dataPanel = document.getElementById('dataPanel');
             if (!panel || !dataPanel) return;
+            // 若用户已拖动固定过位置，则始终使用保存的位置
+            if (searchPanelSavedPos) {
+                panel.style.left = searchPanelSavedPos.left + 'px';
+                panel.style.top = searchPanelSavedPos.top + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.transform = 'none';
+                return;
+            }
             const rect = dataPanel.getBoundingClientRect();
             const pw = panel.offsetWidth || 340;
             const ph = panel.offsetHeight || 120;
@@ -1520,6 +1613,165 @@
             positionSearchPanel();
             keepButtonOffPanel();
         });
+
+        // ==================== 数据表列宽拖动 ====================
+        function initColumnResize() {
+            const table = document.getElementById('resultTable');
+            const colgroup = document.getElementById('tableColgroup');
+            const headerCells = table.querySelectorAll('thead th');
+
+            // 默认列宽（百分比，按数据区总宽分配）
+            const defaultWidths = [22, 22, 19, 19, 8, 10];
+            colWidths = null;
+            try {
+                const saved = localStorage.getItem('colWidths');
+                if (saved) colWidths = JSON.parse(saved);
+            } catch (e) {}
+            if (!colWidths || colWidths.length !== headerCells.length) {
+                colWidths = defaultWidths.slice();
+            }
+
+            function applyWidths() {
+                // 重建 colgroup
+                colgroup.innerHTML = '';
+                colWidths.forEach(w => {
+                    const col = document.createElement('col');
+                    col.style.width = w + '%';
+                    colgroup.appendChild(col);
+                });
+                try { localStorage.setItem('colWidths', JSON.stringify(colWidths)); } catch (e) {}
+            }
+            applyWidths();
+
+            headerCells.forEach((th, idx) => {
+                const resizer = th.querySelector('.col-resizer');
+                if (!resizer) return;
+                let startX = 0;
+                let startW = 0;
+                let startNeighbor = 0;
+                let neighborIdx = idx + 1;
+                let dragging = false;
+
+                function onMove(e) {
+                    if (!dragging) return;
+                    e.preventDefault();
+                    const touch = e.touches ? e.touches[0] : e;
+                    const tableW = table.offsetWidth;
+                    const dx = touch.clientX - startX;
+                    let delta = (dx / tableW) * 100;
+                    let newPct = startW + delta;
+                    let neighborPct = startNeighbor - delta;
+                    // 限制最小宽度，超出时取补偿
+                    if (newPct < 5) {
+                        neighborPct = startNeighbor + (5 - newPct);
+                        newPct = 5;
+                    }
+                    if (neighborPct < 5) {
+                        newPct = startW - (5 - neighborPct);
+                        neighborPct = 5;
+                    }
+                    if (newPct > 60) newPct = 60;
+                    colWidths[idx] = Math.round(newPct * 10) / 10;
+                    colWidths[neighborIdx] = Math.round(neighborPct * 10) / 10;
+                    applyWidths();
+                }
+                function onUp() {
+                    if (!dragging) return;
+                    dragging = false;
+                    resizer.classList.remove('resizing');
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    document.removeEventListener('touchmove', onMove);
+                    document.removeEventListener('touchend', onUp);
+                }
+                function onDown(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dragging = true;
+                    resizer.classList.add('resizing');
+                    startX = (e.touches ? e.touches[0] : e).clientX;
+                    startW = colWidths[idx];
+                    startNeighbor = colWidths[neighborIdx];
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                    document.addEventListener('touchmove', onMove, { passive: false });
+                    document.addEventListener('touchend', onUp);
+                }
+                resizer.addEventListener('mousedown', onDown);
+                resizer.addEventListener('touchstart', onDown, { passive: false });
+            });
+        }
+
+        // ==================== 数据多行/单行显示 ====================
+        function setMultiLine(on) {
+            const table = document.getElementById('resultTable');
+            table.classList.toggle('multi-line', on);
+            table.classList.toggle('single-line', !on);
+            localStorage.setItem('dataMultiLine', on ? '1' : '0');
+            try { searchPanelSavedPos && positionSearchPanel(); } catch (e) {}
+        }
+
+        // ==================== 快速搜索浮窗拖动固定 ====================
+        function initSearchPanelDrag() {
+            const panel = document.getElementById('floatSearchPanel');
+            const header = document.getElementById('floatSearchHeader');
+            if (!panel || !header) return;
+
+            let startX = 0, startY = 0, origLeft = 0, origTop = 0, dragging = false;
+
+            function onMove(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                const touch = e.touches ? e.touches[0] : e;
+                let left = origLeft + (touch.clientX - startX);
+                let top = origTop + (touch.clientY - startY);
+                left = Math.max(5, Math.min(left, window.innerWidth - panel.offsetWidth - 5));
+                top = Math.max(5, Math.min(top, window.innerHeight - panel.offsetHeight - 5));
+                panel.style.left = left + 'px';
+                panel.style.top = top + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.transform = 'none';
+                searchPanelSavedPos = { left, top };
+            }
+            function onUp() {
+                if (!dragging) return;
+                dragging = false;
+                panel.classList.remove('dragging');
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onUp);
+                try { localStorage.setItem('searchPanelPos', JSON.stringify(searchPanelSavedPos)); } catch (e) {}
+            }
+            function onDown(e) {
+                // 点击关闭按钮时不触发拖动
+                if (e.target.closest('.search-close')) return;
+                dragging = true;
+                panel.classList.add('dragging');
+                startX = (e.touches ? e.touches[0] : e).clientX;
+                startY = (e.touches ? e.touches[0] : e).clientY;
+                const rect = panel.getBoundingClientRect();
+                origLeft = rect.left;
+                origTop = rect.top;
+                searchPanelSavedPos = { left: origLeft, top: origTop };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+                document.addEventListener('touchmove', onMove, { passive: false });
+                document.addEventListener('touchend', onUp);
+                e.preventDefault();
+            }
+            header.addEventListener('mousedown', onDown);
+            header.addEventListener('touchstart', onDown, { passive: false });
+
+            // 恢复上次拖动固定的位置
+            try {
+                const saved = localStorage.getItem('searchPanelPos');
+                if (saved) {
+                    searchPanelSavedPos = JSON.parse(saved);
+                }
+            } catch (e) {}
+        }
 
         // ==================== 搜索浮窗逻辑 ====================
         (function() {
@@ -1695,6 +1947,18 @@
                     setFloatBtnSize(sz);
                 }
             }
+
+            // 数据多行显示开关
+            const multiLineToggle = document.getElementById('multiLineToggle');
+            let multiLineOn = false;
+            try {
+                multiLineOn = localStorage.getItem('dataMultiLine') === '1';
+            } catch (e) {}
+            multiLineToggle.checked = multiLineOn;
+            setMultiLine(multiLineOn);
+            multiLineToggle.addEventListener('change', function() {
+                setMultiLine(this.checked);
+            });
 
             window.addEventListener('resize', function() {
                 if (isOpen) {
@@ -1902,11 +2166,13 @@
             panelVisible = true;
             document.body.classList.remove('panel-hidden');
 
-            positionSearchPanel();
-            keepButtonOffPanel();
-
+            initColumnResize();
+            initSearchPanelDrag();
             initDoubleClickCopy();
             initContextMenu();
+
+            positionSearchPanel();
+            keepButtonOffPanel();
 
             const saved = localStorage.getItem('priceData');
             if (saved) {
