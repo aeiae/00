@@ -42,11 +42,11 @@
         .mini-btn { font-size: 13px; font-weight: 600; color: rgb(var(--c-primary-rgb)); background: transparent; border: none; padding: 6px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
         .mini-btn:hover { opacity: .65; }
 
-        .sync-pill { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; }
-        .sync-pill:hover { border-color: rgb(var(--c-primary-rgb)); }
-        .sync-left { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
-        .sync-left #sync-icon { font-size: 15px; }
-        .sync-hint { font-size: 11.5px; color: #b3bacb; }
+        .sync-pill { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: none; border-radius: 8px; padding: 6px 10px; margin-left: auto; cursor: pointer; font-size: 12.5px; color: var(--muted); transition: background .15s; white-space: nowrap; }
+        .sync-pill:hover { background: var(--line); }
+        .sync-left { display: flex; align-items: center; gap: 6px; }
+        .sync-left #sync-icon { font-size: 14px; }
+        .sync-hint { display: none; }
 
         .set-group-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 22px 0 6px; letter-spacing: .4px; }
         .set-row { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); cursor: pointer; }
@@ -86,8 +86,14 @@
     <!-- 顶栏 + 左侧抽屉菜单 -->
     <div class="top-bar" id="top-bar">
         <div class="top-bar-inner">
-            <button class="hamburger" onclick="openDrawer()" title="菜单"><i class="fa fa-bars"></i></button>
-            <span class="top-bar-title" id="top-bar-title">本地网络控制台</span>
+            <div class="flex items-center gap-2">
+                <button class="hamburger" onclick="openDrawer()" title="菜单"><i class="fa fa-bars"></i></button>
+                <span class="top-bar-title" id="top-bar-title">本地网络控制台</span>
+            </div>
+            <div id="sync-bar" class="sync-pill" onclick="manualSync()" title="点击手动同步">
+                <i id="sync-icon" class="fa fa-cloud text-primary"></i>
+                <span id="sync-text">初始化...</span>
+            </div>
         </div>
     </div>
     <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
@@ -101,18 +107,14 @@
 
         <!-- 顶部应用栏已移除，导航改用底部标签栏 -->
 
-        <!-- 设置已改为底部标签“设置”页 -->
+        <!-- 设置已改为底部标签"设置"页 -->
 
-        <!-- 云同步状态 -->
-        <div id="sync-bar" class="sync-pill" onclick="manualSync()">
-            <span class="sync-left"><i id="sync-icon" class="fa fa-cloud"></i><span id="sync-text">初始化...</span></span>
-            <span class="sync-hint">点击手动同步</span>
-        </div>
+        <!-- 云同步状态已迁入顶栏右上角 -->
 
         <!-- 首页 -->
         <div id="page-home">
             <h1 class="page-title">本地网络控制台</h1>
-            <p class="page-sub">管理你的位置、网络设备与测速网站</p>
+            <p class="page-sub">管理网络设备与测速网站</p>
             <div class="sec-head">
                 <div class="sec-title"><span class="sec-dot"></span>位置</div>
                 <button class="mini-btn" onclick="openSiteEdit()"><i class="fa fa-plus"></i> 新增位置</button>
@@ -121,17 +123,17 @@
             <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
             <div class="mt-8">
                 <div class="sec-head">
-                    <div class="sec-title"><span class="sec-dot"></span>测速网站列表</div>
+                    <div class="sec-title"><span class="sec-dot"></span>网站列表</div>
                     <button class="mini-btn" onclick="openSpeedEdit()"><i class="fa fa-plus"></i> 添加</button>
                 </div>
                 <div class="card p-4">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead class="bg-gray-100"><tr><th class="border p-2 text-left">测速网站</th><th class="border p-2 text-left">网址（点击直接打开）</th></tr></thead>
+                            <thead class="bg-gray-100"><tr><th class="border p-2 text-left">网站</th><th class="border p-2 text-left">网址</th></tr></thead>
                             <tbody id="speed-table-home"></tbody>
                         </table>
                     </div>
-                    <p class="text-gray-400 text-xs mt-2"><i class="fa fa-info-circle mr-1"></i> 长按网站记录可编辑或删除</p>
+                    <p class="text-gray-400 text-xs mt-2"><i class="fa fa-info-circle mr-1"></i> 长按网站可编辑、删除或排序</p>
                 </div>
             </div>
         </div>
@@ -146,8 +148,8 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16" id="device-list"></div>
             <div class="sec-head mt-2">
-                <div class="sec-title"><span class="sec-dot"></span>网口分配记录</div>
-                <button class="mini-btn" onclick="openPortEdit()"><i class="fa fa-plus"></i> 添加网口记录</button>
+                <div class="sec-title"><span class="sec-dot"></span>网口信息</div>
+                <button class="mini-btn" onclick="openPortEdit()"><i class="fa fa-plus"></i> 添加网口</button>
             </div>
             <div class="card p-4 mb-4">
                 <div class="overflow-x-auto">
@@ -157,7 +159,7 @@
                     </table>
                 </div>
                 <p class="text-gray-600 text-xs mb-3">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p>
-                <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口记录可编辑或删除</p>
+                <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口可编辑、删除或排序</p>
             </div>
         </div>
 
@@ -192,10 +194,12 @@
                     <button data-rgb="114 46 209" class="w-7 h-7 rounded-full border-2" style="background:#722ED1" onclick="setThemeColor('114 46 209')" title="紫色"></button>
                     <button data-rgb="245 63 63" class="w-7 h-7 rounded-full border-2" style="background:#F53F3F" onclick="setThemeColor('245 63 63')" title="红色"></button>
                     <button data-rgb="20 201 201" class="w-7 h-7 rounded-full border-2" style="background:#14C9C9" onclick="setThemeColor('20 201 201')" title="青色"></button>
+                    <button id="theme-custom-swatch" class="w-7 h-7 rounded-full border-2 border-dashed" style="background:#165DFF;border-color:#e5e7eb" title="自定义配色" onclick="openColorPicker()"></button>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-[13px]">自定义</span>
-                    <input type="color" id="theme-color-input" value="#165DFF" onchange="setThemeColorFromHex(this.value)" class="w-8 h-8 rounded cursor-pointer border border-gray-200 bg-white p-0">
+                <input type="color" id="theme-color-input" value="#165DFF" onchange="setThemeColorFromHex(this.value)" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;border:none;">
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 cursor-pointer" onclick="openColorPicker()">
+                    <span class="text-[13px] flex items-center gap-2"><i class="fa fa-paint-brush text-gray-500"></i> 自定义配色</span>
+                    <i class="fa fa-chevron-right text-gray-400"></i>
                 </div>
             </div>
         </div>
@@ -204,33 +208,41 @@
     <!-- 右键菜单 -->
     <div id="ctx-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentSite()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 修改名称</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentSite(-1)"><i class="fa fa-arrow-up mr-2 text-gray-600"></i> 上移</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentSite(1)"><i class="fa fa-arrow-down mr-2 text-gray-600"></i> 下移</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentSite()"><i class="fa fa-trash mr-2"></i> 删除位置</div>
     </div>
     <div id="ctx-device-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentDevice()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑设备</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentDevice(-1)"><i class="fa fa-arrow-up mr-2 text-gray-600"></i> 上移</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentDevice(1)"><i class="fa fa-arrow-down mr-2 text-gray-600"></i> 下移</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentDevice()"><i class="fa fa-trash mr-2"></i> 删除设备</div>
     </div>
     <div id="ctx-port-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentPort()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑网口</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentPort(-1)"><i class="fa fa-arrow-up mr-2 text-gray-600"></i> 上移</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentPort(1)"><i class="fa fa-arrow-down mr-2 text-gray-600"></i> 下移</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentPort()"><i class="fa fa-trash mr-2"></i> 删除网口</div>
     </div>
     <div id="ctx-speed-menu" class="context-menu hidden bg-white rounded-lg p-2 card-shadow">
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="editCurrentSpeed()"><i class="fa fa-pencil mr-2 text-gray-600"></i> 编辑网站</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentSpeed(-1)"><i class="fa fa-arrow-up mr-2 text-gray-600"></i> 上移</div>
+        <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer" onclick="moveCurrentSpeed(1)"><i class="fa fa-arrow-down mr-2 text-gray-600"></i> 下移</div>
         <div class="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-red-500" onclick="delCurrentSpeed()"><i class="fa fa-trash mr-2"></i> 删除网站</div>
     </div>
 
     <!-- 弹窗 -->
     <div id="modal-site" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-site-title">新增位置</h3><input type="hidden" id="edit-site-id"><label class="block mb-2 font-medium">位置名称</label><input id="site-name-input" class="w-full border rounded-lg p-3 mb-5" placeholder="如：家里、店里"><div class="flex gap-3"><button onclick="closeModal('modal-site')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSite()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
     <div id="modal-device" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-device-title">新增网络设备</h3><input type="hidden" id="edit-device-id"><label class="block mb-2 font-medium">设备名称</label><input id="dev-name" class="w-full border rounded-lg p-3 mb-3" placeholder="光猫 / 中兴路由器"><label class="block mb-2 font-medium">管理地址</label><input id="dev-ip" class="w-full border rounded-lg p-3 mb-3" placeholder="192.168.1.1"><label class="block mb-2 font-medium">管理密码</label><input id="dev-pwd" class="w-full border rounded-lg p-3 mb-3" placeholder="设备后台管理密码"><label class="block mb-2 font-medium">路由密码</label><input id="dev-route-pwd" class="w-full border rounded-lg p-3 mb-5" placeholder="WiFi路由密码"><div class="flex gap-3"><button onclick="closeModal('modal-device')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveDevice()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
-    <div id="modal-port" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-port-title">添加网口记录</h3><input type="hidden" id="edit-port-id"><label class="block mb-2 font-medium">网口名称</label><input id="port-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：网口1、LAN1"><label class="block mb-2 font-medium">房间用途</label><input id="port-desc" class="w-full border rounded-lg p-3 mb-5" placeholder="如：次卧、客厅(T568B)"><div class="flex gap-3"><button onclick="closeModal('modal-port')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="savePort()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
-    <div id="modal-speed" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-speed-title">添加测速网站</h3><input type="hidden" id="edit-speed-id"><label class="block mb-2 font-medium">网站名称</label><input id="speed-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：测速网"><label class="block mb-2 font-medium">网址</label><input id="speed-url" class="w-full border rounded-lg p-3 mb-5" placeholder="https://www.speedtest.cn/"><div class="flex gap-3"><button onclick="closeModal('modal-speed')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSpeed()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-port" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-port-title">添加网口</h3><input type="hidden" id="edit-port-id"><label class="block mb-2 font-medium">网口名称</label><input id="port-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：网口1、LAN1"><label class="block mb-2 font-medium">房间用途</label><input id="port-desc" class="w-full border rounded-lg p-3 mb-5" placeholder="如：次卧、客厅(T568B)"><div class="flex gap-3"><button onclick="closeModal('modal-port')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="savePort()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
+    <div id="modal-speed" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4" id="modal-speed-title">添加网站</h3><input type="hidden" id="edit-speed-id"><label class="block mb-2 font-medium">网站名称</label><input id="speed-name" class="w-full border rounded-lg p-3 mb-3" placeholder="如：测速网"><label class="block mb-2 font-medium">网址</label><input id="speed-url" class="w-full border rounded-lg p-3 mb-5" placeholder="https://www.speedtest.cn/"><div class="flex gap-3"><button onclick="closeModal('modal-speed')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="saveSpeed()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存</button></div></div></div>
     <div id="modal-share-select" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4">选择要截图的位置</h3><div id="share-site-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div><div class="flex gap-3"><button onclick="closeModal('modal-share-select')" class="flex-1 py-2 border rounded-lg">取消</button></div></div></div>
     <div id="modal-share-qr" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-sm p-6"><h3 class="text-xl font-bold mb-2 text-center" id="share-qr-title">分享截图</h3><p class="text-gray-500 text-sm mb-4 text-center">网络设备信息截图</p><div class="flex justify-center mb-4"><div id="qr-code-container" class="bg-gray-100 p-2 rounded-xl border border-gray-200 max-h-96 overflow-y-auto"></div></div><p class="text-center text-gray-400 text-xs mb-4">长按图片可保存到手机</p><div class="flex gap-3"><button onclick="closeModal('modal-share-qr')" class="flex-1 py-2 border rounded-lg">关闭</button></div></div></div>
     <div id="modal-paste-import" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-lg p-6"><h3 class="text-xl font-bold mb-4">粘贴导入数据</h3><p class="text-gray-500 text-sm mb-3">将之前复制的JSON数据粘贴到下方文本框中</p><textarea id="paste-data-textarea" class="w-full border rounded-lg p-3 mb-4 h-48 text-sm font-mono" placeholder="在此粘贴JSON数据..."></textarea><div class="flex gap-3"><button onclick="closeModal('modal-paste-import')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="doPasteImport()" class="flex-1 py-2 grad-bg text-white rounded-lg">确认导入</button></div></div></div>
     <div id="page-share" class="hidden">
         <div class="card p-5 mb-6"><h1 class="text-[18px] font-bold flex items-center gap-2"><i class="fa fa-wifi" style="color:rgb(var(--c-primary-rgb))"></i> <span id="share-site-name">网络信息</span></h1><p class="text-gray-400 text-xs mt-1">分享的网络设备信息</p></div>
         <h3 class="text-lg font-semibold mb-3">网络设备</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="share-device-list"></div>
-        <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
+        <h3 class="text-lg font-semibold mb-3">网口信息</h3>
         <div class="bg-white rounded-xl p-4 card-shadow mb-4"><div class="overflow-x-auto"><table class="w-full text-sm mb-3"><thead class="bg-gray-100"><tr><th class="border p-2 text-left whitespace-nowrap">网口</th><th class="border p-2 text-left whitespace-nowrap">房间用途</th></tr></thead><tbody id="share-port-table"></tbody></table></div><p class="text-gray-600 text-xs">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div>
         <button onclick="backHome()" class="w-full py-3 border border-primary text-primary rounded-xl mt-4"><i class="fa fa-home mr-2"></i> 返回控制台首页</button>
     </div>
@@ -340,7 +352,7 @@
         function updateSyncStatus(state, text) {
             const icon = document.getElementById('sync-icon');
             document.getElementById('sync-text').innerText = text;
-            icon.className = state === 'syncing' ? 'fa fa-refresh syncing text-primary' : state === 'online' ? 'fa fa-cloud text-green-500' : state === 'error' ? 'fa fa-exclamation-circle text-red-500' : 'fa fa-cloud-upload text-primary';
+            icon.className = state === 'syncing' ? 'fa fa-refresh syncing text-primary' : state === 'online' ? 'fa fa-cloud text-primary' : state === 'error' ? 'fa fa-exclamation-circle text-primary' : 'fa fa-cloud-upload text-primary';
         }
 
         // ========== 本地存储与迁移 ==========
@@ -399,6 +411,16 @@
             const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
             setThemeColor(r + " " + g + " " + b);
         }
+        function openColorPicker() {
+            const ci = document.getElementById('theme-color-input');
+            if (!ci) return;
+            // 临时移到视口中央（隐藏但已渲染），保证各浏览器都能弹出原生取色器
+            ci.style.cssText = 'position:fixed;left:50%;top:50%;width:1px;height:1px;opacity:0;border:none;';
+            if (typeof ci.showPicker === 'function') {
+                try { ci.showPicker(); return; } catch (e) { console.warn('showPicker 失败', e); }
+            }
+            ci.click();
+        }
         function rgbToHex(rgb) {
             const parts = rgb.split(' ').map(Number);
             return '#' + parts.map(x => x.toString(16).padStart(2,'0')).join('');
@@ -406,11 +428,19 @@
         function updateThemeSwatches() {
             const wrap = document.getElementById('theme-swatches');
             if (!wrap) return;
-            wrap.querySelectorAll('button').forEach(btn => {
+            const presetBtns = wrap.querySelectorAll('button[data-rgb]');
+            presetBtns.forEach(btn => {
                 const v = btn.getAttribute('data-rgb');
                 if (v === themeRgb) { btn.style.borderColor = '#1f2937'; btn.style.transform = 'scale(1.12)'; }
                 else { btn.style.borderColor = '#e5e7eb'; btn.style.transform = 'scale(1)'; }
             });
+            const custom = document.getElementById('theme-custom-swatch');
+            if (custom) {
+                custom.style.background = rgbToHex(themeRgb);
+                const isPreset = [...presetBtns].some(b => b.getAttribute('data-rgb') === themeRgb);
+                if (!isPreset) { custom.style.borderColor = '#1f2937'; custom.style.transform = 'scale(1.12)'; }
+                else { custom.style.borderColor = '#e5e7eb'; custom.style.transform = 'scale(1)'; }
+            }
         }
         function openDrawer() { const d = document.getElementById('drawer'); const o = document.getElementById('drawer-overlay'); if (d) d.classList.add('open'); if (o) o.classList.add('open'); }
         function closeDrawer() { const d = document.getElementById('drawer'); const o = document.getElementById('drawer-overlay'); if (d) d.classList.remove('open'); if (o) o.classList.remove('open'); }
@@ -495,27 +525,35 @@
         function renderDeviceList(site) { const wrap = document.getElementById("device-list"); wrap.innerHTML = ""; wrap.className = "grid grid-cols-1 md:grid-cols-2"; wrap.style.gap = (1.0 * cardDensityGrid) + "rem"; site.devices.forEach(dev => { const c = document.createElement("div"); const base = "device-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; c.className = base; c.style.padding = (1.25 * cardDensityGrid) + "rem"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; c.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.clientX, e.clientY); }; let pt; c.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); c.addEventListener("touchend", () => clearTimeout(pt)); c.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(c); }); }
         async function copyText(str) { if (!str) { showToast("内容为空"); return; } try { await navigator.clipboard.writeText(str); showToast(); } catch (e) { const ta = document.createElement("textarea"); ta.value = str; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); showToast(); } }
         function renderPortTableSite(site) { const tb = document.getElementById("port-table-site"); tb.innerHTML = ""; if (!site.portList?.length) { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录，点击下方按钮添加</td></tr>'; return; } site.portList.forEach(item => { const tr = document.createElement("tr"); tr.className = "port-item"; tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
-        function openPortEdit() { editPortId = null; document.getElementById("modal-port-title").innerText = "添加网口记录"; document.getElementById("port-name").value = ""; document.getElementById("port-desc").value = ""; document.getElementById("modal-port").classList.remove("hidden"); }
-        function editPort(portId) { const p = data.sites.find(s => s.id === currentSiteId)?.portList.find(i => i.id === portId); if(!p) return; editPortId = portId; document.getElementById("modal-port-title").innerText = "编辑网口记录"; document.getElementById("port-name").value = p.port; document.getElementById("port-desc").value = p.desc; document.getElementById("modal-port").classList.remove("hidden"); }
+        function openPortEdit() { editPortId = null; document.getElementById("modal-port-title").innerText = "添加网口"; document.getElementById("port-name").value = ""; document.getElementById("port-desc").value = ""; document.getElementById("modal-port").classList.remove("hidden"); }
+        function editPort(portId) { const p = data.sites.find(s => s.id === currentSiteId)?.portList.find(i => i.id === portId); if(!p) return; editPortId = portId; document.getElementById("modal-port-title").innerText = "编辑网口"; document.getElementById("port-name").value = p.port; document.getElementById("port-desc").value = p.desc; document.getElementById("modal-port").classList.remove("hidden"); }
         function editCurrentPort() { document.getElementById("ctx-port-menu").classList.add("hidden"); editPort(ctxPortId); }
-        function delPort(portId) { if (!confirm("确定删除该网口记录？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.portList = site.portList.filter(p => p.id !== portId); saveData(); renderPortTableSite(site); }
+        function delPort(portId) { if (!confirm("确定删除该网口？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.portList = site.portList.filter(p => p.id !== portId); saveData(); renderPortTableSite(site); }
         function delCurrentPort() { document.getElementById("ctx-port-menu").classList.add("hidden"); delPort(ctxPortId); }
+        function moveCurrentPort(dir) { document.getElementById("ctx-port-menu").classList.add("hidden"); movePort(ctxPortId, dir); }
+        function movePort(id, dir) { const site = data.sites.find(s => s.id === currentSiteId); if (!site) return; const idx = site.portList.findIndex(p => p.id === id); if (idx < 0) return; const ni = idx + dir; if (ni < 0 || ni >= site.portList.length) { showToast("已到边界"); return; } const arr = site.portList; const t = arr[idx]; arr[idx] = arr[ni]; arr[ni] = t; saveData(); renderPortTableSite(site); }
         function savePort() { const port = document.getElementById("port-name").value.trim(); const desc = document.getElementById("port-desc").value.trim(); if (!port) return showToast("网口名称不能为空"); const site = data.sites.find(s => s.id === currentSiteId); if (editPortId) { const p = site.portList.find(i => i.id === editPortId); p.port = port; p.desc = desc; } else { site.portList.push({ id: "port_" + Date.now(), port, desc }); } saveData(); renderPortTableSite(site); closeModal("modal-port"); }
         // ========== 测速网站增删改 ==========
-        function openSpeedEdit() { editSpeedId = null; document.getElementById("modal-speed-title").innerText = "添加测速网站"; document.getElementById("edit-speed-id").value = ""; document.getElementById("speed-name").value = ""; document.getElementById("speed-url").value = ""; document.getElementById("modal-speed").classList.remove("hidden"); }
-        function editSpeed(speedId) { const s = data.speedList.find(i => i.id === speedId); if(!s) return; editSpeedId = speedId; document.getElementById("modal-speed-title").innerText = "编辑测速网站"; document.getElementById("edit-speed-id").value = speedId; document.getElementById("speed-name").value = s.name; document.getElementById("speed-url").value = s.url; document.getElementById("modal-speed").classList.remove("hidden"); }
+        function openSpeedEdit() { editSpeedId = null; document.getElementById("modal-speed-title").innerText = "添加网站"; document.getElementById("edit-speed-id").value = ""; document.getElementById("speed-name").value = ""; document.getElementById("speed-url").value = ""; document.getElementById("modal-speed").classList.remove("hidden"); }
+        function editSpeed(speedId) { const s = data.speedList.find(i => i.id === speedId); if(!s) return; editSpeedId = speedId; document.getElementById("modal-speed-title").innerText = "编辑网站"; document.getElementById("edit-speed-id").value = speedId; document.getElementById("speed-name").value = s.name; document.getElementById("speed-url").value = s.url; document.getElementById("modal-speed").classList.remove("hidden"); }
         function editCurrentSpeed() { document.getElementById("ctx-speed-menu").classList.add("hidden"); editSpeed(ctxSpeedId); }
-        function delSpeed(speedId) { if (!confirm("确定删除该测速网站？")) return; data.speedList = data.speedList.filter(s => s.id !== speedId); saveData(); renderSpeedTableHome(); }
+        function delSpeed(speedId) { if (!confirm("确定删除该网站？")) return; data.speedList = data.speedList.filter(s => s.id !== speedId); saveData(); renderSpeedTableHome(); }
         function delCurrentSpeed() { document.getElementById("ctx-speed-menu").classList.add("hidden"); delSpeed(ctxSpeedId); }
+        function moveCurrentSpeed(dir) { document.getElementById("ctx-speed-menu").classList.add("hidden"); moveSpeed(ctxSpeedId, dir); }
+        function moveSpeed(id, dir) { const idx = data.speedList.findIndex(s => s.id === id); if (idx < 0) return; const ni = idx + dir; if (ni < 0 || ni >= data.speedList.length) { showToast("已到边界"); return; } const arr = data.speedList; const t = arr[idx]; arr[idx] = arr[ni]; arr[ni] = t; saveData(); renderSpeedTableHome(); }
         function saveSpeed() { const name = document.getElementById("speed-name").value.trim(); const url = document.getElementById("speed-url").value.trim(); if (!name || !url) return showToast("名称和网址不能为空"); if (editSpeedId) { const s = data.speedList.find(i => i.id === editSpeedId); s.name = name; s.url = url; } else { data.speedList.push({ id: "speed_" + Date.now(), name, url }); } saveData(); renderSpeedTableHome(); closeModal("modal-speed"); }
         // ========== 位置增删改 ==========
         function openSiteEdit() { document.getElementById("modal-site-title").innerText = "新增位置"; document.getElementById("edit-site-id").value = ""; document.getElementById("site-name-input").value = ""; document.getElementById("modal-site").classList.remove("hidden"); }
         function editCurrentSite() { const site = data.sites.find(s => s.id === ctxSiteId); document.getElementById("modal-site-title").innerText = "修改位置"; document.getElementById("edit-site-id").value = ctxSiteId; document.getElementById("site-name-input").value = site.name; document.getElementById("ctx-menu").classList.add("hidden"); document.getElementById("modal-site").classList.remove("hidden"); }
         function saveSite() { const name = document.getElementById("site-name-input").value.trim(); if (!name) return showToast("名称不能为空"); const editId = document.getElementById("edit-site-id").value; if (editId) { data.sites.find(i => i.id === editId).name = name; } else { data.sites.push({ id: "site_" + Date.now(), name, devices: [], portList: [] }); } saveData(); renderSiteList(); closeModal("modal-site"); }
         function delCurrentSite() { if (!confirm("确定删除该位置及所有设备？")) return; data.sites = data.sites.filter(s => s.id !== ctxSiteId); saveData(); renderSiteList(); document.getElementById("ctx-menu").classList.add("hidden"); }
+        function moveCurrentSite(dir) { document.getElementById("ctx-menu").classList.add("hidden"); moveSite(ctxSiteId, dir); }
+        function moveSite(id, dir) { const idx = data.sites.findIndex(s => s.id === id); if (idx < 0) return; const ni = idx + dir; if (ni < 0 || ni >= data.sites.length) { showToast("已到边界"); return; } const arr = data.sites; const t = arr[idx]; arr[idx] = arr[ni]; arr[ni] = t; saveData(); renderSiteList(); }
         // ========== 设备增删改 ==========
         function editCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); editDevice(ctxDeviceId); }
         function delCurrentDevice() { document.getElementById("ctx-device-menu").classList.add("hidden"); delDevice(ctxDeviceId); }
+        function moveCurrentDevice(dir) { document.getElementById("ctx-device-menu").classList.add("hidden"); moveDevice(ctxDeviceId, dir); }
+        function moveDevice(id, dir) { const site = data.sites.find(s => s.id === currentSiteId); if (!site) return; const idx = site.devices.findIndex(d => d.id === id); if (idx < 0) return; const ni = idx + dir; if (ni < 0 || ni >= site.devices.length) { showToast("已到边界"); return; } const arr = site.devices; const t = arr[idx]; arr[idx] = arr[ni]; arr[ni] = t; saveData(); renderDeviceList(site); }
         function openDeviceEdit() { document.getElementById("modal-device-title").innerText = "新增网络设备"; document.getElementById("edit-device-id").value = ""; document.getElementById("dev-name").value = ""; document.getElementById("dev-ip").value = ""; document.getElementById("dev-pwd").value = ""; document.getElementById("dev-route-pwd").value = ""; document.getElementById("modal-device").classList.remove("hidden"); }
         function editDevice(devId) { const dev = data.sites.find(s => s.id === currentSiteId)?.devices.find(d => d.id === devId); if(!dev) return; document.getElementById("modal-device-title").innerText = "编辑设备"; document.getElementById("edit-device-id").value = devId; document.getElementById("dev-name").value = dev.name; document.getElementById("dev-ip").value = dev.ip; document.getElementById("dev-pwd").value = dev.pwd || ""; document.getElementById("dev-route-pwd").value = dev.routePwd || ""; document.getElementById("modal-device").classList.remove("hidden"); }
         function delDevice(devId) { if (!confirm("确定删除该设备？")) return; const site = data.sites.find(s => s.id === currentSiteId); site.devices = site.devices.filter(d => d.id !== devId); saveData(); renderDeviceList(site); }
