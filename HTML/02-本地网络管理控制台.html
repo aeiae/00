@@ -14,94 +14,120 @@
         }
     </script>
     <style>
-        :root { --c-primary-rgb: 22 93 255; }
-        .card-shadow { box-shadow: 0 4px 20px rgba(var(--c-primary-rgb), 0.1); }
-        .grad-bg { background: linear-gradient(135deg, rgb(var(--c-primary-rgb)) 0%, color-mix(in srgb, rgb(var(--c-primary-rgb)) 80%, #ffffff) 100%); }
-        .context-menu { position: fixed; z-index: 9999; min-width: 140px; }
+        :root {
+            --c-primary-rgb: 22 93 255;
+            --bg: #f5f6f8;
+            --surface: #ffffff;
+            --line: #eceef1;
+            --text: #1c1f24;
+            --muted: #9aa1ac;
+        }
+        html { font-size: 14px; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        #app { padding-top: 58px; padding-bottom: 24px; }
+        #page-share { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+        .grad-bg { background: rgb(var(--c-primary-rgb)); }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+        .card-shadow { box-shadow: 0 1px 2px rgba(16,24,40,.05); }
         .site-item, .device-item, .port-item, .speed-item { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
-        * { -webkit-tap-highlight-color: transparent; }
+        .site-item, .device-item { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; transition: border-color .15s ease; }
+        .site-item:hover, .device-item:hover { border-color: rgb(var(--c-primary-rgb)); }
         .syncing { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .sec-head { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 12px; }
+        .sec-head:first-of-type { margin-top: 0; }
+        .sec-title { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: .2px; }
+        .mini-btn { font-size: 13px; font-weight: 600; color: rgb(var(--c-primary-rgb)); background: transparent; border: none; padding: 6px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+        .mini-btn:hover { opacity: .65; }
+
+        .sync-pill { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; }
+        .sync-pill:hover { border-color: rgb(var(--c-primary-rgb)); }
+        .sync-left { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
+        .sync-left #sync-icon { font-size: 15px; }
+        .sync-hint { font-size: 11.5px; color: #b3bacb; }
+
+        .set-group-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 22px 0 6px; letter-spacing: .4px; }
+        .set-row { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); cursor: pointer; }
+        .set-row:last-child { border-bottom: none; }
+        .set-row i.fa { width: 20px; text-align: center; color: rgb(var(--c-primary-rgb)); }
+        .set-row .chev { margin-left: auto; color: var(--muted); font-size: 13px; }
+        .page-title { font-size: 20px; font-weight: 700; letter-spacing: .3px; margin: 0 0 2px; }
+        .page-sub { font-size: 12px; color: var(--muted); margin: 0; }
+
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 45; height: 50px; background: var(--surface); border-bottom: 1px solid var(--line); }
+        .top-bar-inner { max-width: 980px; margin: 0 auto; width: 100%; height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+        .hamburger { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 17px; border: none; background: transparent; cursor: pointer; transition: .15s; }
+        .hamburger:hover { background: var(--line); }
+        .top-bar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(16,24,40,.35); z-index: 60; opacity: 0; visibility: hidden; transition: opacity .2s ease; }
+        .drawer-overlay.open { opacity: 1; visibility: visible; }
+        .drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; max-width: 80vw; background: var(--surface); border-right: 1px solid var(--line); z-index: 61; transform: translateX(-100%); transition: transform .22s ease; display: flex; flex-direction: column; }
+        .drawer.open { transform: translateX(0); }
+        .drawer-head { height: 50px; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 700; }
+        .drawer-head .brand-dot { width: 10px; height: 10px; border-radius: 3px; background: rgb(var(--c-primary-rgb)); }
+        .drawer-item { display: flex; align-items: center; gap: 12px; padding: 14px 18px; font-size: 14px; color: var(--text); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: background .12s; }
+        .drawer-item i { width: 20px; text-align: center; color: var(--muted); }
+        .drawer-item:hover { background: var(--line); }
+        .drawer-item.active { color: rgb(var(--c-primary-rgb)); background: rgba(var(--c-primary-rgb), .08); }
+        .drawer-item.active i { color: rgb(var(--c-primary-rgb)); }
+
+        #ctx-menu, #ctx-device-menu, #ctx-port-menu, #ctx-speed-menu { position: fixed; z-index: 9999; min-width: 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 28px rgba(16,24,40,.12); padding: 6px; }
+        .ctx-item { padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; color: var(--text); }
+        .ctx-item:hover { background: var(--line); }
+        .ctx-item.danger { color: #ef4444; }
+
+        [id^="modal-"] > div { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div id="app" class="max-w-5xl mx-auto p-4 py-8">
-        <!-- 顶部标题 -->
-        <div class="grad-bg text-white rounded-2xl p-6 mb-4 card-shadow relative">
-            <h1 class="text-[24px] font-bold flex items-center gap-2">
-                <i class="fa fa-wifi"></i> 本地网络控制台
-            </h1>
-            <button onclick="toggleSettings(event)" class="absolute top-6 right-6 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-sm">
-                <i class="fa fa-cog"></i> 设置
-            </button>
+<body class="min-h-screen">
+    <!-- 顶栏 + 左侧抽屉菜单 -->
+    <div class="top-bar" id="top-bar">
+        <div class="top-bar-inner">
+            <button class="hamburger" onclick="openDrawer()" title="菜单"><i class="fa fa-bars"></i></button>
+            <span class="top-bar-title" id="top-bar-title">本地网络控制台</span>
         </div>
+    </div>
+    <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+    <aside class="drawer" id="drawer">
+        <div class="drawer-head"><span class="brand-dot"></span>菜单</div>
+        <button class="drawer-item" data-tab="home" onclick="setPage('home'); closeDrawer()"><i class="fa fa-home"></i> 首页</button>
+        <button class="drawer-item" data-tab="settings" onclick="setPage('settings'); closeDrawer()"><i class="fa fa-cog"></i> 设置</button>
+    </aside>
 
-        <!-- 设置下拉面板 -->
-        <div id="settings-dropdown" class="hidden fixed right-4 top-20 bg-white rounded-xl card-shadow p-3 z-50 w-60">
-            <div class="text-xs text-gray-400 px-1 pb-1 pt-1 font-medium">数据操作</div>
-            <div onclick="closeSettings(); exportData();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-download text-primary w-5 text-center"></i> 导出下载</div>
-            <div onclick="triggerImport()" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-upload text-primary w-5 text-center"></i> 文件导入</div>
-            <div onclick="closeSettings(); copyData();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-copy text-primary w-5 text-center"></i> 复制数据</div>
-            <div onclick="closeSettings(); openPasteImport();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-paste text-primary w-5 text-center"></i> 粘贴导入</div>
-            <div onclick="closeSettings(); openShareSelect();" class="px-3 py-2.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-3 text-sm"><i class="fa fa-camera text-primary w-5 text-center"></i> 分享截图</div>
-            <div class="border-t border-gray-100 my-2"></div>
-            <div class="text-xs text-gray-400 px-1 pb-2 font-medium">显示设置</div>
-            <div class="px-1 pb-1">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span>显示模式</span>
-                    <div class="flex border border-gray-200 rounded-lg overflow-hidden">
-                        <button id="view-grid" onclick="setViewMode('grid')" class="px-2.5 py-1 text-xs bg-primary text-white">宫格</button>
-                        <button id="view-list" onclick="setViewMode('list')" class="px-2.5 py-1 text-xs bg-gray-100 text-gray-600">列表</button>
-                    </div>
-                </div>
-                <div class="text-sm mb-1 flex justify-between"><span>屏幕显示密度</span><span id="density-val" class="text-primary font-medium">85%</span></div>
-                <input type="range" id="density-slider" min="0.7" max="1.3" step="0.05" value="0.85" class="w-full accent-primary mb-3" oninput="setDensity(this.value)" onchange="setDensity(this.value)">
-                <div class="text-sm mb-1 flex justify-between"><span>宫格卡片密度</span><span id="card-density-grid-val" class="text-primary font-medium">60%</span></div>
-                <input type="range" id="card-density-grid-slider" min="0.6" max="1.4" step="0.05" value="0.6" class="w-full accent-primary mb-3" oninput="setCardDensityGrid(this.value)" onchange="setCardDensityGrid(this.value)">
-                <div class="text-sm mb-1 flex justify-between"><span>列表卡片密度</span><span id="card-density-list-val" class="text-primary font-medium">85%</span></div>
-                <input type="range" id="card-density-list-slider" min="0.6" max="1.4" step="0.05" value="0.85" class="w-full accent-primary" oninput="setCardDensityList(this.value)" onchange="setCardDensityList(this.value)">
-            </div>
-            <div class="border-t border-gray-100 my-2"></div>
-            <div class="text-xs text-gray-400 px-1 pb-2 font-medium">主题颜色</div>
-            <div class="flex flex-wrap gap-2 px-1 pb-2" id="theme-swatches">
-                <button data-rgb="22 93 255" class="w-7 h-7 rounded-full border-2" style="background:#165DFF" onclick="setThemeColor('22 93 255')" title="默认蓝"></button>
-                <button data-rgb="0 180 42" class="w-7 h-7 rounded-full border-2" style="background:#00B42A" onclick="setThemeColor('0 180 42')" title="青绿"></button>
-                <button data-rgb="255 125 0" class="w-7 h-7 rounded-full border-2" style="background:#FF7D00" onclick="setThemeColor('255 125 0')" title="橙黄"></button>
-                <button data-rgb="114 46 209" class="w-7 h-7 rounded-full border-2" style="background:#722ED1" onclick="setThemeColor('114 46 209')" title="紫色"></button>
-                <button data-rgb="245 63 63" class="w-7 h-7 rounded-full border-2" style="background:#F53F3F" onclick="setThemeColor('245 63 63')" title="红色"></button>
-                <button data-rgb="20 201 201" class="w-7 h-7 rounded-full border-2" style="background:#14C9C9" onclick="setThemeColor('20 201 201')" title="青色"></button>
-            </div>
-            <div class="flex items-center gap-2 px-1 pb-1">
-                <span class="text-sm">自定义</span>
-                <input type="color" id="theme-color-input" value="#165DFF" onchange="setThemeColorFromHex(this.value)" class="w-8 h-8 rounded cursor-pointer border border-gray-200 bg-white p-0">
-            </div>
-        </div>
+    <div id="app" class="max-w-[980px] mx-auto px-4 py-6">
 
-        <!-- 云同步状态（移至控制台下方） -->
-        <div id="sync-bar" class="bg-white rounded-xl p-3 mb-5 card-shadow flex items-center justify-between cursor-pointer hover:bg-gray-50 transition" onclick="manualSync()">
-            <div class="flex items-center gap-2">
-                <i id="sync-icon" class="fa fa-cloud text-primary"></i>
-                <span id="sync-text" class="text-sm text-gray-600">初始化...</span>
-            </div>
-            <span class="text-xs text-gray-400">点击手动同步</span>
+        <!-- 顶部应用栏已移除，导航改用底部标签栏 -->
+
+        <!-- 设置已改为底部标签“设置”页 -->
+
+        <!-- 云同步状态 -->
+        <div id="sync-bar" class="sync-pill" onclick="manualSync()">
+            <span class="sync-left"><i id="sync-icon" class="fa fa-cloud"></i><span id="sync-text">初始化...</span></span>
+            <span class="sync-hint">点击手动同步</span>
         </div>
 
         <!-- 首页 -->
         <div id="page-home">
+            <h1 class="page-title">本地网络控制台</h1>
+            <p class="page-sub">管理你的位置、网络设备与测速网站</p>
+            <div class="sec-head">
+                <div class="sec-title"><span class="sec-dot"></span>位置</div>
+                <button class="mini-btn" onclick="openSiteEdit()"><i class="fa fa-plus"></i> 新增位置</button>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="site-list"></div>
-            <button onclick="openSiteEdit()" class="mt-6 w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl text-lg hover:bg-primary/5 transition">
-                <i class="fa fa-plus mr-2"></i> 新增位置
-            </button>
             <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
             <div class="mt-8">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xl font-semibold border-l-4 pl-3 border-primary">测速网站列表</h3>
-                    <button onclick="openSpeedEdit()" class="text-sm text-primary border border-primary px-3 py-1 rounded hover:bg-primary/5 transition"><i class="fa fa-plus mr-1"></i> 添加</button>
+                <div class="sec-head">
+                    <div class="sec-title"><span class="sec-dot"></span>测速网站列表</div>
+                    <button class="mini-btn" onclick="openSpeedEdit()"><i class="fa fa-plus"></i> 添加</button>
                 </div>
-                <div class="bg-white rounded-xl p-4 card-shadow">
+                <div class="card p-4">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead class="bg-gray-100"><tr><th class="border p-2 text-left">测速网站</th><th class="border p-2 text-left">网址</th><th class="border p-2">操作</th></tr></thead>
+                            <thead class="bg-gray-100"><tr><th class="border p-2 text-left">测速网站</th><th class="border p-2 text-left">网址（点击直接打开）</th></tr></thead>
                             <tbody id="speed-table-home"></tbody>
                         </table>
                     </div>
@@ -114,11 +140,16 @@
         <div id="page-site" class="hidden">
             <button onclick="backHome()" class="mb-4 text-primary flex items-center gap-1"><i class="fa fa-arrow-left"></i> 返回首页</button>
             <h2 id="site-title" class="text-2xl font-bold mb-4"></h2>
-            <h3 class="text-lg font-semibold mb-3">网络设备</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" id="device-list"></div>
-            <button onclick="openDeviceEdit()" class="w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl mb-8 hover:bg-primary/5"><i class="fa fa-plus mr-2"></i> 新增网络设备</button>
-            <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
-            <div class="bg-white rounded-xl p-4 card-shadow mb-4">
+            <div class="sec-head">
+                <div class="sec-title"><span class="sec-dot"></span>网络设备</div>
+                <button class="mini-btn" onclick="openDeviceEdit()"><i class="fa fa-plus"></i> 新增网络设备</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16" id="device-list"></div>
+            <div class="sec-head mt-2">
+                <div class="sec-title"><span class="sec-dot"></span>网口分配记录</div>
+                <button class="mini-btn" onclick="openPortEdit()"><i class="fa fa-plus"></i> 添加网口记录</button>
+            </div>
+            <div class="card p-4 mb-4">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm mb-3">
                         <thead class="bg-gray-100"><tr><th class="border p-2 text-left whitespace-nowrap">网口</th><th class="border p-2 text-left whitespace-nowrap">房间用途</th></tr></thead>
@@ -127,7 +158,45 @@
                 </div>
                 <p class="text-gray-600 text-xs mb-3">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p>
                 <p class="text-gray-400 text-xs mb-3"><i class="fa fa-info-circle mr-1"></i> 长按网口记录可编辑或删除</p>
-                <button onclick="openPortEdit()" class="text-sm text-primary border border-primary px-3 py-1 rounded hover:bg-primary/5 transition"><i class="fa fa-plus mr-1"></i> 添加网口记录</button>
+            </div>
+        </div>
+
+        <!-- 设置页（底部标签） -->
+        <div id="page-settings" class="hidden">
+            <h1 class="page-title">设置</h1>
+            <p class="page-sub">数据、显示与主题</p>
+
+            <div class="set-group-title">数据操作</div>
+            <div class="card" style="padding:4px 14px;">
+                <div class="set-row" onclick="exportData()"><i class="fa fa-download"></i><span>导出下载</span><i class="fa fa-chevron-right chev"></i></div>
+                <div class="set-row" onclick="triggerImport()"><i class="fa fa-upload"></i><span>文件导入</span><i class="fa fa-chevron-right chev"></i></div>
+                <div class="set-row" onclick="copyData()"><i class="fa fa-copy"></i><span>复制数据</span><i class="fa fa-chevron-right chev"></i></div>
+                <div class="set-row" onclick="openPasteImport()"><i class="fa fa-paste"></i><span>粘贴导入</span><i class="fa fa-chevron-right chev"></i></div>
+                <div class="set-row" onclick="openShareSelect()"><i class="fa fa-camera"></i><span>分享截图</span><i class="fa fa-chevron-right chev"></i></div>
+            </div>
+
+            <div class="set-group-title">显示设置</div>
+            <div class="card" style="padding:14px;">
+                <div class="text-[13px] mb-1 flex justify-between"><span>屏幕显示密度</span><span id="density-val" class="font-semibold" style="color:rgb(var(--c-primary-rgb))">85%</span></div>
+                <input type="range" id="density-slider" min="0.7" max="1.3" step="0.05" value="0.85" class="w-full accent-primary mb-4" oninput="setDensity(this.value)" onchange="setDensity(this.value)">
+                <div class="text-[13px] mb-1 flex justify-between"><span>卡片显示密度</span><span id="card-density-grid-val" class="font-semibold" style="color:rgb(var(--c-primary-rgb))">60%</span></div>
+                <input type="range" id="card-density-grid-slider" min="0.6" max="1.4" step="0.05" value="0.6" class="w-full accent-primary" oninput="setCardDensityGrid(this.value)" onchange="setCardDensityGrid(this.value)">
+            </div>
+
+            <div class="set-group-title">主题颜色</div>
+            <div class="card" style="padding:14px;">
+                <div class="flex flex-wrap gap-2 mb-3" id="theme-swatches">
+                    <button data-rgb="22 93 255" class="w-7 h-7 rounded-full border-2" style="background:#165DFF" onclick="setThemeColor('22 93 255')" title="默认蓝"></button>
+                    <button data-rgb="236 72 153" class="w-7 h-7 rounded-full border-2" style="background:#EC4899" onclick="setThemeColor('236 72 153')" title="玫瑰红"></button>
+                    <button data-rgb="255 125 0" class="w-7 h-7 rounded-full border-2" style="background:#FF7D00" onclick="setThemeColor('255 125 0')" title="橙黄"></button>
+                    <button data-rgb="114 46 209" class="w-7 h-7 rounded-full border-2" style="background:#722ED1" onclick="setThemeColor('114 46 209')" title="紫色"></button>
+                    <button data-rgb="245 63 63" class="w-7 h-7 rounded-full border-2" style="background:#F53F3F" onclick="setThemeColor('245 63 63')" title="红色"></button>
+                    <button data-rgb="20 201 201" class="w-7 h-7 rounded-full border-2" style="background:#14C9C9" onclick="setThemeColor('20 201 201')" title="青色"></button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[13px]">自定义</span>
+                    <input type="color" id="theme-color-input" value="#165DFF" onchange="setThemeColorFromHex(this.value)" class="w-8 h-8 rounded cursor-pointer border border-gray-200 bg-white p-0">
+                </div>
             </div>
         </div>
     </div>
@@ -159,18 +228,13 @@
     <div id="modal-share-qr" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-sm p-6"><h3 class="text-xl font-bold mb-2 text-center" id="share-qr-title">分享截图</h3><p class="text-gray-500 text-sm mb-4 text-center">网络设备信息截图</p><div class="flex justify-center mb-4"><div id="qr-code-container" class="bg-gray-100 p-2 rounded-xl border border-gray-200 max-h-96 overflow-y-auto"></div></div><p class="text-center text-gray-400 text-xs mb-4">长按图片可保存到手机</p><div class="flex gap-3"><button onclick="closeModal('modal-share-qr')" class="flex-1 py-2 border rounded-lg">关闭</button></div></div></div>
     <div id="modal-paste-import" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-lg p-6"><h3 class="text-xl font-bold mb-4">粘贴导入数据</h3><p class="text-gray-500 text-sm mb-3">将之前复制的JSON数据粘贴到下方文本框中</p><textarea id="paste-data-textarea" class="w-full border rounded-lg p-3 mb-4 h-48 text-sm font-mono" placeholder="在此粘贴JSON数据..."></textarea><div class="flex gap-3"><button onclick="closeModal('modal-paste-import')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="doPasteImport()" class="flex-1 py-2 grad-bg text-white rounded-lg">确认导入</button></div></div></div>
     <div id="page-share" class="hidden">
-        <div class="grad-bg text-white rounded-2xl p-6 mb-6 card-shadow"><h1 class="text-[24px] font-bold flex items-center gap-2"><i class="fa fa-wifi"></i> <span id="share-site-name">网络信息</span></h1><p class="text-white/80 text-sm mt-2">分享的网络设备信息</p></div>
+        <div class="card p-5 mb-6"><h1 class="text-[18px] font-bold flex items-center gap-2"><i class="fa fa-wifi" style="color:rgb(var(--c-primary-rgb))"></i> <span id="share-site-name">网络信息</span></h1><p class="text-gray-400 text-xs mt-1">分享的网络设备信息</p></div>
         <h3 class="text-lg font-semibold mb-3">网络设备</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="share-device-list"></div>
         <h3 class="text-lg font-semibold mb-3">网口分配记录</h3>
         <div class="bg-white rounded-xl p-4 card-shadow mb-4"><div class="overflow-x-auto"><table class="w-full text-sm mb-3"><thead class="bg-gray-100"><tr><th class="border p-2 text-left whitespace-nowrap">网口</th><th class="border p-2 text-left whitespace-nowrap">房间用途</th></tr></thead><tbody id="share-port-table"></tbody></table></div><p class="text-gray-600 text-xs">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div>
         <button onclick="backHome()" class="w-full py-3 border border-primary text-primary rounded-xl mt-4"><i class="fa fa-home mr-2"></i> 返回控制台首页</button>
     </div>
         <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/85 text-white px-5 py-2 rounded-lg hidden z-[9999]">复制成功</div>
-
-        <!-- 悬浮返回上一级按钮（长按可拖动位置） -->
-        <button id="fab-back" class="hidden fixed bottom-6 right-6 w-14 h-14 rounded-full grad-bg text-white shadow-lg z-[9998] items-center justify-center text-xl hover:opacity-90 transition" style="touch-action:none" title="返回上一级（长按可拖动）">
-            <i class="fa fa-arrow-up"></i>
-        </button>
 
     <script>
         // ⚠️ 请填写你的 Supabase 项目信息
@@ -186,14 +250,11 @@
         };
 
         let data = JSON.parse(localStorage.getItem("netMgrData")) || JSON.parse(JSON.stringify(defaultData));
-        let currentSiteId = null, ctxSiteId = null, ctxDeviceId = null, ctxPortId = null, editPortId = null, ctxSpeedId = null, editSpeedId = null, currentShareSite = null;
-        let viewMode = localStorage.getItem("netMgrViewMode") || "list";
+        let currentSiteId = null, ctxSiteId = null, ctxDeviceId = null, ctxPortId = null, editPortId = null, ctxSpeedId = null,  editSpeedId = null, currentShareSite = null;
         let density = parseFloat(localStorage.getItem("netMgrDensity"));
         if (isNaN(density) || density < 0.7 || density > 1.3) density = 0.85;
         let cardDensityGrid = parseFloat(localStorage.getItem("netMgrCardDensityGrid"));
         if (isNaN(cardDensityGrid) || cardDensityGrid < 0.6 || cardDensityGrid > 1.4) cardDensityGrid = 0.6;
-        let cardDensityList = parseFloat(localStorage.getItem("netMgrCardDensityList"));
-        if (isNaN(cardDensityList) || cardDensityList < 0.6 || cardDensityList > 1.4) cardDensityList = 0.85;
         let themeRgb = localStorage.getItem("netMgrThemeRgb") || "22 93 255";
 
         // ========== Supabase 无登录同步逻辑 ==========
@@ -298,25 +359,13 @@
         // ========== 设置面板 ==========
         function toggleSettings(e) {
             if (e) { e.stopPropagation(); e.preventDefault(); }
-            document.getElementById('settings-dropdown').classList.toggle('hidden');
+            const d = document.getElementById('settings-dropdown');
+            if (d) d.classList.toggle('hidden');
         }
-        function closeSettings() { document.getElementById('settings-dropdown').classList.add('hidden'); }
+        function closeSettings() { /* 设置已改为底部标签页，无需关闭下拉 */ }
         function triggerImport() { closeSettings(); document.getElementById('import-file').click(); }
 
-        // ========== 显示设置（宫格/列表 + 密度） ==========
-        function setViewMode(mode) {
-            viewMode = mode;
-            localStorage.setItem("netMgrViewMode", mode);
-            updateViewButtons();
-            renderSiteList();
-            if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
-        }
-        function updateViewButtons() {
-            const g = document.getElementById('view-grid'), l = document.getElementById('view-list');
-            if (!g || !l) return;
-            if (viewMode === 'grid') { g.className = "px-2.5 py-1 text-xs bg-primary text-white"; l.className = "px-2.5 py-1 text-xs bg-gray-100 text-gray-600"; }
-            else { l.className = "px-2.5 py-1 text-xs bg-primary text-white"; g.className = "px-2.5 py-1 text-xs bg-gray-100 text-gray-600"; }
-        }
+        // ========== 显示设置（密度） ==========
         function setDensity(val) {
             density = parseFloat(val);
             if (isNaN(density)) density = 0.85;
@@ -331,15 +380,6 @@
             localStorage.setItem("netMgrCardDensityGrid", cardDensityGrid);
             const label = document.getElementById('card-density-grid-val');
             if (label) label.innerText = Math.round(cardDensityGrid * 100) + '%';
-            renderSiteList();
-            if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
-        }
-        function setCardDensityList(val) {
-            cardDensityList = parseFloat(val);
-            if (isNaN(cardDensityList)) cardDensityList = 0.85;
-            localStorage.setItem("netMgrCardDensityList", cardDensityList);
-            const label = document.getElementById('card-density-list-val');
-            if (label) label.innerText = Math.round(cardDensityList * 100) + '%';
             renderSiteList();
             if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) renderDeviceList(site); }
         }
@@ -372,24 +412,30 @@
                 else { btn.style.borderColor = '#e5e7eb'; btn.style.transform = 'scale(1)'; }
             });
         }
+        function openDrawer() { const d = document.getElementById('drawer'); const o = document.getElementById('drawer-overlay'); if (d) d.classList.add('open'); if (o) o.classList.add('open'); }
+        function closeDrawer() { const d = document.getElementById('drawer'); const o = document.getElementById('drawer-overlay'); if (d) d.classList.remove('open'); if (o) o.classList.remove('open'); }
         function updateBackBtn() {
-            const btn = document.getElementById('fab-back');
-            if (!btn) return;
-            const onHome = !document.getElementById('page-home').classList.contains('hidden');
-            btn.style.display = onHome ? 'none' : 'flex';
+            const bar = document.getElementById('top-bar');
+            if (bar) bar.style.display = (currentPage === 'share') ? 'none' : 'flex';
+            const drawer = document.getElementById('drawer');
+            if (!drawer) return;
+            const homeActive = (currentPage === 'home' || currentPage === 'site' || currentPage === 'share');
+            const setActive = (currentPage === 'settings');
+            drawer.querySelectorAll('[data-tab]').forEach(b => {
+                const t = b.getAttribute('data-tab');
+                b.classList.toggle('active', (t === 'home' && homeActive) || (t === 'settings' && setActive));
+            });
         }
-        function goBack() {
-            if (!document.getElementById('page-home').classList.contains('hidden')) return;
-            backHome();
-        }
+        function goBack() { if (currentPage !== 'home') setPage('home'); }
         function initFabDrag() {
             const fab = document.getElementById('fab-back');
             if (!fab) return;
-            try { const p = JSON.parse(localStorage.getItem('netMgrFabPos') || 'null'); if (p && typeof p.x === 'number') { fab.style.left = p.x + 'px'; fab.style.top = p.y + 'px'; fab.style.right = 'auto'; fab.style.bottom = 'auto'; } } catch (e) {}
+            try { const p = JSON.parse(localStorage.getItem('netMgrFabPos') || 'null'); if (p && typeof p.x === 'number') { const w = fab.offsetWidth || 56, h = fab.offsetHeight || 56; const x = Math.max(0, Math.min(p.x, window.innerWidth - w)); const y = Math.max(0, Math.min(p.y, window.innerHeight - h)); fab.style.left = x + 'px'; fab.style.top = y + 'px'; fab.style.right = 'auto'; fab.style.bottom = 'auto'; } } catch (e) {}
             let startX = 0, startY = 0, origX = 0, origY = 0, dragging = false, moved = false, longTimer = null, pointerId = null;
             fab.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 pointerId = e.pointerId; moved = false;
+                try { fab.setPointerCapture(pointerId); } catch (e) {}
                 const rect = fab.getBoundingClientRect();
                 startX = e.clientX; startY = e.clientY; origX = rect.left; origY = rect.top;
                 longTimer = setTimeout(() => { dragging = true; fab.style.transition = 'none'; fab.style.right = 'auto'; fab.style.bottom = 'auto'; fab.style.left = origX + 'px'; fab.style.top = origY + 'px'; }, 400);
@@ -413,21 +459,39 @@
             };
             fab.addEventListener('pointerup', endDrag);
             fab.addEventListener('pointercancel', () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } dragging = false; pointerId = null; });
+            // 吞掉点击，避免点击穿透到下方卡片
+            fab.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+        }
+
+        // ========== 页面切换（底部标签栏） ==========
+        let currentPage = 'home';
+        const ALL_PAGES = ['home', 'site', 'settings', 'share'];
+        function setPage(p) {
+            currentPage = p;
+            ALL_PAGES.forEach(n => {
+                const el = document.getElementById('page-' + n);
+                if (el) el.classList.toggle('hidden', n !== p);
+            });
+            closeDrawer();
+            if (p === 'home' || p === 'settings') window.scrollTo(0, 0);
+            const tt = document.getElementById('top-bar-title');
+            if (tt) tt.innerText = (p === 'settings') ? '设置' : (p === 'site') ? (document.getElementById('site-title').innerText || '位置详情') : '本地网络控制台';
+            updateBackBtn();
         }
 
         // ========== UI 逻辑 ==========
         function showToast(text = "复制成功") { const t = document.getElementById("toast"); t.innerText = text; t.classList.remove("hidden"); setTimeout(() => t.classList.add("hidden"), 1500); }
         function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
         function checkShareMode() { const params = new URLSearchParams(window.location.hash.slice(1)); const shareData = params.get('share'); if (shareData) { try { showSharePage(JSON.parse(decodeURIComponent(escape(atob(shareData))))); return true; } catch(e) {} } return false; }
-        function showSharePage(siteData) { document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.remove("hidden"); document.getElementById("share-site-name").innerText = siteData.name || "网络信息"; const devWrap = document.getElementById("share-device-list"); devWrap.innerHTML = ""; if (siteData.devices?.length > 0) { siteData.devices.forEach(dev => { const c = document.createElement("div"); c.className = "bg-white rounded-xl p-5 card-shadow"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; devWrap.appendChild(c); }); } else { devWrap.innerHTML = '<p class="text-gray-400">暂无设备信息</p>'; } const tb = document.getElementById("share-port-table"); tb.innerHTML = ""; if (siteData.portList?.length > 0) { siteData.portList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; tb.appendChild(tr); }); } else { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录</td></tr>'; } updateBackBtn(); }
-        function renderSiteList() { const wrap = document.getElementById("site-list"); wrap.innerHTML = ""; const isList = viewMode === 'list'; const cd = isList ? cardDensityList : cardDensityGrid; wrap.className = isList ? "grid grid-cols-1" : "grid grid-cols-1 md:grid-cols-3"; wrap.style.gap = ((isList ? 0.5 : 1.25) * cd) + "rem"; data.sites.forEach(site => { const card = document.createElement("div"); const base = "site-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; if (isList) { card.className = base + " flex items-center justify-between"; card.style.padding = (0.5 * cd) + "rem"; card.innerHTML = `<div class="flex items-center gap-2"><i class="fa fa-server text-primary"></i><span class="font-semibold text-gray-800">${site.name}</span></div><span class="text-gray-400 text-sm">${site.devices.length} 台设备</span>`; } else { card.className = base; card.style.padding = (1.0 * cd) + "rem"; card.innerHTML = `<h3 class="text-xl font-bold text-primary mb-2"><i class="fa fa-server mr-2"></i>${site.name}</h3><p class="text-gray-500 text-sm">共 ${site.devices.length} 台网络设备</p>`; } card.onclick = () => openSite(site.id); card.oncontextmenu = (e) => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.clientX, e.clientY); }; let pt; card.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); card.addEventListener("touchend", () => clearTimeout(pt)); card.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(card); }); }
-        function renderSpeedTableHome() { const tb = document.getElementById("speed-table-home"); tb.innerHTML = ""; data.speedList.forEach(item => { const tr = document.createElement("tr"); tr.className = "speed-item"; tr.innerHTML = `<td class="border p-2">${item.name}</td><td class="border p-2 text-blue-600 break-all">${item.url}</td><td class="border p-2 text-center"><a href="${item.url}" target="_blank" class="text-primary">打开</a></td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
+        function showSharePage(siteData) { setPage('share'); document.getElementById("share-site-name").innerText = siteData.name || "网络信息"; const devWrap = document.getElementById("share-device-list"); devWrap.innerHTML = ""; if (siteData.devices?.length > 0) { siteData.devices.forEach(dev => { const c = document.createElement("div"); c.className = "bg-white rounded-xl p-5 card-shadow"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; devWrap.appendChild(c); }); } else { devWrap.innerHTML = '<p class="text-gray-400">暂无设备信息</p>'; } const tb = document.getElementById("share-port-table"); tb.innerHTML = ""; if (siteData.portList?.length > 0) { siteData.portList.forEach(item => { const tr = document.createElement("tr"); tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; tb.appendChild(tr); }); } else { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录</td></tr>'; } updateBackBtn(); }
+        function renderSiteList() { const wrap = document.getElementById("site-list"); wrap.innerHTML = ""; const cd = cardDensityGrid; wrap.className = "grid grid-cols-1 md:grid-cols-3"; wrap.style.gap = (1.25 * cd) + "rem"; data.sites.forEach(site => { const card = document.createElement("div"); const base = "site-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; card.className = base; card.style.padding = (1.0 * cd) + "rem"; card.innerHTML = `<h3 class="text-xl font-bold text-primary mb-2"><i class="fa fa-server mr-2"></i>${site.name}</h3><p class="text-gray-500 text-sm">共 ${site.devices.length} 台网络设备</p>`; card.onclick = () => openSite(site.id); card.oncontextmenu = (e) => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.clientX, e.clientY); }; let pt; card.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSiteId = site.id; showCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); card.addEventListener("touchend", () => clearTimeout(pt)); card.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(card); }); }
+        function renderSpeedTableHome() { const tb = document.getElementById("speed-table-home"); tb.innerHTML = ""; data.speedList.forEach(item => { const tr = document.createElement("tr"); tr.className = "speed-item"; tr.innerHTML = `<td class="border p-2 font-medium whitespace-nowrap">${item.name}</td><td class="border p-2"><a href="${item.url}" target="_blank" rel="noopener" class="text-primary break-all hover:underline">${item.url}</a></td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxSpeedId = item.id; showSpeedCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
         function showCtxMenu(x, y) { const m = document.getElementById("ctx-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
         function showDeviceCtxMenu(x, y) { const m = document.getElementById("ctx-device-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
         function showPortCtxMenu(x, y) { const m = document.getElementById("ctx-port-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
         function showSpeedCtxMenu(x, y) { const m = document.getElementById("ctx-speed-menu"); m.classList.remove("hidden"); m.style.left = `${x}px`; m.style.top = `${y}px`; setTimeout(() => document.addEventListener("click", () => m.classList.add("hidden"), { once: true }), 10); }
-        function openSite(siteId) { currentSiteId = siteId; document.getElementById("page-home").classList.add("hidden"); document.getElementById("page-site").classList.remove("hidden"); const site = data.sites.find(s => s.id === siteId); document.getElementById("site-title").innerText = site.name; renderDeviceList(site); renderPortTableSite(site); updateBackBtn(); }
-        function backHome() { document.getElementById("page-home").classList.remove("hidden"); document.getElementById("page-site").classList.add("hidden"); document.getElementById("page-share").classList.add("hidden"); if (window.location.hash) history.pushState("", document.title, window.location.pathname + window.location.search); refreshUI(); updateBackBtn(); }
+        function openSite(siteId) { currentSiteId = siteId; const site = data.sites.find(s => s.id === siteId); document.getElementById("site-title").innerText = site.name; renderDeviceList(site); renderPortTableSite(site); setPage('site'); }
+        function backHome() { if (window.location.hash) history.pushState("", document.title, window.location.pathname + window.location.search); setPage('home'); refreshUI(); }
         function renderDeviceList(site) { const wrap = document.getElementById("device-list"); wrap.innerHTML = ""; wrap.className = "grid grid-cols-1 md:grid-cols-2"; wrap.style.gap = (1.0 * cardDensityGrid) + "rem"; site.devices.forEach(dev => { const c = document.createElement("div"); const base = "device-item bg-white rounded-xl card-shadow cursor-pointer hover:scale-[1.02] transition-transform"; c.className = base; c.style.padding = (1.25 * cardDensityGrid) + "rem"; c.innerHTML = `<h4 class="font-bold text-lg mb-2">${dev.name}</h4><p class="text-gray-600 text-sm mb-1">地址：${dev.ip}</p><p class="text-gray-600 text-sm mb-1">管理密码：${dev.pwd||'未设置'}</p><p class="text-gray-600 text-sm mb-4">路由密码：${dev.routePwd||'未设置'}</p><div class="flex flex-wrap gap-2"><button onclick="copyText('${dev.pwd||''}')" class="px-3 py-1 border rounded text-sm">管理密码</button><button onclick="copyText('${dev.routePwd||''}')" class="px-3 py-1 border rounded text-sm">路由密码</button><a href="http://${dev.ip}" target="_blank" class="px-3 py-1 grad-bg text-white rounded text-sm">登录管理</a></div>`; c.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.clientX, e.clientY); }; let pt; c.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxDeviceId = dev.id; showDeviceCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); c.addEventListener("touchend", () => clearTimeout(pt)); c.addEventListener("touchmove", () => clearTimeout(pt)); wrap.appendChild(c); }); }
         async function copyText(str) { if (!str) { showToast("内容为空"); return; } try { await navigator.clipboard.writeText(str); showToast(); } catch (e) { const ta = document.createElement("textarea"); ta.value = str; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); showToast(); } }
         function renderPortTableSite(site) { const tb = document.getElementById("port-table-site"); tb.innerHTML = ""; if (!site.portList?.length) { tb.innerHTML = '<tr><td colspan="2" class="border p-4 text-center text-gray-400">暂无网口记录，点击下方按钮添加</td></tr>'; return; } site.portList.forEach(item => { const tr = document.createElement("tr"); tr.className = "port-item"; tr.innerHTML = `<td class="border p-2 whitespace-nowrap">${item.port}</td><td class="border p-2 whitespace-nowrap">${item.desc}</td>`; let pt; tr.addEventListener("touchstart", (e) => { pt = setTimeout(() => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); }); tr.addEventListener("touchend", () => clearTimeout(pt)); tr.addEventListener("touchmove", () => clearTimeout(pt)); tr.oncontextmenu = (e) => { e.preventDefault(); ctxPortId = item.id; showPortCtxMenu(e.clientX, e.clientY); }; tb.appendChild(tr); }); }
@@ -458,7 +522,7 @@
         function saveDevice() { const name = document.getElementById("dev-name").value.trim(); const ip = document.getElementById("dev-ip").value.trim(); const pwd = document.getElementById("dev-pwd").value.trim(); const routePwd = document.getElementById("dev-route-pwd").value.trim(); if (!name || !ip) return showToast("设备名称和地址必填"); const editId = document.getElementById("edit-device-id").value; const site = data.sites.find(s => s.id === currentSiteId); if (editId) { const dev = site.devices.find(d => d.id === editId); dev.name = name; dev.ip = ip; dev.pwd = pwd; dev.routePwd = routePwd; } else { site.devices.push({ id: "dev_" + Date.now(), name, ip, pwd, routePwd }); } saveData(); renderDeviceList(site); closeModal("modal-device"); }
         // ========== 分享与导入导出 ==========
         function openShareSelect() { const list = document.getElementById("share-site-list"); list.innerHTML = ""; data.sites.forEach(site => { const item = document.createElement("div"); item.className = "p-3 border rounded-lg cursor-pointer hover:bg-gray-50 flex items-center justify-between"; item.innerHTML = `<span><i class="fa fa-server mr-2 text-primary"></i>${site.name}</span><span class="text-gray-400 text-sm">${site.devices.length} 台设备</span>`; item.onclick = () => { closeModal('modal-share-select'); generateShareScreenshot(site); }; list.appendChild(item); }); document.getElementById("modal-share-select").classList.remove("hidden"); }
-        function generateShareScreenshot(site) { currentShareSite = site; document.getElementById("share-qr-title").innerText = `分享：${site.name}`; document.getElementById("modal-share-qr").classList.remove("hidden"); const container = document.getElementById("qr-code-container"); container.innerHTML = '<p class="text-gray-400 text-sm p-4">生成截图中...</p>'; const renderBox = document.createElement("div"); renderBox.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:#f1f5f9;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;"; let dh = ''; site.devices.forEach(dev => { dh += `<div style="background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h4 style="font-size:16px;font-weight:bold;margin:0 0 8px;color:#1e293b;">${dev.name}</h4><p style="font-size:14px;color:#64748b;margin:4px 0;">地址：${dev.ip}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">管理密码：${dev.pwd||'未设置'}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">路由密码：${dev.routePwd||'未设置'}</p></div>`; }); let ph = ''; if (site.portList?.length) { let pr = ''; site.portList.forEach(i => { pr += `<tr><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.port}</td><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.desc}</td></tr>`; }); ph = `<div><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网口分配记录</h3><div style="background:white;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">网口</th><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">房间用途</th></tr></thead><tbody>${pr}</tbody></table><p style="font-size:12px;color:#64748b;margin:12px 0 0;">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div></div>`; } renderBox.innerHTML = `<div style="background:linear-gradient(135deg,#165DFF,#4080FF);color:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h2 style="font-size:20px;font-weight:bold;margin:0;display:flex;align-items:center;gap:8px;"><span>📶</span> ${site.name}</h2><p style="font-size:14px;opacity:.8;margin:8px 0 0;">网络设备信息</p></div><div style="margin-bottom:16px;"><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网络设备</h3>${dh}</div>${ph}`; document.body.appendChild(renderBox); setTimeout(() => { html2canvas(renderBox, { backgroundColor: '#f1f5f9', scale: 2, useCORS: true, logging: false }).then(canvas => { const img = document.createElement("img"); img.src = canvas.toDataURL('image/png'); img.style.cssText = "width:100%;border-radius:8px;"; container.innerHTML = ""; container.appendChild(img); document.body.removeChild(renderBox); }).catch(err => { container.innerHTML = '<p class="text-red-500 text-sm p-4">截图生成失败</p>'; document.body.contains(renderBox) && document.body.removeChild(renderBox); }); }, 100); }
+        function generateShareScreenshot(site) { currentShareSite = site; document.getElementById("share-qr-title").innerText = `分享：${site.name}`; document.getElementById("modal-share-qr").classList.remove("hidden"); const container = document.getElementById("qr-code-container"); container.innerHTML = '<p class="text-gray-400 text-sm p-4">生成截图中...</p>'; const renderBox = document.createElement("div"); renderBox.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:#f1f5f9;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;"; let dh = ''; site.devices.forEach(dev => { dh += `<div style="background:white;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h4 style="font-size:16px;font-weight:bold;margin:0 0 8px;color:#1e293b;">${dev.name}</h4><p style="font-size:14px;color:#64748b;margin:4px 0;">地址：${dev.ip}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">管理密码：${dev.pwd||'未设置'}</p><p style="font-size:14px;color:#64748b;margin:4px 0;">路由密码：${dev.routePwd||'未设置'}</p></div>`; }); let ph = ''; if (site.portList?.length) { let pr = ''; site.portList.forEach(i => { pr += `<tr><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.port}</td><td style="border:1px solid #e2e8f0;padding:8px;font-size:14px;white-space:nowrap;">${i.desc}</td></tr>`; }); ph = `<div><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网口分配记录</h3><div style="background:white;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">网口</th><th style="border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:14px;white-space:nowrap;">房间用途</th></tr></thead><tbody>${pr}</tbody></table><p style="font-size:12px;color:#64748b;margin:12px 0 0;">T568B线序：白橙、橙、白绿、蓝、白蓝、绿、白棕、棕</p></div></div>`; } renderBox.innerHTML = `<div style="background:rgb(${themeRgb});color:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(${themeRgb},0.1);"><h2 style="font-size:20px;font-weight:bold;margin:0;display:flex;align-items:center;gap:8px;"><span>📶</span> ${site.name}</h2><p style="font-size:14px;opacity:.8;margin:8px 0 0;">网络设备信息</p></div><div style="margin-bottom:16px;"><h3 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#1e293b;">网络设备</h3>${dh}</div>${ph}`; document.body.appendChild(renderBox); setTimeout(() => { html2canvas(renderBox, { backgroundColor: '#f1f5f9', scale: 2, useCORS: true, logging: false }).then(canvas => { const img = document.createElement("img"); img.src = canvas.toDataURL('image/png'); img.style.cssText = "width:100%;border-radius:8px;"; container.innerHTML = ""; container.appendChild(img); document.body.removeChild(renderBox); }).catch(err => { container.innerHTML = '<p class="text-red-500 text-sm p-4">截图生成失败</p>'; document.body.contains(renderBox) && document.body.removeChild(renderBox); }); }, 100); }
         function exportData() { const b = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; const d = new Date(); a.download = `网络控制台数据_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); showToast("导出成功"); }
         function copyData() { copyText(JSON.stringify(data, null, 2)); showToast("数据已复制"); }
         function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm("导入数据将覆盖当前所有数据，确定继续吗？")) { event.target.value = ""; return; } const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (!imported.sites || !Array.isArray(imported.sites)) { showToast("数据格式错误"); return; } data = migrateDataStructure(imported); saveData(); refreshUI(); showToast("导入成功"); } catch { showToast("文件解析失败"); } }; reader.readAsText(file); event.target.value = ""; }
@@ -469,27 +533,17 @@
         window.addEventListener('DOMContentLoaded', () => {
             if (checkShareMode()) return;
             data = migrateDataStructure(data);
+            setPage('home');
             refreshUI();
-            // 应用显示设置
-            updateViewButtons();
+            // 应用显示设置（本地数据已优先渲染，云端在后台自动同步）
             document.getElementById('app').style.zoom = density;
             const ds = document.getElementById('density-slider'); if (ds) ds.value = density;
             const dv = document.getElementById('density-val'); if (dv) dv.innerText = Math.round(density * 100) + '%';
             const cds = document.getElementById('card-density-grid-slider'); if (cds) cds.value = cardDensityGrid;
             const cdv = document.getElementById('card-density-grid-val'); if (cdv) cdv.innerText = Math.round(cardDensityGrid * 100) + '%';
-            const cls = document.getElementById('card-density-list-slider'); if (cls) cls.value = cardDensityList;
-            const clv = document.getElementById('card-density-list-val'); if (clv) clv.innerText = Math.round(cardDensityList * 100) + '%';
             updateBackBtn();
             applyTheme();
-            initFabDrag();
-            initSupabase();
-            document.addEventListener('click', (e) => {
-                const d = document.getElementById('settings-dropdown');
-                if (!d || d.classList.contains('hidden')) return;
-                if (d.contains(e.target)) return;
-                if (e.target.closest('[onclick*="toggleSettings"]')) return;
-                d.classList.add('hidden');
-            });
+            setTimeout(initSupabase, 60);
         });
         window.addEventListener('hashchange', () => { if (!window.location.hash) { document.getElementById("page-share").classList.add("hidden"); document.getElementById("page-home").classList.remove("hidden"); refreshUI(); } });
     </script>
