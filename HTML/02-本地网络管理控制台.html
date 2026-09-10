@@ -168,6 +168,15 @@
             <h1 class="page-title">设置</h1>
             <p class="page-sub">数据、显示与主题</p>
 
+            <div class="set-group-title">云同步账号</div>
+            <div class="card" style="padding:4px 14px;">
+                <div class="set-row" onclick="openCloudSettings()">
+                    <i class="fa fa-cloud"></i><span>账号设置</span>
+                    <span id="cloud-state" style="margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap;">未配置</span>
+                    <i class="fa fa-chevron-right chev" style="margin-left:8px;"></i>
+                </div>
+            </div>
+
             <div class="set-group-title">数据操作</div>
             <div class="card" style="padding:4px 14px;">
                 <div class="set-row" onclick="exportData()"><i class="fa fa-download"></i><span>导出下载</span><i class="fa fa-chevron-right chev"></i></div>
@@ -175,6 +184,7 @@
                 <div class="set-row" onclick="copyData()"><i class="fa fa-copy"></i><span>复制数据</span><i class="fa fa-chevron-right chev"></i></div>
                 <div class="set-row" onclick="openPasteImport()"><i class="fa fa-paste"></i><span>粘贴导入</span><i class="fa fa-chevron-right chev"></i></div>
                 <div class="set-row" onclick="openShareSelect()"><i class="fa fa-camera"></i><span>分享截图</span><i class="fa fa-chevron-right chev"></i></div>
+                <div class="set-row" onclick="clearLocalData()"><i class="fa fa-trash" style="color:#ef4444"></i><span style="color:#ef4444">清除本地数据</span><i class="fa fa-chevron-right chev"></i></div>
             </div>
 
             <div class="set-group-title">显示设置</div>
@@ -239,6 +249,19 @@
     <div id="modal-share-select" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6"><h3 class="text-xl font-bold mb-4">选择要截图的位置</h3><div id="share-site-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div><div class="flex gap-3"><button onclick="closeModal('modal-share-select')" class="flex-1 py-2 border rounded-lg">取消</button></div></div></div>
     <div id="modal-share-qr" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-sm p-6"><h3 class="text-xl font-bold mb-2 text-center" id="share-qr-title">分享截图</h3><p class="text-gray-500 text-sm mb-4 text-center">网络设备信息截图</p><div class="flex justify-center mb-4"><div id="qr-code-container" class="bg-gray-100 p-2 rounded-xl border border-gray-200 max-h-96 overflow-y-auto"></div></div><p class="text-center text-gray-400 text-xs mb-4">长按图片可保存到手机</p><div class="flex gap-3"><button onclick="closeModal('modal-share-qr')" class="flex-1 py-2 border rounded-lg">关闭</button></div></div></div>
     <div id="modal-paste-import" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-lg p-6"><h3 class="text-xl font-bold mb-4">粘贴导入数据</h3><p class="text-gray-500 text-sm mb-3">将之前复制的JSON数据粘贴到下方文本框中</p><textarea id="paste-data-textarea" class="w-full border rounded-lg p-3 mb-4 h-48 text-sm font-mono" placeholder="在此粘贴JSON数据..."></textarea><div class="flex gap-3"><button onclick="closeModal('modal-paste-import')" class="flex-1 py-2 border rounded-lg">取消</button><button onclick="doPasteImport()" class="flex-1 py-2 grad-bg text-white rounded-lg">确认导入</button></div></div></div>
+    <div id="modal-cloud" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4"><div class="bg-white rounded-xl w-full max-w-md p-6">
+        <h3 class="text-xl font-bold mb-4">云同步账号</h3>
+        <label class="block mb-2 font-medium">项目 URL</label>
+        <input id="cloud-url" class="w-full border rounded-lg p-3 mb-3" placeholder="https://xxxxx.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <label class="block mb-2 font-medium flex items-center justify-between"><span>API Key</span><button type="button" onclick="toggleCloudKey()" class="text-[12px] font-normal" style="color:rgb(var(--c-primary-rgb))"><i id="cloud-eye" class="fa fa-eye"></i> 显示</button></label>
+        <input id="cloud-key" type="password" class="w-full border rounded-lg p-3 mb-3" placeholder="sb_publishable_... 或 anon key" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p class="text-[12px] mb-5" style="color:var(--muted)"><i class="fa fa-shield mr-1"></i> 仅保存在本机浏览器，不写入代码、不随导出文件带走</p>
+        <div class="flex gap-2">
+            <button onclick="clearCloudAccount()" class="py-2 px-3 border rounded-lg text-[13px]" style="color:#ef4444">清除</button>
+            <button onclick="closeModal('modal-cloud')" class="flex-1 py-2 border rounded-lg">取消</button>
+            <button onclick="saveCloudAccount()" class="flex-1 py-2 grad-bg text-white rounded-lg">保存并连接</button>
+        </div>
+    </div></div>
     <div id="page-share" class="hidden">
         <div class="card p-5 mb-6"><h1 class="text-[18px] font-bold flex items-center gap-2"><i class="fa fa-wifi" style="color:rgb(var(--c-primary-rgb))"></i> <span id="share-site-name">网络信息</span></h1><p class="text-gray-400 text-xs mt-1">分享的网络设备信息</p></div>
         <h3 class="text-lg font-semibold mb-3">网络设备</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="share-device-list"></div>
@@ -249,12 +272,64 @@
         <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/85 text-white px-5 py-2 rounded-lg hidden z-[9999]">复制成功</div>
 
     <script>
-        // ⚠️ 请填写你的 Supabase 项目信息
-        const SUPABASE_URL = 'https://bbsmuquknfmegwokfsyn.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_IfxinQAG6tS4Nhsb0klV1Q_Tyel20J6';
+        // ========== 云同步账号 ==========
+        // 账号信息只存在本机浏览器 localStorage，源码中不保留任何凭据
+        const LS_SB_URL = 'netMgrSbUrl';
+        const LS_SB_KEY = 'netMgrSbKey';
+        const getCloudUrl = () => (localStorage.getItem(LS_SB_URL) || '').trim();
+        const getCloudKey = () => (localStorage.getItem(LS_SB_KEY) || '').trim();
 
         let supabaseClient = null;
         let isSyncing = false;
+        let pushTimer = null, pushRetry = 0;   // 本地修改自动上传：防抖 + 排队重试
+
+        // 打开账号设置弹窗
+        function openCloudSettings() {
+            document.getElementById('cloud-url').value = getCloudUrl();
+            document.getElementById('cloud-key').value = getCloudKey();
+            document.getElementById('cloud-key').type = 'password';
+            const eye = document.getElementById('cloud-eye');
+            if (eye) { eye.className = 'fa fa-eye'; }
+            document.getElementById('modal-cloud').classList.remove('hidden');
+        }
+        function toggleCloudKey() {
+            const inp = document.getElementById('cloud-key');
+            const eye = document.getElementById('cloud-eye');
+            const show = inp.type === 'password';
+            inp.type = show ? 'text' : 'password';
+            if (eye) eye.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+        }
+        function saveCloudAccount() {
+            const url = document.getElementById('cloud-url').value.trim().replace(/\/+$/, '');
+            const key = document.getElementById('cloud-key').value.trim();
+            if (!url || !key) { showToast('URL 和 Key 不能为空'); return; }
+            if (!/^https?:\/\/.+/i.test(url)) { showToast('URL 需以 http(s):// 开头'); return; }
+            localStorage.setItem(LS_SB_URL, url);
+            localStorage.setItem(LS_SB_KEY, key);
+            closeModal('modal-cloud');
+            showToast('已保存，正在连接');
+            initSupabase();
+        }
+        function clearCloudAccount() {
+            if (!getCloudUrl() && !getCloudKey()) { showToast('尚未配置账号'); return; }
+            if (!confirm('清除本机保存的云同步账号？清除后将停止云同步（本地数据保留）。')) return;
+            localStorage.removeItem(LS_SB_URL);
+            localStorage.removeItem(LS_SB_KEY);
+            supabaseClient = null;
+            document.getElementById('cloud-url').value = '';
+            document.getElementById('cloud-key').value = '';
+            closeModal('modal-cloud');
+            updateCloudState();
+            updateSyncStatus('offline', '未配置账号');
+            showToast('账号已清除');
+        }
+        // 设置页显示状态（Key 只露后 4 位）
+        function updateCloudState() {
+            const el = document.getElementById('cloud-state');
+            if (!el) return;
+            const k = getCloudKey();
+            el.innerText = (getCloudUrl() && k) ? ('已配置 ····' + k.slice(-4)) : '未配置';
+        }
 
         const defaultData = {
             sites: [{ id: "zd", name: "家里", devices: [{ id: "zd-gm", name: "光猫", ip: "192.168.1.1", pwd: "62ay2ht5", routePwd: "" }, { id: "zd-zx", name: "中兴路由器", ip: "192.168.5.1", pwd: "25803699", routePwd: "" }], portList: [{ id: "p1", port: "网口1", desc: "次卧（客厅）(T568B)" }, { id: "p2", port: "网口2", desc: "次卧（飘窗）(T568B)" }, { id: "p3", port: "网口3", desc: "主卧(T568B)" }, { id: "p4", port: "网口4", desc: "客厅(T568B)" }] }],
@@ -271,11 +346,19 @@
 
         // ========== Supabase 无登录同步逻辑 ==========
         function initSupabase() {
-            if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-                updateSyncStatus('offline', '未配置云服务'); return;
+            updateCloudState();
+            const url = getCloudUrl(), key = getCloudKey();
+            if (!url || !key) {
+                supabaseClient = null;
+                updateSyncStatus('offline', '未配置账号');
+                return;
+            }
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                updateSyncStatus('error', '云服务未加载');
+                return;
             }
             try {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                supabaseClient = window.supabase.createClient(url, key);
                 updateSyncStatus('syncing', '连接云端...');
                 loadFromCloud();
             } catch (err) {
@@ -348,7 +431,92 @@
             } finally { isSyncing = false; }
         }
 
-        function manualSync() { loadFromCloud(); }
+        function manualSync() {
+            if (!supabaseClient) {
+                if (!getCloudUrl() || !getCloudKey()) { showToast('请先配置云同步账号'); openCloudSettings(); return; }
+                initSupabase(); return;
+            }
+            loadFromCloud();
+        }
+
+        // 确保已创建云端客户端（不会触发任何拉取/上传）
+        function ensureCloudClient() {
+            if (supabaseClient) return true;
+            const url = getCloudUrl(), key = getCloudKey();
+            if (!url || !key || !window.supabase || typeof window.supabase.createClient !== 'function') return false;
+            try { supabaseClient = window.supabase.createClient(url, key); return true; }
+            catch (err) { console.error(err); return false; }
+        }
+
+        // 本地有修改 → 防抖 0.8 秒后自动上传；若正在同步则排队重试
+        function schedulePush() {
+            if (!supabaseClient) return;
+            if (pushTimer) clearTimeout(pushTimer);
+            pushTimer = setTimeout(() => { pushTimer = null; flushPush(); }, 800);
+        }
+        function flushPush() {
+            if (!supabaseClient) return;
+            if (isSyncing) {
+                if (pushRetry++ < 40) { setTimeout(flushPush, 500); }   // 最多等约 20 秒
+                else { pushRetry = 0; }
+                return;
+            }
+            pushRetry = 0;
+            pushToCloud(true);
+        }
+
+        // 只从云端拉取，绝不反向上传（用于清除本地数据后恢复）
+        async function pullFromCloudOnly(silent) {
+            if (!ensureCloudClient()) { showToast('未配置云同步账号'); return; }
+            isSyncing = true;
+            updateSyncStatus('syncing', '拉取数据...');
+            try {
+                const { data: row, error } = await withTimeout(
+                    supabaseClient.from('net_mgr_config').select('data').eq('id', 1).maybeSingle(), 10000
+                );
+                if (error) throw error;
+                if (row && row.data && Object.keys(row.data).length > 0) {
+                    data = migrateDataStructure(row.data);
+                    saveLocal();
+                    currentSiteId = null;
+                    refreshUI();
+                    updateSyncStatus('online', '云端数据已同步');
+                    if (!silent) showToast('已从云端加载数据');
+                } else {
+                    updateSyncStatus('online', '云端暂无数据');
+                    if (!silent) showToast('云端暂无数据');
+                }
+            } catch (err) {
+                console.error('拉取失败:', err);
+                updateSyncStatus('error', '同步失败');
+                if (!silent) showToast('云端加载失败');
+            } finally { isSyncing = false; }
+        }
+
+        // 清除本地数据：已配账号→清空后从云端重载；未配账号→直接清空
+        function clearLocalData() {
+            const hasAccount = !!(getCloudUrl() && getCloudKey());
+            const msg = hasAccount
+                ? '将清除本机保存的数据，并立即从云端重新加载。\n（云端数据不受影响）\n\n确定继续吗？'
+                : '当前未配置云同步账号，清除后无法恢复！\n建议先点「导出下载」备份。\n\n确定清除本机的全部数据吗？';
+            if (!confirm(msg)) return;
+            localStorage.removeItem('netMgrData');
+            localStorage.removeItem('netMgrData_ts');
+            data = { sites: [], speedList: [] };
+            currentSiteId = null;
+            saveLocal();
+            setPage('home');
+            refreshUI();
+            updateBackBtn();
+            if (hasAccount) {
+                showToast('本地已清空，正在从云端加载');
+                pullFromCloudOnly();
+            } else {
+                supabaseClient = null;
+                updateSyncStatus('offline', '未配置账号');
+                showToast('本地数据已清除');
+            }
+        }
         function updateSyncStatus(state, text) {
             const icon = document.getElementById('sync-icon');
             document.getElementById('sync-text').innerText = text;
@@ -365,7 +533,10 @@
             return d;
         }
         function saveLocal() { localStorage.setItem("netMgrData", JSON.stringify(data)); localStorage.setItem("netMgrData_ts", Date.now().toString()); }
-        function saveData() { saveLocal(); pushToCloud(); }
+        function saveData() { saveLocal(); schedulePush(); }   // 本地保存后自动上传云端
+        // 离开页面 / 切到后台时立刻补传一次，避免改动丢失
+        document.addEventListener('visibilitychange', () => { if (document.hidden && supabaseClient) { if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; } flushPush(); } });
+        window.addEventListener('pagehide', () => { if (supabaseClient) { if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; } flushPush(); } });
         function refreshUI() { renderSiteList(); renderSpeedTableHome(); if (currentSiteId) { const site = data.sites.find(s => s.id === currentSiteId); if (site) { renderDeviceList(site); renderPortTableSite(site); } } }
 
         // ========== 设置面板 ==========
@@ -503,6 +674,7 @@
                 if (el) el.classList.toggle('hidden', n !== p);
             });
             closeDrawer();
+            if (p === 'settings') updateCloudState();
             if (p === 'home' || p === 'settings') window.scrollTo(0, 0);
             const tt = document.getElementById('top-bar-title');
             if (tt) tt.innerText = (p === 'settings') ? '设置' : (p === 'site') ? (document.getElementById('site-title').innerText || '位置详情') : '本地网络控制台';
