@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>归物本</title>
+<style>
+:root{
+  --bg:#F5F6F8; --card:#FFFFFF; --bd:#E5E7EB; --bd2:#D6D9DE;
+  --tx:#1F2328; --tx2:#6B7280; --tx3:#9CA3AF;
+  --ac:#4A7C8C; --ac-s:#EAF1F3; --ac-d:#3A6472;
+  --ok:#3F8F6B; --ok-s:#EAF4EF;
+  --warn:#B8863B; --warn-s:#FAF2E4;
+  --bad:#B85C4F; --bad-s:#FAEDEB;
+  --idle:#A8823C;
+  --r:10px; --r2:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--tx);
+  font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit;outline:none}
+button{cursor:pointer;background:none;border:none}
+input,select,textarea{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%}
+input:focus,select,textarea:focus{border-color:var(--ac)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#D3D6DA;border-radius:3px}
+
+/* ---------- 顶栏 ---------- */
+.top{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:10px;padding:8px 14px}
+.brand{font-size:14px;font-weight:600;letter-spacing:.5px;white-space:nowrap;color:var(--ac-d)}
+.brand small{font-size:11px;font-weight:400;color:var(--tx3);margin-left:6px;letter-spacing:0}
+.search{flex:1;max-width:420px}
+.search input{padding:6px 10px;font-size:12.5px}
+.acts{display:flex;gap:6px;margin-left:auto}
+.btn{border:1px solid var(--bd2);background:var(--card);border-radius:8px;padding:6px 12px;font-size:12.5px;color:var(--tx);white-space:nowrap}
+.btn:hover{border-color:var(--ac);color:var(--ac-d)}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn.pri:hover{background:var(--ac-d);color:#fff}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.dgr{color:var(--bad);border-color:#EBD3CF}
+.btn.dgr:hover{background:var(--bad-s);border-color:var(--bad);color:var(--bad)}
+
+/* ---------- 导航 ---------- */
+.tabs{display:flex;gap:2px;padding:6px 14px 0;border-bottom:1px solid var(--bd);background:var(--card)}
+.tabs button{padding:7px 14px;font-size:12.5px;color:var(--tx2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ac-d);border-bottom-color:var(--ac);font-weight:500}
+.tabbar{display:none}
+
+/* ---------- 布局 ---------- */
+main{max-width:1240px;margin:0 auto;padding:14px}
+.view{display:none}
+.view.on{display:block}
+#vItems.on{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:14px;align-items:start}
+.col{display:flex;flex-direction:column;gap:10px}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 14px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--tx)}
+.hint{font-size:11.5px;color:var(--tx3);line-height:1.7}
+
+/* 汇总条 */
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);border-radius:var(--r);overflow:hidden}
+.sum div{background:var(--card);padding:8px 10px}
+.sum .k{font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum .v{font-size:16px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum .v span{font-size:11px;font-weight:400;color:var(--tx3);margin-left:2px}
+
+/* 筛选 */
+.filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chip{border:1px solid var(--bd);background:var(--card);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--tx2);white-space:nowrap}
+.chip.on{background:var(--ac-s);border-color:var(--ac);color:var(--ac-d)}
+.sel{width:auto;padding:3px 6px;font-size:12px;border-radius:6px}
+
+/* ---------- 列表 ---------- */
+.list{display:flex;flex-direction:column;gap:6px}
+.item{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;position:relative;transition:border-color .12s}
+.item:hover{border-color:var(--bd2)}
+.item.on{border-color:var(--ac);background:var(--ac-s)}
+.item.dim{opacity:.55}
+.thumb{width:38px;height:38px;border-radius:7px;background:#EFF1F3;flex:none;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;color:var(--tx3);font-size:11px}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.it-m{flex:1;min-width:0}
+.it-n{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it-s{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.it-r{text-align:right;flex:none}
+.it-p{font-size:12px;color:var(--tx2);white-space:nowrap}
+.it-d{font-size:12.5px;font-weight:600;margin-top:1px;white-space:nowrap}
+.g{color:var(--ok)}.w{color:var(--warn)}.b{color:var(--bad)}
+.tag{display:inline-block;font-size:10.5px;padding:0 5px;border-radius:4px;line-height:16px;margin-left:5px;vertical-align:1px}
+.tag.idle{background:var(--warn-s);color:var(--idle)}
+.tag.gone{background:#F0F1F2;color:var(--tx3)}
+.tag.war{background:var(--bad-s);color:var(--bad)}
+.empty{text-align:center;color:var(--tx3);font-size:12.5px;padding:36px 10px}
+
+/* ---------- 详情 ---------- */
+#detail{position:sticky;top:60px}
+.d-top{display:flex;gap:12px}
+.d-img{width:96px;height:96px;border-radius:10px;background:#EFF1F3;flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px}
+.d-img img{width:100%;height:100%;object-fit:cover}
+.d-h{flex:1;min-width:0}
+.d-h h2{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-sub{font-size:11.5px;color:var(--tx3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.kpi div{background:#F7F8F9;border-radius:var(--r);padding:9px 10px}
+.kpi .k{font-size:11px;color:var(--tx3)}
+.kpi .v{font-size:18px;font-weight:600;margin-top:2px}
+.kpi .v small{font-size:11px;font-weight:400;color:var(--tx3)}
+.rows{margin-top:10px;border-top:1px solid var(--bd);padding-top:8px}
+.row{display:flex;font-size:12.5px;padding:4px 0}
+.row .rk{width:70px;color:var(--tx3);flex:none}
+.row .rv{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-acts{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.back{display:none}
+
+/* ---------- 统计 ---------- */
+#vStats.on{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bar{display:flex;align-items:center;gap:8px;padding:4px 0}
+.bar .bn{width:64px;font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.bar .bt{flex:1;height:14px;background:#F0F1F3;border-radius:4px;overflow:hidden}
+.bar .bf{height:100%;background:var(--ac);border-radius:4px;min-width:2px}
+.bar .bv{width:88px;text-align:right;font-size:11.5px;color:var(--tx3);flex:none;white-space:nowrap}
+.rank{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid #F2F3F4}
+.rank:last-child{border-bottom:none}
+.rank .rn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .rv{font-size:12px;font-weight:600;white-space:nowrap}
+.chart{width:100%;height:150px;display:block}
+
+/* ---------- 设置 ---------- */
+.set{display:flex;flex-direction:column;gap:6px}
+.set .srow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.set .srow label{width:80px;color:var(--tx3);flex:none}
+pre.sql{background:#F7F8F9;border:1px solid var(--bd);border-radius:8px;padding:10px;font-size:11px;line-height:1.6;
+  overflow:auto;white-space:pre;color:var(--tx2);margin-top:8px}
+details>summary{font-size:12px;color:var(--ac);cursor:pointer;padding:4px 0}
+
+/* ---------- 弹层 ---------- */
+.mask{position:fixed;inset:0;background:rgba(20,24,28,.35);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--card);border-radius:var(--r2);width:100%;max-width:440px;max-height:88vh;overflow:auto;padding:16px 18px}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.fld{margin-bottom:9px}
+.fld label{display:block;font-size:11.5px;color:var(--tx3);margin-bottom:3px}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.menu{position:fixed;z-index:120;background:var(--card);border:1px solid var(--bd2);border-radius:10px;padding:4px;min-width:132px;
+  box-shadow:0 6px 20px rgba(0,0,0,.10)}
+.menu button{display:block;width:100%;text-align:left;padding:7px 11px;font-size:12.5px;border-radius:7px}
+.menu button:hover{background:#F2F4F5}
+.menu button.d{color:var(--bad)}
+.menu hr{border:none;border-top:1px solid var(--bd);margin:4px 0}
+.ipick{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;max-height:250px;overflow:auto;padding:2px}
+.ipick button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 3px;border:1px solid var(--bd);border-radius:9px;background:var(--card)}
+.ipick button span{font-size:10.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ipick button:hover{border-color:var(--ac)}
+.ipick button.on{border-color:var(--ac);background:var(--ac-s)}
+.ipick button.on span{color:var(--ac-d)}
+.ipick button svg{width:32px;height:32px}
+.toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);background:rgba(31,35,40,.92);color:#fff;
+  font-size:12.5px;padding:8px 16px;border-radius:20px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+
+/* ---------- 手机 ---------- */
+@media(max-width:900px){
+  main{padding:10px}
+  .tabs{display:none}
+  .search{max-width:none}
+  #vItems.on{grid-template-columns:1fr}
+  #detail{position:fixed;inset:0;z-index:80;background:var(--bg);overflow:auto;padding:12px;display:none}
+  #detail.open{display:block}
+  .back{display:inline-block}
+  .grid2{grid-template-columns:1fr}
+  .sum{grid-template-columns:repeat(2,1fr)}
+  .top{padding:7px 10px}
+  .brand small{display:none}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(255,255,255,.94);
+    backdrop-filter:blur(8px);border-top:1px solid var(--bd);padding:5px 0 calc(5px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--tx3);padding:3px 0}
+  .tabbar button.on{color:var(--ac-d)}
+  .tabbar svg{width:19px;height:19px}
+  main{padding-bottom:64px}
+  .kpi{grid-template-columns:repeat(3,1fr)}
+  .kpi .v{font-size:16px}
+  .fld2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">归物本<small>让每件东西都用回本</small></div>
+  <div class="search"><input id="q" placeholder="搜名称 / 分类 / 标签 / 备注"></div>
+  <div class="acts">
+    <button class="btn" id="btnNew">+ 新增</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-t="items" class="on">清单</button>
+  <button data-t="stats">统计</button>
+  <button data-t="settings">设置</button>
+</nav>
+
+<main>
+  <section class="view on" id="vItems">
+    <div class="col">
+      <div class="sum" id="sum"></div>
+      <div class="filters">
+        <select class="sel" id="fCat"></select>
+        <select class="sel" id="fStatus">
+          <option value="">全部状态</option>
+          <option value="using">在用</option>
+          <option value="idle">闲置</option>
+          <option value="gone">已出</option>
+        </select>
+        <select class="sel" id="fSort">
+          <option value="date">按购买日期</option>
+          <option value="perday">按日均成本</option>
+          <option value="price">按价格</option>
+          <option value="name">按名称</option>
+          <option value="days">按持有天数</option>
+        </select>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+    <aside class="card" id="detail"></aside>
+  </section>
+
+  <section class="view" id="vStats"></section>
+  <section class="view" id="vSettings"></section>
+</main>
+
+<nav class="tabbar" id="tabbar">
+  <button data-t="items" class="on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    清单</button>
+  <button data-t="stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/></svg>
+    统计</button>
+  <button data-t="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-1.1-2.7H1a2 2 0 110-4h.1A1.6 1.6 0 002.6 7a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H7a1.6 1.6 0 001-1.5V1a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V7a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg>
+    设置</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============ 基础 ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const DAY = 864e5;
+const LS = 'guiwuben.v1';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const money = n => '¥' + Number(n || 0).toLocaleString('zh-CN', {maximumFractionDigits: 2});
+const perD = n => '¥' + (n >= 1 ? n.toFixed(2) : n.toFixed(3));
+const todayStr = () => new Date().toLocaleDateString('sv-SE');
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1900); }
+
+const DEF_CATS = ['数码', '家电', '衣物', '鞋包', '书籍', '家居', '运动', '美妆', '其他'];
+const STATUS = { using: '在用', idle: '闲置', gone: '已出' };
+
+
+let DB = { items: [], cats: DEF_CATS.slice(), tomb: {}, sync: { url: '', key: '', table: 'items', auto: false, last: 0 } };
+let UI = { tab: 'items', id: null, q: '', cat: '', status: '', sort: 'date' };
+
+/* ============ 存储 ============ */
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(DB)); }catch(e){ toast('保存失败：本地空间已满'); } }
+function load(){
+  try{
+    const r = localStorage.getItem(LS);
+    if (r) {
+      const d = JSON.parse(r);
+      DB.items = d.items || [];
+      DB.cats = (d.cats && d.cats.length) ? d.cats : DEF_CATS.slice();
+      DB.tomb = d.tomb || {};
+      DB.sync = Object.assign(DB.sync, d.sync || {});
+    }
+  }catch(e){ toast('本地数据读取失败'); }
+}
+
+/* ============ 拟物图标库（内置，无需上传图片） ============ */
+const ICONS = [
+{i:'phone',n:'手机',c:'#8AA9BE,#5A7B91',p:'<rect x="10" y="4" width="12" height="24" rx="2.6" fill="#fff"/><rect x="13.4" y="25" width="5.2" height="1.3" rx=".65" fill="#000" opacity=".22"/>'},
+{i:'laptop',n:'笔记本',c:'#7E9CB5,#4F6D85',p:'<rect x="6.5" y="8" width="19" height="12" rx="1.6" fill="#fff"/><path d="M4 22.5h24l-2.2 3.2H6.2z" fill="#fff" opacity=".88"/>'},
+{i:'tablet',n:'平板',c:'#8AA9BE,#5A7B91',p:'<rect x="8" y="4" width="16" height="24" rx="2.2" fill="#fff"/><circle cx="16" cy="25.6" r="1" fill="#000" opacity=".22"/>'},
+{i:'watch',n:'手表',c:'#B08FC0,#755A85',p:'<rect x="10" y="10" width="12" height="12" rx="3" fill="#fff"/><path d="M12.6 10V5.5h6.8V10M12.6 22v4.5h6.8V22" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>'},
+{i:'headphone',n:'头戴耳机',c:'#7FA0B8,#4E6F88',p:'<path d="M8 19v-3a8 8 0 0116 0v3" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><rect x="5" y="17.5" width="5.4" height="8" rx="2.7" fill="#fff"/><rect x="21.6" y="17.5" width="5.4" height="8" rx="2.7" fill="#fff"/>'},
+{i:'earbud',n:'无线耳机',c:'#7FA0B8,#4E6F88',p:'<rect x="9" y="8" width="6" height="9" rx="3" fill="#fff"/><rect x="17" y="8" width="6" height="9" rx="3" fill="#fff"/><path d="M12 17v6a3 3 0 01-3 3M20 17v6a3 3 0 003 3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>'},
+{i:'camera',n:'相机',c:'#8B9BB0,#5A6B80',p:'<rect x="5" y="9" width="22" height="15" rx="2.5" fill="#fff"/><circle cx="16" cy="16.5" r="4.5" fill="#000" opacity=".25"/><rect x="12" y="6" width="8" height="4" rx="1.5" fill="#fff" opacity=".9"/>'},
+{i:'speaker',n:'音箱',c:'#93A7BA,#5E7388',p:'<rect x="9" y="5" width="14" height="22" rx="3" fill="#fff"/><circle cx="16" cy="20" r="3.5" fill="#000" opacity=".25"/><circle cx="16" cy="11" r="2" fill="#000" opacity=".2"/>'},
+{i:'keyboard',n:'键盘',c:'#7E9CB5,#4F6D85',p:'<rect x="4" y="10" width="24" height="12" rx="2" fill="#fff"/><g fill="#000" opacity=".22"><rect x="7" y="13" width="3" height="2.6" rx=".6"/><rect x="11.5" y="13" width="3" height="2.6" rx=".6"/><rect x="16" y="13" width="3" height="2.6" rx=".6"/><rect x="20.5" y="13" width="3" height="2.6" rx=".6"/><rect x="9.5" y="17.4" width="13" height="2.6" rx=".6"/></g>'},
+{i:'mouse',n:'鼠标',c:'#7E9CB5,#4F6D85',p:'<rect x="11" y="5" width="10" height="22" rx="5" fill="#fff"/><path d="M16 8.5v4.5" stroke="#000" stroke-width="1.6" opacity=".25" stroke-linecap="round"/>'},
+{i:'tv',n:'电视',c:'#8496AC,#54677D',p:'<rect x="4" y="7" width="24" height="15" rx="2" fill="#fff"/><path d="M11 26h10M16 22.5v3.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>'},
+{i:'router',n:'路由器',c:'#6FA08F,#43705F',p:'<rect x="6" y="17" width="20" height="8" rx="2" fill="#fff"/><path d="M10 13.5v3.5M16 11v6M22 13.5v3.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="21" r="1.3" fill="#000" opacity=".25"/>'},
+{i:'charger',n:'充电宝',c:'#C9A05E,#8F6B2E',p:'<rect x="9" y="6" width="14" height="20" rx="2.6" fill="#fff"/><path d="M16.5 11l-2.6 4.6h3.2L15.5 21" stroke="#000" opacity=".3" stroke-width="1.7" fill="none" stroke-linejoin="round"/>'},
+{i:'gamepad',n:'游戏手柄',c:'#8E93C0,#5B6091',p:'<rect x="4" y="11" width="24" height="12" rx="6" fill="#fff"/><path d="M10 15v4M8 17h4" stroke="#000" opacity=".28" stroke-width="1.8" stroke-linecap="round"/><circle cx="21" cy="16" r="1.4" fill="#000" opacity=".28"/><circle cx="24" cy="19" r="1.4" fill="#000" opacity=".28"/>'},
+{i:'fridge',n:'冰箱',c:'#96B0C4,#5F7B90',p:'<rect x="9" y="4" width="14" height="24" rx="2.5" fill="#fff"/><path d="M9 13h14" stroke="#000" opacity=".22" stroke-width="1.4"/><rect x="11.5" y="6.5" width="1.6" height="3.4" rx=".8" fill="#000" opacity=".25"/><rect x="11.5" y="15.5" width="1.6" height="3.4" rx=".8" fill="#000" opacity=".25"/>'},
+{i:'washer',n:'洗衣机',c:'#96B0C4,#5F7B90',p:'<rect x="7" y="5" width="18" height="22" rx="2.5" fill="#fff"/><circle cx="16" cy="19" r="5.5" fill="#000" opacity=".2"/><circle cx="16" cy="19" r="2.6" fill="#fff"/><rect x="10" y="8" width="7" height="2.4" rx="1.2" fill="#000" opacity=".22"/>'},
+{i:'ac',n:'空调',c:'#96B0C4,#5F7B90',p:'<rect x="5" y="8" width="22" height="9" rx="2.5" fill="#fff"/><path d="M9 21v3M13 21v5M17 21v4M21 21v6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="8" y="11" width="12" height="2" rx="1" fill="#000" opacity=".2"/>'},
+{i:'fan',n:'风扇',c:'#8FB8B0,#4F8B80',p:'<circle cx="16" cy="16" r="9.5" fill="#fff"/><g fill="#000" opacity=".18"><circle cx="16" cy="9.6" r="4"/><circle cx="21.5" cy="18.7" r="4"/><circle cx="10.5" cy="18.7" r="4"/></g><circle cx="16" cy="16" r="2.6" fill="#fff"/>'},
+{i:'lamp',n:'台灯',c:'#D9A85F,#A5762D',p:'<path d="M10 14l6-8 6 8z" fill="#fff"/><path d="M16 14v12M11 27h10" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>'},
+{i:'sofa',n:'沙发',c:'#B99A86,#85694F',p:'<rect x="5" y="16" width="22" height="8" rx="2" fill="#fff"/><rect x="7" y="11" width="18" height="7" rx="2" fill="#fff" opacity=".85"/><path d="M5 24v3M27 24v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'},
+{i:'chair',n:'椅子',c:'#B99A86,#85694F',p:'<rect x="9" y="10" width="14" height="10" rx="2" fill="#fff"/><path d="M9 20v8M23 20v8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'},
+{i:'bed',n:'床',c:'#A8907E,#75604F',p:'<rect x="4" y="17" width="24" height="8" rx="2" fill="#fff"/><rect x="6" y="11" width="10" height="6" rx="2" fill="#fff" opacity=".9"/><path d="M4 25v3M28 25v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'},
+{i:'desk',n:'桌子',c:'#B99A86,#85694F',p:'<rect x="4" y="12" width="24" height="3.4" rx="1.2" fill="#fff"/><path d="M7 15.4v11M25 15.4v11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'},
+{i:'pot',n:'锅具',c:'#B08A7A,#7C5A4C',p:'<path d="M6 13h20v6a6 6 0 01-6 6h-8a6 6 0 01-6-6z" fill="#fff"/><path d="M4 13h24" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M12 8h8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'},
+{i:'cup',n:'水杯',c:'#C79A86,#96684F',p:'<path d="M9 9h14v11a5 5 0 01-5 5h-4a5 5 0 01-5-5z" fill="#fff"/><path d="M23 11h2.5a2.5 2.5 0 010 5H23" stroke="#fff" stroke-width="2" fill="none"/><path d="M7 28h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/>'},
+{i:'bottle',n:'水壶',c:'#7FB8C4,#4A8B99',p:'<path d="M13 6h6v3l2.5 3v13a2 2 0 01-2 2h-7a2 2 0 01-2-2V12L13 9z" fill="#fff"/><rect x="13" y="3" width="6" height="3" rx="1" fill="#fff" opacity=".8"/>'},
+{i:'utensil',n:'餐具',c:'#A8A2B8,#736D85',p:'<path d="M11 4v10a2 2 0 004 0V4M13 14v14" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M21 4c-2 2-2 6-1 8v16" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>'},
+{i:'book',n:'书',c:'#D98F76,#A65B44',p:'<path d="M7 6h7a3 3 0 013 3v17a3 3 0 00-3-3H7z" fill="#fff"/><path d="M25 6h-7a3 3 0 00-3 3v17a3 3 0 013-3h7z" fill="#fff" opacity=".8"/>'},
+{i:'pen',n:'笔',c:'#8E93C0,#5B6091',p:'<path d="M6 26l1.5-5L21 7.5l3.5 3.5L11 24.5z" fill="#fff"/><path d="M19 9.5l3.5 3.5" stroke="#000" opacity=".25" stroke-width="1.4"/>'},
+{i:'bag',n:'包',c:'#C08FA0,#8C5A6C',p:'<path d="M8 11h16l1.5 15H6.5z" fill="#fff"/><path d="M12 11V8a4 4 0 018 0v3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>'},
+{i:'shoe',n:'鞋',c:'#A8907E,#75604F',p:'<path d="M5 21h20v3H5z" fill="#fff"/><path d="M5 21c0-4 1-7 4-7h4l4 3h6c2 0 3 1.5 3 4z" fill="#fff" opacity=".85"/>'},
+{i:'shirt',n:'衣服',c:'#7FB8C4,#4A8B99',p:'<path d="M12 6l4 3 4-3 6 3-2 5-2-1v12H10V13l-2 1-2-5z" fill="#fff"/>'},
+{i:'glasses',n:'眼镜',c:'#8E93C0,#5B6091',p:'<g fill="#fff"><circle cx="9.5" cy="18" r="5"/><circle cx="22.5" cy="18" r="5"/></g><path d="M14.5 17.5h3M4.5 16L7 17M27.5 16L25 17" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/><g fill="#000" opacity=".2"><circle cx="9.5" cy="18" r="3.4"/><circle cx="22.5" cy="18" r="3.4"/></g>'},
+{i:'jewelry',n:'首饰',c:'#D9B36A,#A5832F',p:'<circle cx="16" cy="20" r="7" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 9l5 4 5-4z" fill="#fff"/>'},
+{i:'cosmetic',n:'美妆',c:'#DE93A6,#A85F74',p:'<rect x="11" y="10" width="10" height="16" rx="2" fill="#fff"/><rect x="13" y="5" width="6" height="5" rx="1.5" fill="#fff" opacity=".85"/><rect x="13" y="16" width="6" height="4" rx="1" fill="#000" opacity=".2"/>'},
+{i:'medicine',n:'医药',c:'#E08A7A,#A85A4C',p:'<rect x="9" y="12" width="14" height="14" rx="2" fill="#fff"/><path d="M12 12V9a2 2 0 012-2h4a2 2 0 012 2v3" stroke="#fff" stroke-width="2" fill="none"/><path d="M13 19h6M16 16v6" stroke="#000" opacity=".28" stroke-width="2" stroke-linecap="round"/>'},
+{i:'key',n:'钥匙',c:'#B0A48C,#7C7060',p:'<circle cx="11" cy="11" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M14 14l10 10M21 21l-2 2M24 24l-2 2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>'},
+{i:'wallet',n:'钱包',c:'#B8966E,#856A44',p:'<rect x="5" y="9" width="22" height="15" rx="2.5" fill="#fff"/><path d="M5 13h22" stroke="#000" opacity=".2" stroke-width="1.4"/><rect x="20" y="16" width="4" height="4" rx="1" fill="#000" opacity=".25"/>'},
+{i:'car',n:'汽车',c:'#8AA9BE,#5A7B91',p:'<path d="M5 20l2-6h18l2 6v4h-3a2 2 0 01-4 0h-8a2 2 0 01-4 0H5z" fill="#fff"/><path d="M8 14l2-4h12l2 4" fill="#fff" opacity=".8"/><g fill="#000" opacity=".25"><circle cx="10" cy="21" r="1.6"/><circle cx="22" cy="21" r="1.6"/></g>'},
+{i:'bike',n:'单车',c:'#6FA08F,#43705F',p:'<circle cx="9" cy="20" r="5.5" fill="none" stroke="#fff" stroke-width="2.2"/><circle cx="23" cy="20" r="5.5" fill="none" stroke="#fff" stroke-width="2.2"/><path d="M9 20l5-8h5l4 8M12 12h7" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>'},
+{i:'ball',n:'球类',c:'#D98F76,#A65B44',p:'<circle cx="16" cy="16" r="9" fill="#fff"/><path d="M16 7v18M7 16h18M10 10l12 12M22 10L10 22" stroke="#000" opacity=".2" stroke-width="1.4" fill="none"/>'},
+{i:'music',n:'乐器',c:'#C08F6E,#8C5A3C',p:'<path d="M13 22V9l9-2v13" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="10" cy="23" r="3" fill="#fff"/><circle cx="19" cy="21" r="3" fill="#fff"/>'},
+{i:'plant',n:'植物',c:'#7FB86A,#4A8B45',p:'<path d="M16 26V14" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M16 16c-5 0-7-3-7-7 5 0 7 3 7 7zM16 16c5 0 7-3 7-7-5 0-7 3-7 7z" fill="#fff"/><path d="M10 26h12" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>'},
+{i:'pet',n:'宠物',c:'#D9A85F,#A5762D',p:'<circle cx="16" cy="18" r="7" fill="#fff"/><path d="M10 11l-2-4 5 2M22 11l2-4-5 2z" fill="#fff"/><g fill="#000" opacity=".25"><circle cx="13.5" cy="17" r="1.2"/><circle cx="18.5" cy="17" r="1.2"/></g>'},
+{i:'umbrella',n:'雨伞',c:'#8E93C0,#5B6091',p:'<path d="M4 16a12 12 0 0124 0z" fill="#fff"/><path d="M16 16v10a3 3 0 006 0" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>'},
+{i:'luggage',n:'行李箱',c:'#B8966E,#856A44',p:'<rect x="8" y="10" width="16" height="17" rx="2.5" fill="#fff"/><path d="M13 10V7h6v3" stroke="#fff" stroke-width="2" fill="none"/><rect x="14" y="15" width="4" height="8" rx="1" fill="#000" opacity=".2"/>'},
+{i:'tool',n:'工具',c:'#A8A2B8,#736D85',p:'<path d="M20 6a5 5 0 00-6 6l-9 9 3 3 9-9a5 5 0 006-6l-4 4-2-2z" fill="#fff"/>'},
+{i:'box',n:'杂物',c:'#A8AEB6,#72787F',p:'<path d="M6 12l10-5 10 5v10l-10 5-10-5z" fill="#fff"/><path d="M6 12l10 5 10-5M16 17v10" stroke="#000" opacity=".22" stroke-width="1.4" fill="none"/>'}
+];
+const CAT_ICON = {'数码':'laptop','家电':'fridge','衣物':'shirt','鞋包':'bag','书籍':'book','家居':'sofa','运动':'ball','美妆':'cosmetic','其他':'box'};
+function iconOf(it){ return it.icon || CAT_ICON[it.category] || 'box'; }
+function iconBy(s){ return ICONS.find(x => x.n === s || x.i === s); }
+function iconName(it){ const o = ICONS.find(x => x.i === it.icon); return o ? o.n : ''; }
+function iconSVG(ic, size){
+  const o = ICONS.find(x => x.i === ic) || ICONS.find(x => x.i === 'box');
+  const c = o.c.split(',');
+  return `<svg viewBox="0 0 32 32" width="${size}" height="${size}" style="display:block;border-radius:${size > 60 ? 12 : 8}px">
+    <defs><linearGradient id="ig-${o.i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient></defs>
+    <rect width="32" height="32" rx="7" fill="url(#ig-${o.i})"/>${o.p}</svg>`;
+}
+
+/* ============ 计算 ============ */
+function days(it){
+  if (!it.buyDate) return 0;
+  const d = Math.floor((Date.now() - new Date(it.buyDate + 'T00:00:00').getTime()) / DAY) + 1;
+  return d > 0 ? d : 0;
+}
+function calc(it){
+  const d = days(it);
+  const dd = d || 1;
+  const net = (Number(it.price) || 0) - (it.status === 'gone' ? (Number(it.soldPrice) || 0) : 0);
+  const perDay = net / dd;
+  return { d, net, perDay, perYear: perDay * 365 };
+}
+function warLeft(it){
+  if (!it.warranty) return null;
+  return Math.ceil((new Date(it.warranty + 'T00:00:00').getTime() - Date.now()) / DAY);
+}
+/* 日均成本越低越值：<=0.5 绿，>3 红 */
+function tone(v){ return v <= 0.5 ? 'g' : (v > 3 ? 'b' : 'w'); }
+
+/* ============ 视图切换 ============ */
+function setTab(t){
+  UI.tab = t;
+  closeDetail();
+  $$('.menu').forEach(m => m.remove());
+  $$('#tabs button, #tabbar button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v' + t[0].toUpperCase() + t.slice(1)));
+  if (t === 'stats') renderStats();
+  if (t === 'settings') renderSettings();
+}
+
+/* ============ 渲染：汇总 + 筛选 + 列表 ============ */
+function visible(){
+  const q = UI.q.trim().toLowerCase();
+  let arr = DB.items.filter(it => {
+    if (UI.cat && it.category !== UI.cat) return false;
+    if (UI.status && it.status !== UI.status) return false;
+    if (q) {
+      const s = [it.name, it.category, it.note, (it.tags || []).join(' ')].join(' ').toLowerCase();
+      if (s.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+  const c = it => calc(it);
+  arr.sort((a, b) => {
+    if (UI.sort === 'perday') return c(b).perDay - c(a).perDay;
+    if (UI.sort === 'price') return (Number(b.price) || 0) - (Number(a.price) || 0);
+    if (UI.sort === 'days') return c(b).d - c(a).d;
+    if (UI.sort === 'name') return String(a.name).localeCompare(String(b.name), 'zh');
+    return String(b.buyDate || '').localeCompare(String(a.buyDate || ''));
+  });
+  return arr;
+}
+function renderSum(){
+  const live = DB.items.filter(i => i.status !== 'gone');
+  const cost = live.reduce((s, i) => s + (Number(i.price) || 0), 0);
+  const pd = live.reduce((s, i) => s + calc(i).perDay, 0);
+  const idle = DB.items.filter(i => i.status === 'idle').reduce((s, i) => s + (Number(i.price) || 0), 0);
+  $('#sum').innerHTML =
+    `<div><div class="k">在册件数</div><div class="v">${live.length}<span>件</span></div></div>` +
+    `<div><div class="k">累计投入</div><div class="v">${money(cost)}</div></div>` +
+    `<div><div class="k">每天合计</div><div class="v">${money(pd.toFixed(1))}<span>/天</span></div></div>` +
+    `<div><div class="k">闲置占用</div><div class="v ${idle > 0 ? 'w' : ''}">${money(idle)}</div></div>`;
+}
+function renderCats(){
+  const used = {}; DB.items.forEach(i => used[i.category] = (used[i.category] || 0) + 1);
+  const all = Array.from(new Set(DB.cats.concat(Object.keys(used))));
+  $('#fCat').innerHTML = '<option value="">全部分类</option>' + all.map(c => `<option value="${esc(c)}"${UI.cat === c ? ' selected' : ''}>${esc(c)}（${used[c] || 0}）</option>`).join('');
+}
+async function renderList(){
+  const arr = visible();
+  const el = $('#list');
+  if (!arr.length) { el.innerHTML = '<div class="empty">还没有物品，点右上「+ 新增」开始记第一件</div>'; renderSum(); renderCats(); return; }
+  el.innerHTML = arr.map((it, n) => {
+    const c = calc(it), wl = warLeft(it);
+    const sub = [it.category, '已用 ' + c.d + ' 天', it.status === 'gone' ? '已出' : ''].filter(Boolean).join(' · ');
+    return `<div class="item${it.id === UI.id ? ' on' : ''}${it.status === 'gone' ? ' dim' : ''}" data-id="${it.id}">
+      <div class="thumb">${iconSVG(iconOf(it), 38)}</div>
+      <div class="it-m">
+        <div class="it-n">${esc(it.name)}${it.status === 'idle' ? '<span class="tag idle">闲置</span>' : ''}${it.status === 'gone' ? '<span class="tag gone">已出</span>' : ''}${wl !== null && wl <= 30 ? `<span class="tag war">${wl < 0 ? '已过期' : '剩 ' + wl + ' 天'}</span>` : ''}</div>
+        <div class="it-s">${esc(sub)}</div>
+      </div>
+      <div class="it-r">
+        <div class="it-p">${money(it.price)}</div>
+        <div class="it-d ${tone(c.perDay)}">${perD(c.perDay)}<span style="font-size:10.5px;color:var(--tx3);font-weight:400">/天</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  renderSum(); renderCats();
+}
+/* ============ 渲染：详情 ============ */
+async function renderDetail(){
+  const it = DB.items.find(i => i.id === UI.id);
+  const d = $('#detail');
+  if (!it) {
+    d.classList.remove('open');
+    d.innerHTML = '<div class="empty">左边选一件物品<br>看看它每天花你多少钱</div>';
+    return;
+  }
+  const c = calc(it), wl = warLeft(it), ic = iconOf(it);
+  const rows = [];
+  rows.push(['购买日期', (it.buyDate || '—') + (c.d ? `　已持有 ${c.d} 天` : '')]);
+  if (it.warranty) rows.push(['保修/到期', it.warranty + (wl !== null ? `　${wl < 0 ? '<span class="b">已过期 ' + (-wl) + ' 天</span>' : '剩余 ' + wl + ' 天'}` : '')]);
+  if (it.status === 'gone') rows.push(['回收价', money(it.soldPrice || 0) + '　净支出 ' + money(c.net)]);
+  if ((it.tags || []).length) rows.push(['标签', esc((it.tags || []).join('、'))]);
+  if (it.note) rows.push(['备注', esc(it.note)]);
+  d.innerHTML =
+    `<div class="d-top">
+      <div class="d-img" onclick="pickIcon('${it.id}')" title="点图标可更换">${iconSVG(ic, 96)}</div>
+      <div class="d-h">
+        <h2>${esc(it.name)}</h2>
+        <div class="d-sub">${esc(it.category)} · ${STATUS[it.status] || '在用'}${it.buyDate ? ' · ' + it.buyDate : ''}</div>
+        <div class="d-acts" style="margin-top:8px">
+          <button class="btn sm" onclick="openEdit('${it.id}')">编辑</button>
+          <button class="btn sm" onclick="cycleStatus('${it.id}')">切换状态</button>
+        </div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div><div class="k">持有天数</div><div class="v">${c.d}<small> 天</small></div></div>
+      <div><div class="k">日均成本</div><div class="v ${tone(c.perDay)}">${perD(c.perDay)}</div></div>
+      <div><div class="k">年化成本</div><div class="v">${money(c.perYear.toFixed(0))}</div></div>
+    </div>
+    <div class="rows">${rows.map(r => `<div class="row"><div class="rk">${r[0]}</div><div class="rv">${r[1]}</div></div>`).join('')}</div>
+    <div class="d-acts">
+      <button class="btn sm" onclick="pickIcon('${it.id}')">换图标</button>
+      <button class="btn sm dgr" onclick="delItem('${it.id}')">删除</button>
+      <button class="btn sm back" onclick="closeDetail()">返回</button>
+    </div>
+    <div class="hint" style="margin-top:10px">长按（或右键）列表项也能编辑 · 删 · 改状态</div>`;
+  d.classList.add('open');
+}
+function closeDetail(){ $('#detail').classList.remove('open'); }
+
+/* ============ 渲染：统计 ============ */
+function renderStats(){
+  const live = DB.items.filter(i => i.status !== 'gone');
+  const total = live.reduce((s, i) => s + (Number(i.price) || 0), 0);
+  const byCat = {};
+  live.forEach(i => byCat[i.category || '其他'] = (byCat[i.category || '其他'] || 0) + (Number(i.price) || 0));
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const max = cats.length ? cats[0][1] : 1;
+
+  const ranked = live.map(i => ({ n: i.name, v: calc(i).perDay, d: calc(i).d })).sort((a, b) => b.v - a.v);
+  const top = ranked.slice(0, 5), low = ranked.slice(-5).reverse();
+
+  const months = [];
+  for (let k = 11; k >= 0; k--) {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k);
+    months.push({ key: d.toLocaleDateString('sv-SE').slice(0, 7), sum: 0 });
+  }
+  DB.items.forEach(i => { const m = (i.buyDate || '').slice(0, 7); const t = months.find(x => x.key === m); if (t) t.sum += (Number(i.price) || 0); });
+  const mMax = Math.max(1, ...months.map(m => m.sum));
+
+  const bars = months.map((m, i) => {
+    const h = Math.round(m.sum / mMax * 96);
+    const x = 30 + i * (560 / 12);
+    return `<rect x="${x}" y="${118 - h}" width="${(560 / 12) - 8}" height="${Math.max(1, h)}" rx="3" fill="#4A7C8C" opacity="${m.sum ? .9 : .18}"></rect>`;
+  }).join('');
+  const labels = months.map((m, i) => `<text x="${30 + i * (560 / 12) + 20}" y="134" text-anchor="middle" font-size="9.5" fill="#9CA3AF">${Number(m.key.slice(5))}月</text>`).join('');
+  const mTotal = months.reduce((s, m) => s + m.sum, 0);
+
+  $('#vStats').innerHTML =
+    `<div class="card" style="margin-bottom:14px">
+      <div class="sum">
+        <div><div class="k">在册件数</div><div class="v">${live.length}<span>件</span></div></div>
+        <div><div class="k">累计投入</div><div class="v">${money(total)}</div></div>
+        <div><div class="k">每天合计</div><div class="v">${money(live.reduce((s, i) => s + calc(i).perDay, 0).toFixed(1))}</div></div>
+        <div><div class="k">近一年购入</div><div class="v">${money(mTotal)}</div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>分类投入</h3>
+        ${cats.length ? cats.map(([n, v]) => `<div class="bar"><div class="bn">${esc(n)}</div><div class="bt"><div class="bf" style="width:${Math.max(2, v / max * 100)}%"></div></div><div class="bv">${money(v)}　${total ? Math.round(v / total * 100) : 0}%</div></div>`).join('') : '<div class="empty" style="padding:18px">暂无数据</div>'}
+      </div>
+      <div class="card"><h3>日均成本最高</h3>
+        ${top.length ? top.map(r => `<div class="rank"><span class="rn">${esc(r.n)}　<span style="color:var(--tx3);font-size:11px">${r.d}天</span></span><span class="rv b">${perD(r.v)}</span></div>`).join('') : '<div class="empty" style="padding:18px">暂无数据</div>'}
+        <h3 style="margin-top:14px">日均成本最低</h3>
+        ${low.length ? low.map(r => `<div class="rank"><span class="rn">${esc(r.n)}　<span style="color:var(--tx3);font-size:11px">${r.d}天</span></span><span class="rv g">${perD(r.v)}</span></div>`).join('') : ''}
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>近 12 个月购入金额</h3>
+      <svg class="chart" viewBox="0 0 600 140">${bars}${labels}</svg>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>闲置清单</h3>
+      ${(() => { const idles = DB.items.filter(i => i.status === 'idle'); return idles.length ? idles.map(i => `<div class="rank"><span class="rn">${esc(i.name)}</span><span class="rv w">${money(i.price)}</span></div>`).join('') + `<div class="hint" style="margin-top:8px">共 ${idles.length} 件闲置，占用 ${money(idles.reduce((s, i) => s + (Number(i.price) || 0), 0))}</div>` : '<div class="hint">目前没有标记为闲置的物品</div>'; })()}
+    </div>`;
+}
+
+/* ============ 渲染：设置 ============ */
+function renderSettings(){
+  const s = DB.sync;
+  $('#vSettings').innerHTML =
+    `<div class="grid2">
+      <div class="card">
+        <h3>数据备份</h3>
+        <div class="set">
+          <div class="srow"><button class="btn pri" onclick="expJSON()">导出 JSON 完整备份</button><span class="hint">可复制文本或存文件</span></div>
+          <div class="srow"><button class="btn" onclick="impJSON()">导入 JSON 备份</button><span class="hint">可选文件，或粘贴文本</span></div>
+        </div>
+        <h3 style="margin-top:16px">表格</h3>
+        <div class="set">
+          <div class="srow"><button class="btn" onclick="expCSV()">导出 CSV</button><span class="hint">Excel 能开，中文不乱码</span></div>
+          <div class="srow"><button class="btn" onclick="impCSV()">导入 CSV</button><span class="hint">可从 Excel 直接粘贴</span></div>
+        </div>
+        <div class="srow" style="margin-top:14px">
+          <button class="btn sm" onclick="demo()">载入示例数据</button>
+          <button class="btn sm dgr" onclick="wipe()">清空全部</button>
+        </div>
+        <div class="hint" style="margin-top:10px">共 ${DB.items.length} 条记录 · 内置图标 ${ICONS.length} 个可选</div>
+      </div>
+      <div class="card">
+        <h3>云同步（Supabase，可选）</h3>
+        <div class="set">
+          <div class="srow"><label>项目 URL</label><input id="sUrl" value="${esc(s.url)}" placeholder="https://xxxx.supabase.co"></div>
+          <div class="srow"><label>API Key</label><input id="sKey" value="${esc(s.key)}" placeholder="sb_publishable_... 或 service_role"></div>
+          <div class="srow"><label></label><label style="width:auto;color:var(--tx);display:flex;align-items:center;gap:6px"><input type="checkbox" id="sAuto" ${s.auto ? 'checked' : ''} style="width:auto"> 打开页面时自动同步</label></div>
+          <div class="srow" style="margin-top:6px">
+            <button class="btn pri" onclick="syncNow()">立即同步</button>
+            <button class="btn" onclick="saveSync()">保存配置</button>
+            <span class="hint" id="syncInfo">${s.last ? '上次同步：' + new Date(s.last).toLocaleString('zh-CN') : '尚未同步过'}</span>
+          </div>
+        </div>
+        <details style="margin-top:10px"><summary>第一次用？点开看建表 SQL（复制去 Supabase 执行）</summary>
+          <pre class="sql">create table if not exists items (
+  id text primary key,
+  data jsonb not null,
+  updated_at bigint not null
+);
+alter table items enable row level security;
+create policy "full" on items for all
+  using (true) with check (true);</pre>
+          <div class="hint">Supabase 控制台 → 左侧 SQL Editor → 整段粘贴执行 → 回到本页只填 URL 和 Key 两项就行。<br>表名固定为 <code>items</code>，照抄即可，不用改。</div>
+        </details>
+        <div class="hint" style="margin-top:10px">不填也能用，数据只存这台设备的浏览器里。同步按 updated_at 比对，两边取最新的那条。</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>分类管理</h3>
+      <div class="filters" id="catBox"></div>
+      <div class="filters" style="margin-top:8px">
+        <input id="newCat" placeholder="新分类名" style="width:140px">
+        <button class="btn sm" onclick="addCat()">添加分类</button>
+      </div>
+    </div>`;
+  renderCatBox();
+}
+function renderCatBox(){
+  const box = $('#catBox'); if (!box) return;
+  const used = {}; DB.items.forEach(i => used[i.category] = (used[i.category] || 0) + 1);
+  box.innerHTML = DB.cats.map(c => `<span class="chip">${esc(c)}（${used[c] || 0}）${used[c] ? '' : `<button onclick="rmCat('${esc(c)}')" style="margin-left:4px;color:var(--tx3)">×</button>`}</span>`).join('');
+}
+function addCat(){
+  const v = ($('#newCat').value || '').trim();
+  if (!v) return;
+  if (DB.cats.indexOf(v) < 0) { DB.cats.push(v); save(); }
+  $('#newCat').value = ''; renderCatBox(); renderCats();
+}
+function rmCat(c){ DB.cats = DB.cats.filter(x => x !== c); save(); renderCatBox(); renderCats(); }
+
+/* ============ 图标选择器 ============ */
+function iconGrid(wrapId, sel){
+  return `<div class="ipick" id="${wrapId}">${ICONS.map(x => `<button type="button" data-i="${x.i}" class="${x.i === sel ? 'on' : ''}" title="${x.n}">${iconSVG(x.i, 32)}<span>${x.n}</span></button>`).join('')}</div>`;
+}
+function bindGrid(wrapId, cb){
+  const box = document.getElementById(wrapId); if (!box) return;
+  box.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    box.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); cb(b.dataset.i);
+  };
+}
+function pickIcon(id){
+  const it = DB.items.find(i => i.id === id); if (!it) return;
+  let sel = iconOf(it);
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal"><h3>选个图标</h3>${iconGrid('pPick', sel)}
+    <div class="mfoot"><button class="btn" id="pC">取消</button><button class="btn pri" id="pS">确定</button></div></div>`;
+  document.body.appendChild(m);
+  bindGrid('pPick', v => sel = v);
+  $('#pC').onclick = () => m.remove();
+  $('#pS').onclick = () => { it.icon = sel; it.updatedAt = Date.now(); save(); m.remove(); renderList(); renderDetail(); toast('图标已更新'); };
+  m.onclick = e => { if (e.target === m) m.remove(); };
+}
+
+/* ============ 编辑弹窗 ============ */
+function openEdit(id){
+  const it = id ? DB.items.find(i => i.id === id) : null;
+  const cur = it || { name: '', category: DB.cats[0] || '其他', price: '', buyDate: todayStr(), status: 'using', warranty: '', soldPrice: '', tags: [], note: '' };
+  let selIcon = it ? iconOf(it) : (CAT_ICON[cur.category] || 'box');
+  let iconTouched = false;
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal">
+    <h3>${it ? '编辑物品' : '新增物品'}</h3>
+    <div class="fld"><label>名称 *</label><input id="eName" value="${esc(cur.name)}" placeholder="比如：MacBook Air"></div>
+    <div class="fld2">
+      <div class="fld"><label>购买价格 *</label><input id="ePrice" type="number" step="0.01" value="${cur.price === '' ? '' : cur.price}" placeholder="0"></div>
+      <div class="fld"><label>购买日期</label><input id="eDate" type="date" value="${esc(cur.buyDate)}"></div>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>分类</label><select id="eCat">${Array.from(new Set(DB.cats.concat([cur.category]))).map(c => `<option${c === cur.category ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+      <div class="fld"><label>状态</label><select id="eSt">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${k === cur.status ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>保修 / 到期日（选填）</label><input id="eWar" type="date" value="${esc(cur.warranty)}"></div>
+      <div class="fld"><label>回收价（已出时填）</label><input id="eSold" type="number" step="0.01" value="${cur.soldPrice === '' ? '' : cur.soldPrice}"></div>
+    </div>
+    <div class="fld"><label>标签（逗号分隔）</label><input id="eTags" value="${esc((cur.tags || []).join(','))}" placeholder="常用,耐用品"></div>
+    <div class="fld"><label>备注</label><textarea id="eNote" rows="2">${esc(cur.note)}</textarea></div>
+    <div class="fld"><label>图标（点一下换）</label>${iconGrid('ePick', selIcon)}</div>
+    <div class="mfoot">
+      <button class="btn" onclick="this.closest('.mask').remove()">取消</button>
+      <button class="btn pri" id="eSave">保存</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  bindGrid('ePick', v => { selIcon = v; iconTouched = true; });
+  $('#eCat').onchange = e => {
+    const def = CAT_ICON[e.target.value];
+    if (def && !iconTouched) { selIcon = def; $('#ePick').outerHTML = iconGrid('ePick', selIcon); bindGrid('ePick', v => { selIcon = v; iconTouched = true; }); }
+  };
+  $('#eName').focus();
+  $('#eSave').onclick = async () => {
+    const name = $('#eName').value.trim();
+    if (!name) return toast('名称不能为空');
+    const price = parseFloat($('#ePrice').value);
+    if (isNaN(price)) return toast('请填购买价格');
+    const o = {
+      name, price,
+      buyDate: $('#eDate').value || todayStr(),
+      category: $('#eCat').value,
+      status: $('#eSt').value,
+      warranty: $('#eWar').value,
+      soldPrice: parseFloat($('#eSold').value) || 0,
+      tags: $('#eTags').value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+      note: $('#eNote').value.trim(),
+      icon: selIcon,
+      updatedAt: Date.now()
+    };
+    if (it) Object.assign(it, o);
+    else { o.id = uid(); o.createdAt = Date.now(); DB.items.unshift(o); UI.id = o.id; }
+    save(); m.remove(); await renderList(); renderDetail(); toast(it ? '已保存' : '已添加');
+  };
+}
+
+function cycleStatus(id){
+  const it = DB.items.find(i => i.id === id); if (!it) return;
+  const order = ['using', 'idle', 'gone'];
+  it.status = order[(order.indexOf(it.status) + 1) % 3];
+  it.updatedAt = Date.now(); save(); renderList(); renderDetail();
+  toast('状态改为「' + STATUS[it.status] + '」');
+}
+function delItem(id){
+  const it = DB.items.find(i => i.id === id); if (!it) return;
+  confirmBox('删除「' + it.name + '」？删掉后没法撤销。', () => {
+    DB.items = DB.items.filter(i => i.id !== id);
+    DB.tomb[id] = Date.now();
+    if (UI.id === id) UI.id = null;
+    save(); renderList(); renderDetail(); toast('已删除，同步后会从云端移除');
+  });
+}
+
+/* ============ 图标选择器 ============ */
+
+function confirmBox(msg, cb){
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal" style="max-width:340px"><h3>确认</h3><div style="font-size:13px;color:var(--tx2);line-height:1.7">${esc(msg)}</div>
+    <div class="mfoot"><button class="btn" id="cN">取消</button><button class="btn dgr" id="cY">确定</button></div></div>`;
+  document.body.appendChild(m);
+  $('#cN').onclick = () => m.remove();
+  $('#cY').onclick = () => { m.remove(); cb(); };
+  m.onclick = e => { if (e.target === m) m.remove(); };
+}
+
+/* ============ 长按 / 右键菜单 ============ */
+let lpTimer = null, lpDone = false;
+function bindLongPress(el){
+  const start = e => {
+    lpDone = false;
+    const p = e.touches ? e.touches[0] : e;
+    lpTimer = setTimeout(() => {
+      lpDone = true;
+      openMenu(el.dataset.id, p.clientX, p.clientY);
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, 480);
+  };
+  const move = e => {
+    if (!e.touches) return;
+    const p = e.touches[0];
+    if (lpTimer && !lpDone) { /* 简化：移动即取消 */ clearTimeout(lpTimer); lpTimer = null; }
+  };
+  const end = () => { clearTimeout(lpTimer); lpTimer = null; };
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchmove', move, { passive: true });
+  el.addEventListener('touchend', end);
+  el.addEventListener('touchcancel', end);
+  el.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(el.dataset.id, e.clientX, e.clientY); });
+}
+function openMenu(id, x, y){
+  $$('.menu').forEach(m => m.remove());
+  const it = DB.items.find(i => i.id === id); if (!it) return;
+  const m = document.createElement('div');
+  m.className = 'menu';
+  m.innerHTML =
+    `<button data-a="edit">编辑</button>
+     <button data-a="img">换图标</button>
+     <button data-a="st">标为${it.status === 'using' ? '闲置' : (it.status === 'idle' ? '已出' : '在用')}</button>
+     <button data-a="dup">复制一份</button>
+     <hr><button data-a="del" class="d">删除</button>`;
+  document.body.appendChild(m);
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.min(x, innerWidth - w - 8) + 'px';
+  m.style.top = Math.min(y, innerHeight - h - 8) + 'px';
+  m.onclick = e => {
+    const a = e.target.dataset.a; if (!a) return;
+    m.remove();
+    if (a === 'edit') openEdit(id);
+    if (a === 'img') pickIcon(id);
+    if (a === 'st') cycleStatus(id);
+    if (a === 'dup') { const n = JSON.parse(JSON.stringify(it)); n.id = uid(); n.name = it.name + ' 副本'; n.updatedAt = Date.now(); DB.items.unshift(n); save(); renderList(); toast('已复制'); }
+    if (a === 'del') delItem(id);
+  };
+  setTimeout(() => document.addEventListener('click', () => m.remove(), { once: true }), 0);
+}
+
+/* ============ 导入导出 ============ */
+function dl(name, content, type){
+  const b = new Blob([content], { type: type + ';charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+/* 导出结果：既能存成文件，也能直接看/复制文本 */
+function exportBox(title, filename, mime, content){
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal" style="max-width:520px"><h3>${esc(title)}</h3>
+    <div class="hint" style="margin-bottom:8px">下面是完整内容，可以直接全选复制走，也可以存成文件。</div>
+    <textarea id="exT" rows="12" style="font-family:var(--font-mono,ui-monospace,Consolas,monospace);font-size:11.5px;line-height:1.5"></textarea>
+    <div class="mfoot">
+      <button class="btn" id="exS">全选</button>
+      <button class="btn" id="exC">复制</button>
+      <button class="btn pri" id="exD">存成文件</button>
+      <button class="btn" id="exX">关闭</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  const ta = $('#exT'); ta.value = content;
+  $('#exS').onclick = () => { ta.focus(); ta.select(); };
+  $('#exC').onclick = async () => {
+    try { await navigator.clipboard.writeText(content); toast('已复制到剪贴板'); }
+    catch (e) { ta.focus(); ta.select(); try { document.execCommand('copy'); toast('已复制'); } catch (_) { toast('复制失败，请手动全选'); } }
+  };
+  $('#exD').onclick = () => { dl(filename, content, mime); toast('已下载 ' + filename); };
+  $('#exX').onclick = () => m.remove();
+  m.onclick = e => { if (e.target === m) m.remove(); };
+}
+/* 导入入口：支持选文件，也支持直接粘贴文本 */
+function importBox(title, hint, accept, onText){
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal" style="max-width:520px"><h3>${esc(title)}</h3>
+    <div class="hint" style="margin-bottom:8px">${hint}</div>
+    <textarea id="imT" rows="10" placeholder="把内容粘贴到这里，点下面的「导入文本」" style="font-family:var(--font-mono,ui-monospace,Consolas,monospace);font-size:11.5px;line-height:1.5"></textarea>
+    <div class="mfoot">
+      <button class="btn" id="imF">选择文件…</button>
+      <button class="btn pri" id="imG">导入文本</button>
+      <button class="btn" id="imX">关闭</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  $('#imX').onclick = () => m.remove();
+  $('#imG').onclick = () => {
+    const t = $('#imT').value.trim();
+    if (!t) return toast('先粘贴内容，或点「选择文件」');
+    if (onText(t)) m.remove();
+  };
+  $('#imF').onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = accept;
+    inp.onchange = () => {
+      const f = inp.files[0]; if (!f) return;
+      const fr = new FileReader();
+      fr.onload = () => { if (onText(String(fr.result).replace(/^\uFEFF/, ''))) m.remove(); };
+      fr.readAsText(f, 'UTF-8');
+    };
+    inp.click();
+  };
+  m.onclick = e => { if (e.target === m) m.remove(); };
+}
+function jsonDump(){ return JSON.stringify({ app: 'guiwuben', v: 1, time: Date.now(), items: DB.items, cats: DB.cats, tomb: DB.tomb }, null, 1); }
+async function expJSON(){
+  exportBox('导出 JSON 完整备份', '归物本备份-' + todayStr() + '.json', 'application/json', jsonDump());
+}
+function impJSON(){
+  importBox('导入 JSON', '支持本页导出的备份文件，也支持直接粘贴 JSON 文本。', '.json,application/json,text/plain', t => {
+    let d;
+    try { d = JSON.parse(t); } catch (e) { toast('不是有效的 JSON，检查有没有少括号或多逗号'); return false; }
+    if (!d || !Array.isArray(d.items)) { toast('里面没有物品数据（缺 items 字段）'); return false; }
+    askMerge(d); return true;
+  });
+}
+function askMerge(d){
+  const m = document.createElement('div');
+  m.className = 'mask';
+  m.innerHTML = `<div class="modal" style="max-width:360px"><h3>导入 ${d.items.length} 条记录</h3>
+    <div class="hint" style="line-height:1.8">覆盖：清空现有数据，只保留备份里的<br>合并：保留现有数据，相同 id 取更新的那条</div>
+    <div class="mfoot"><button class="btn" id="iC">取消</button><button class="btn" id="iM">合并</button><button class="btn pri" id="iO">覆盖</button></div></div>`;
+  document.body.appendChild(m);
+  $('#iC').onclick = () => m.remove();
+  $('#iM').onclick = () => { doImport(d, false); m.remove(); };
+  $('#iO').onclick = () => { doImport(d, true); m.remove(); };
+}
+async function doImport(d, overwrite){
+  if (overwrite) {
+    DB.items = d.items.map(norm);
+    if (d.cats && d.cats.length) DB.cats = d.cats;
+  } else {
+    const map = {};
+    DB.items.forEach(i => map[i.id] = i);
+    d.items.map(norm).forEach(n => { const o = map[n.id]; if (!o || (n.updatedAt || 0) > (o.updatedAt || 0)) map[n.id] = n; });
+    DB.items = Object.values(map);
+    if (d.cats) DB.cats = Array.from(new Set(DB.cats.concat(d.cats)));
+  }
+  if (overwrite) DB.tomb = d.tomb || {};
+  save(); UI.id = null; await renderList(); renderDetail();
+  toast('已导入 ' + d.items.length + ' 条');
+}
+function norm(n){
+  return {
+    id: n.id || uid(),
+    name: n.name || '未命名',
+    price: Number(n.price) || 0,
+    buyDate: n.buyDate || todayStr(),
+    category: n.category || '其他',
+    icon: (n.icon && ICONS.some(x => x.i === n.icon)) ? n.icon : '',
+    status: STATUS[n.status] ? n.status : 'using',
+    warranty: n.warranty || '',
+    soldPrice: Number(n.soldPrice) || 0,
+    tags: Array.isArray(n.tags) ? n.tags : (typeof n.tags === 'string' ? n.tags.split(/[,，]/).map(s => s.trim()).filter(Boolean) : []),
+    note: n.note || '',
+    createdAt: n.createdAt || Date.now(),
+    updatedAt: n.updatedAt || Date.now()
+  };
+}
+const CSV_HEAD = ['名称', '分类', '价格', '购买日期', '状态', '到期日', '回收价', '标签', '图标', '备注'];
+const CSV_KEY = ['name', 'category', 'price', 'buyDate', 'status', 'warranty', 'soldPrice', 'tags', 'icon', 'note'];
+const CSV_ALIAS = { warranty: ['保修到期', '保修', '到期日', '保修到期日'], buyDate: ['购买日期', '入手日期', '日期'], category: ['分类', '类别'], icon: ['图标', 'icon'] };
+function csvCell(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function csvDump(){
+  const rows = [CSV_HEAD.join(',')];
+  const cell = (i, k) => k === 'tags' ? (i.tags || []).join('、') : k === 'status' ? (STATUS[i.status] || '在用') : k === 'icon' ? iconName(i) : (i[k] == null ? '' : i[k]);
+  DB.items.forEach(i => rows.push(CSV_KEY.map(k => csvCell(cell(i, k))).join(',')));
+  return rows.join('\r\n');
+}
+function expCSV(){
+  exportBox('导出 CSV 表格', '归物本-' + todayStr() + '.csv', 'text/csv', '\uFEFF' + csvDump());
+}
+function impCSV(){
+  importBox('导入 CSV', '可以直接把 Excel 里的内容复制粘贴进来，也可以选 .csv 文件。', '.csv,text/csv,text/plain', t => {
+    const rows = parseCSV(t);
+    if (rows.length < 2) { toast('没有数据行，至少要有表头和一行数据'); return false; }
+    applyCSV(rows); return true;
+  });
+}
+function applyCSV(rows){
+  const head = rows[0].map(s => s.trim());
+  const idx = {};
+  CSV_HEAD.forEach((h, i) => {
+    const k = CSV_KEY[i];
+    let p = head.indexOf(h);
+    if (p < 0 && CSV_ALIAS[k]) p = head.findIndex(x => CSV_ALIAS[k].indexOf(x.trim()) >= 0);
+    if (p < 0) p = head.findIndex(x => x.trim().toLowerCase() === k.toLowerCase());
+    idx[k] = p;
+  });
+  if (idx.name < 0) return toast('找不到「名称」列，请检查表头');
+  let n = 0;
+  rows.slice(1).forEach(r => {
+    const name = (r[idx.name] || '').trim();
+    if (!name) return;
+    const g = k => idx[k] >= 0 ? (r[idx[k]] || '').trim() : '';
+    const stRaw = g('status');
+    const st = Object.keys(STATUS).find(k => STATUS[k] === stRaw) || 'using';
+    const icRaw = g('icon');
+    const icHit = icRaw ? iconBy(icRaw) : null;
+    DB.items.unshift(norm({
+      name, category: g('category') || '其他', price: g('price'), buyDate: g('buyDate'),
+      status: st, warranty: g('warranty'), soldPrice: g('soldPrice'), icon: icHit ? icHit.i : '',
+      tags: g('tags').split(/[、,，]/).map(s => s.trim()).filter(Boolean), note: g('note')
+    }));
+    n++;
+  });
+  save(); renderList(); renderSettings(); toast('已导入 ' + n + ' 条');
+}
+function parseCSV(t){
+  const out = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) {
+      if (c === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); out.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur || row.length) { row.push(cur); out.push(row); }
+  return out.filter(r => r.some(c => String(c).trim()));
+}
+function demo(){
+  const t = Date.now();
+  const d = n => new Date(t - n * DAY).toLocaleDateString('sv-SE');
+  DB.items = [
+    { name: 'MacBook Air M2', price: 7999, buyDate: d(620), category: '数码', status: 'using', warranty: d(-100), tags: ['工作'], note: '主力机' },
+    { name: '人体工学椅', price: 1680, buyDate: d(430), category: '家居', status: 'using', warranty: '', tags: [], note: '' },
+    { name: 'Kindle 电子书', price: 899, buyDate: d(1180), category: '书籍', status: 'idle', warranty: '', tags: ['吃灰'], note: '买了没看几本' },
+    { name: '降噪耳机', price: 1299, buyDate: d(260), category: '数码', status: 'using', warranty: new Date(t + 105 * DAY).toLocaleDateString('sv-SE'), tags: ['通勤'], note: '' },
+    { name: '空气炸锅', price: 399, buyDate: d(180), category: '家电', status: 'using', warranty: '', tags: [], note: '' },
+    { name: '旧手机', price: 3299, buyDate: d(900), category: '数码', status: 'gone', warranty: '', soldPrice: 1200, tags: [], note: '已转卖' }
+  ].map(norm);
+  save(); UI.id = null; renderList(); renderDetail(); renderSettings(); toast('已载入 6 条示例');
+}
+function wipe(){
+  confirmBox('清空全部物品数据？建议先导一份 JSON 备份。', async () => {
+    DB.items.forEach(i => DB.tomb[i.id] = Date.now());
+    DB.items = [];
+    UI.id = null;
+    save(); renderList(); renderDetail(); renderSettings(); toast('已清空');
+  });
+}
+
+/* ============ Supabase 同步（REST 直连，不引 SDK） ============ */
+const SB_TABLE = 'items';
+function saveSync(){
+  DB.sync.url = ($('#sUrl').value || '').trim().replace(/\/+$/, '');
+  DB.sync.key = ($('#sKey').value || '').trim();
+  DB.sync.table = SB_TABLE;
+  DB.sync.auto = $('#sAuto').checked;
+  save(); toast('配置已保存');
+}
+function readSync(){
+  ['sUrl:url', 'sKey:key'].forEach(p => {
+    const [a, b] = p.split(':'); const el = $('#' + a); if (el) DB.sync[b] = el.value.trim().replace(/\/+$/, '');
+  });
+  DB.sync.table = SB_TABLE;
+  const a = $('#sAuto'); if (a) DB.sync.auto = a.checked;
+  save();
+}
+async function sbReq(path, opt){
+  const s = DB.sync;
+  const r = await fetch(s.url + '/rest/v1/' + (s.table || SB_TABLE) + path, Object.assign({
+    headers: Object.assign({
+      'apikey': s.key, 'Authorization': 'Bearer ' + s.key, 'Content-Type': 'application/json'
+    }, opt && opt.headers || {})
+  }, { method: opt && opt.method || 'GET', body: opt && opt.body }));
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  const t = await r.text();
+  return t ? JSON.parse(t) : [];
+}
+async function syncNow(){
+  readSync();
+  const s = DB.sync;
+  if (!s.url || !s.key) return toast('先填项目 URL 和 API Key');
+  const info = $('#syncInfo'); if (info) info.textContent = '同步中…';
+  try {
+    const remote = await sbReq('?select=id,data,updated_at');
+    const rmap = {}; remote.forEach(r => rmap[r.id] = r);
+    const lmap = {}; DB.items.forEach(i => lmap[i.id] = i);
+    let up = 0, down = 0, del = 0;
+    const ids = Array.from(new Set(Object.keys(rmap).concat(Object.keys(lmap), Object.keys(DB.tomb))));
+    const out = [];
+    ids.forEach(id => {
+      const r = rmap[id], l = lmap[id], tb = DB.tomb[id] || 0;
+      const rt = r ? (r.updated_at || 0) : 0;
+      const lt = l ? (l.updatedAt || 0) : 0;
+      const rDel = !!(r && r.data && r.data._del);
+      if (rDel && rt >= Math.max(lt, tb)) {
+        if (l) { DB.items = DB.items.filter(x => x.id !== id); if (UI.id === id) UI.id = null; del++; }
+        DB.tomb[id] = rt;
+        return;
+      }
+      if (l) {
+        if (!r || lt > rt) { up++; out.push({ id, data: l, updated_at: lt }); }
+        else if (rt > lt) { Object.assign(l, norm(r.data)); l.updatedAt = rt; delete DB.tomb[id]; down++; }
+      } else if (tb) {
+        if (r && tb > rt) { up++; out.push({ id, data: { _del: true }, updated_at: tb }); }
+        else if (r && rt > tb) { DB.items.unshift(norm(r.data)); delete DB.tomb[id]; down++; }
+      } else if (r && !rDel) {
+        DB.items.unshift(norm(r.data)); down++;
+      }
+    });
+    DB.items = DB.items.filter((i, n) => DB.items.findIndex(x => x.id === i.id) === n);
+    if (out.length) await sbReq('', { method: 'POST', body: JSON.stringify(out), headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' } });
+    s.last = Date.now(); save();
+    if (info) info.textContent = '上次同步：' + new Date(s.last).toLocaleString('zh-CN') + `（上传 ${up} / 下载 ${down} / 删除 ${del}）`;
+    await renderList(); renderDetail();
+    toast(up || down || del ? `同步完成：上传 ${up} 条，下载 ${down} 条，删除 ${del} 条` : '两边已一致');
+  } catch (e) {
+    if (info) info.textContent = '同步失败';
+    toast('同步失败：' + e.message);
+  }
+}
+
+/* ============ 事件 ============ */
+$('#tabs').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
+$('#tabbar').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
+$('#btnNew').onclick = () => openEdit(null);
+$('#q').oninput = e => { UI.q = e.target.value; renderList(); };
+$('#fCat').onchange = e => { UI.cat = e.target.value; renderList(); };
+$('#fStatus').onchange = e => { UI.status = e.target.value; renderList(); };
+$('#fSort').onchange = e => { UI.sort = e.target.value; renderList(); };
+
+let lpBound = false;
+$('#list').onclick = e => {
+  const el = e.target.closest('.item'); if (!el || lpDone) return;
+  UI.id = el.dataset.id; renderList(); renderDetail();
+};
+const mo = new MutationObserver(() => {
+  $$('#list .item').forEach(el => { if (!el._lp) { el._lp = 1; bindLongPress(el); } });
+});
+mo.observe($('#list'), { childList: true });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $$('.mask').forEach(m => m.remove()); $$('.menu').forEach(m => m.remove()); closeDetail(); }
+  if (e.key === 'n' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openEdit(null); }
+});
+
+/* ============ 启动 ============ */
+(async function init(){
+  load();
+  renderCats();
+  await renderList();
+  renderDetail();
+  if (window.innerWidth > 900 && DB.items.length) UI.id = visible()[0] ? visible()[0].id : null;
+  if (UI.id) renderDetail();
+  if (DB.sync.auto && DB.sync.url && DB.sync.key) setTimeout(syncNow, 400);
+})();
+</script>
+</body>
+</html>
