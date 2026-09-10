@@ -971,12 +971,18 @@ function openSettings(){
   m.querySelector('[data-up]').onclick=function(){syncPush(true)};
   m.querySelector('[data-down]').onclick=function(){syncPull(true)};
   m.querySelector('[data-ok]').onclick=function(){
+    var wasAuto=!!DB.sync.auto;
     $$('[data-k]',m).forEach(function(el){
       if(el.dataset.k in s) s[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;
       else if(el.dataset.k in DB.sync) DB.sync[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;
     });
     s.firstDay=+s.firstDay;
-    save(true);applyTheme();render();m.remove();toast('已保存');
+    var justAuto=!wasAuto&&!!DB.sync.auto;
+    save(justAuto?false:true);applyTheme();render();m.remove();
+    if(justAuto){
+      toast('正在核对云端数据…');
+      syncPull(true,function(){schedPush();toast('已开启自动同步')});
+    }else toast('已保存');
   };
 }
 function editHolidays(after){
@@ -1091,6 +1097,7 @@ function importJson(anchor){
 }
 
 /* ---------- 云同步 ---------- */
+function localEmpty(){return !DB.countdowns.length&&!DB.anniversaries.length&&!DB.events.length}
 function syncCfg(){
   if(!DB.sync.url||!DB.sync.key){toast('请先在设置里填写同步地址与 Key');return null}
   return {base:DB.sync.url.replace(/\/+$/,''),key:DB.sync.key,table:DB.sync.table||'calendar_sync',room:DB.sync.room||'my-calendar'};
@@ -1101,9 +1108,7 @@ function hdrs(c,extra){
 }
 var pushT=null;
 function schedPush(){clearTimeout(pushT);pushT=setTimeout(function(){syncPush(false)},1200)}
-function syncPush(verbose){
-  var c=syncCfg();if(!c)return;
-  if(verbose)toast('上传中…');
+function doPush(c,verbose){
   var payload=Object.assign({},DB);delete payload.sync;
   fetch(c.base+'/rest/v1/'+c.table+'?on_conflict=key',{method:'POST',headers:hdrs(c,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
     body:JSON.stringify({key:c.room,data:payload,updated_at:new Date().toISOString()})})
@@ -1111,13 +1116,24 @@ function syncPush(verbose){
      if(verbose)toast('已上传到云端');syncBadge('ok')})
    .catch(function(e){if(verbose)toast('上传失败：'+e.message);syncBadge('err')});
 }
-function syncPull(verbose){
+function syncPush(verbose){
   var c=syncCfg();if(!c)return;
+  /* 本地为空且从未同步过：先取云端，避免把云端清空 */
+  if(localEmpty()&&!DB.sync.lastSync){
+    if(verbose)toast('先核对云端数据…');
+    syncPull(verbose,function(){doPush(syncCfg(),verbose)});
+    return;
+  }
+  if(verbose)toast('上传中…');
+  doPush(c,verbose);
+}
+function syncPull(verbose,cb){
+  var c=syncCfg();if(!c){if(cb)cb();return}
   if(verbose)toast('下载中…');
   fetch(c.base+'/rest/v1/'+c.table+'?key=eq.'+encodeURIComponent(c.room)+'&select=data,updated_at',{headers:hdrs(c)})
    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
    .then(function(j){
-     if(!j||!j.length){if(verbose)toast('云端暂无数据');return}
+     if(!j||!j.length){if(verbose)toast('云端暂无数据');if(cb)cb();return}
      var row=j[0],remote=row.data||{};
      var rt=row.updated_at?new Date(row.updated_at).getTime():0;
      var lt=DB.updatedAt?new Date(DB.updatedAt).getTime():0;
@@ -1130,15 +1146,15 @@ function syncPull(verbose){
        DB.sync.lastSync=new Date().toISOString();save(false);render();
        if(verbose)toast('已与云端同步');syncBadge('ok');
      };
-     if(lt>rt+1000){
-       if(!verbose) return;
+     if(lt>rt+1000&&!localEmpty()){
+       if(!verbose){if(cb)cb();return;}
        var m=modal('云端数据较旧','<div style="font-size:12px;color:var(--t2);line-height:1.7">本地最后修改：'+new Date(lt).toLocaleString('zh-CN')
          +'<br>云端最后修改：'+new Date(rt).toLocaleString('zh-CN')+'<br><br>选择要保留的版本：</div>',
          '<button class="btn" data-c>取消</button><button class="btn" data-up>以本地覆盖云端</button><button class="btn p" data-d>以云端覆盖本地</button>');
        m.querySelector('[data-c]').onclick=function(){m.remove()};
        m.querySelector('[data-up]').onclick=function(){m.remove();syncPush(true)};
        m.querySelector('[data-d]').onclick=function(){m.remove();doMerge(true)};
-     } else doMerge(verbose);
+     } else {doMerge(verbose);if(cb)cb();}
    })
    .catch(function(e){if(verbose)toast('下载失败：'+e.message);syncBadge('err')});
 }
