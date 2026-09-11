@@ -307,8 +307,8 @@
             localStorage.setItem(LS_SB_URL, url);
             localStorage.setItem(LS_SB_KEY, key);
             closeModal('modal-cloud');
-            showToast('已保存，正在连接');
-            initSupabase();
+            showToast('已保存，正在从云端同步');
+            if (ensureCloudClient()) firstSyncFromCloud(); else initSupabase();
         }
         function clearCloudAccount() {
             if (!getCloudUrl() && !getCloudKey()) { showToast('尚未配置账号'); return; }
@@ -390,13 +390,15 @@
                     if (cloudTime > localTime) {
                         updateSyncStatus('syncing', '拉取数据...');
                         const { data: row, error } = await withTimeout(
-                            supabaseClient.from('net_mgr_config').select('data').eq('id', 1).maybeSingle(), 10000
+                            supabaseClient.from('net_mgr_config').select('data, updated_at').eq('id', 1).maybeSingle(), 10000
                         );
                         if (error) throw error;
                         if (row && row.data && Object.keys(row.data).length > 0) {
                             data = migrateDataStructure(row.data);
-                            saveLocal();
                             refreshUI();
+                            // 用云端时间戳对齐本地，避免拉取后误判本地更新而重复上传
+                            localStorage.setItem("netMgrData", JSON.stringify(data));
+                            localStorage.setItem("netMgrData_ts", new Date(row.updated_at).getTime().toString());
                             updateSyncStatus('online', '云端数据已同步');
                         } else {
                             await pushToCloud(true);
@@ -437,6 +439,38 @@
                 initSupabase(); return;
             }
             loadFromCloud();
+        }
+
+        // 输入账号后首次同步：云端优先（覆盖本地），云端为空才上传本地（初始化一次）
+        async function firstSyncFromCloud() {
+            if (!ensureCloudClient()) { showToast('未配置云同步账号'); return; }
+            isSyncing = true;
+            updateSyncStatus('syncing', '首次从云端同步...');
+            try {
+                const { data: row, error } = await withTimeout(
+                    supabaseClient.from('net_mgr_config').select('data, updated_at').eq('id', 1).maybeSingle(), 10000
+                );
+                if (error) throw error;
+                if (row && row.data && Object.keys(row.data).length > 0) {
+                    data = migrateDataStructure(row.data);
+                    currentSiteId = null;
+                    refreshUI();
+                    updateBackBtn();
+                    // 用云端时间戳对齐本地，避免之后重复上传
+                    localStorage.setItem("netMgrData", JSON.stringify(data));
+                    localStorage.setItem("netMgrData_ts", new Date(row.updated_at).getTime().toString());
+                    updateSyncStatus('online', '云端数据已同步');
+                    showToast('已从云端同步到本地');
+                } else {
+                    await pushToCloud(true);
+                    updateSyncStatus('online', '本地数据已上传云端');
+                    showToast('云端暂无数据，已上传本地');
+                }
+            } catch (err) {
+                console.error('首次同步失败:', err);
+                updateSyncStatus('error', '同步失败');
+                showToast('首次同步失败');
+            } finally { isSyncing = false; }
         }
 
         // 确保已创建云端客户端（不会触发任何拉取/上传）
