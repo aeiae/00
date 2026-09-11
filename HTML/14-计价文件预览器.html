@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>计价数据预览器</title>
+<style>
+:root{
+  --bg:#eef1f5; --panel:#fff; --line:#d5dbe2; --line2:#e6eaef;
+  --bar:#2f4d75; --bar2:#3a5f8f;
+  --pri:#3d6db5; --pri-d:#2f5a99; --pri-l:#e8f0fa;
+  --txt:#333a42; --txt2:#6b7683; --txt3:#9aa4b0;
+  --sumbg:#fdf8e4; --leafbg:#f0f8ec; --red:#d0342c; --zebra:#fdfae9;
+  --matbg:#fbfaf3; --leafcat:#4d7a3a; --subcat:#7a5fa8; --matcat:#b0782a;
+}
+html[data-theme="dark"]{
+  --bg:#1b1f25; --panel:#242933; --line:#38404c; --line2:#2d343e;
+  --bar:#1f2c40; --bar2:#273849;
+  --pri:#5b8ecb; --pri-d:#4a7ab5; --pri-l:#28313e;
+  --txt:#d8dde4; --txt2:#96a1ad; --txt3:#69737f;
+  --sumbg:#332e1c; --leafbg:#24301f; --red:#e07068; --zebra:#2a2c22;
+  --matbg:#272b33; --leafcat:#789e63; --subcat:#9184b2; --matcat:#a08a5e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:12px/1.5 "Microsoft YaHei","Segoe UI",sans-serif;color:var(--txt);background:var(--bg);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(120,132,150,.35);border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(120,132,150,.6);background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ===== 顶栏 ===== */
+#top{height:34px;display:flex;align-items:center;gap:8px;padding:0 10px;background:linear-gradient(180deg,var(--bar2),var(--bar));color:#fff;flex:0 0 auto}
+#top .crumb{display:flex;align-items:center;gap:5px;font-size:12px;min-width:0}
+#top .crumb .seg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+#top .crumb svg{flex:0 0 auto;opacity:.9}
+#top .sp{flex:1}
+#top .app{font-size:11px;color:rgba(255,255,255,.65);white-space:nowrap}
+
+/* ===== 工具栏 ===== */
+#tools{height:32px;flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:0 8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.tbtn{height:23px;padding:0 9px;border-radius:3px;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--txt);border:1px solid var(--line);background:var(--panel);white-space:nowrap}
+.tbtn:hover{border-color:var(--pri);color:var(--pri)}
+.tbtn.acc{background:var(--pri);border-color:var(--pri);color:#fff}
+.tbtn.acc:hover{background:var(--pri-d);color:#fff}
+#tools .sp{flex:1}
+#q{height:23px;width:170px;padding:0 7px;border:1px solid var(--line);border-radius:3px;background:var(--panel);font-size:11px}
+#q:focus{outline:none;border-color:var(--pri)}
+
+#main{display:flex;height:calc(100% - 34px - 32px - 24px)}
+
+/* ===== 左侧：项目列表 ===== */
+#nav{width:186px;flex:0 0 186px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:0 0 24px}
+.pgrp{height:24px;display:flex;align-items:center;gap:5px;padding:0 8px;font-size:11px;font-weight:600;color:var(--txt2);background:var(--line2);position:sticky;top:0;z-index:2}
+.pnode{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;border-bottom:1px solid var(--line2);user-select:none}
+.pnode:hover{background:var(--line2)}
+.pnode.on{background:var(--pri-l);color:var(--pri)}
+.pnode .lb{flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pnode .pv{flex:0 0 auto;font-size:10px;color:var(--txt3);font-variant-numeric:tabular-nums}
+.pnode.on .pv{color:var(--pri)}
+.padd{padding:6px 8px}
+.padd button{width:100%;height:23px;border:1px dashed var(--line);border-radius:3px;color:var(--txt2);font-size:11px}
+.padd button:hover{border-color:var(--pri);color:var(--pri)}
+.pnode.drag{opacity:.4}
+.pnode .grip{flex:0 0 auto;width:8px;color:var(--txt3);font-size:10px;letter-spacing:-1px;cursor:grab}
+#dragline{position:fixed;left:0;width:186px;height:2px;background:var(--pri);z-index:95;display:none;pointer-events:none}
+#dragline.on{display:block}
+body.dragging{user-select:none;cursor:grabbing}
+
+/* 右键菜单 */
+.menu{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.16);min-width:172px;padding:3px;display:none}
+.menu.on{display:block}
+.menu .mi{display:flex;align-items:center;gap:7px;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap;color:var(--txt)}
+.menu .mi:hover{background:var(--pri-l);color:var(--pri)}
+.menu .mi.dg:hover{background:#fdeaea;color:var(--red)}
+.menu .mi .sub{font-size:10px;color:var(--txt3);margin-left:auto}
+.menu hr{border:none;border-top:1px solid var(--line2);margin:3px 0}
+
+/* ===== 右侧 ===== */
+#pane-inner.fullh{height:100%;display:flex;flex-direction:column;min-height:0}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:5px;padding:4px 6px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:3px;overflow-x:auto}
+.bar .bt{flex:0 0 auto;font-size:11px;color:var(--txt2);padding-right:4px}
+.pc{flex:0 0 auto;height:21px;padding:0 9px;line-height:21px;border-radius:11px;font-size:11px;color:var(--txt2);border:1px solid var(--line);background:var(--panel);cursor:pointer;white-space:nowrap}
+.pc:hover{border-color:var(--pri);color:var(--pri)}
+.pc.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+#pane-inner.fullh .gt-card{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width:100%;margin:0}
+#pane-inner.fullh .gt-wrap{flex:1;min-height:0;max-height:none}
+
+/* 分部分项：左侧目录树 + 右侧表格 */
+.billwrap{display:flex;gap:8px;min-height:0}
+.billtree{width:210px;flex:0 0 210px;background:var(--panel);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;overflow:hidden}
+.billtree .th{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-weight:600;color:var(--pri-d);border-bottom:1px solid var(--line);background:var(--panel)}
+.billtree .th .sp{flex:1}
+.billtree .th .mini{font-size:10px;font-weight:400;color:var(--txt2)}
+.billtree .tl{flex:1;min-height:0;overflow:auto}
+.tn{display:flex;align-items:center;gap:4px;padding:4px 6px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--line2);white-space:nowrap;user-select:none}
+.tn:hover{background:var(--line2)}
+.tn.on{background:var(--pri-l);color:var(--pri);font-weight:600}
+.tn .tx{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tn .amt{margin-left:auto;padding-left:6px;font-size:10px;color:var(--txt3);font-variant-numeric:tabular-nums}
+.tn.on .amt{color:var(--pri)}
+.tn.root{font-weight:600;background:var(--line2)}
+.tn .lv{flex:0 0 auto;font-size:10px;padding:0 4px;border-radius:7px;background:var(--pri-l);color:var(--pri);font-weight:400}
+.pc.clr{border-style:dashed;color:var(--pri);border-color:var(--pri)}
+.billmain{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+#pane-inner.fullh .billwrap{flex:1;min-height:0}
+#pane-inner.fullh .billmain{display:flex;flex-direction:column;min-height:0;min-width:0;flex:1}
+#pane-inner.fullh .billmain .gt-card{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width:100%;margin:0}
+#pane-inner.fullh .billmain .gt-wrap{flex:1;min-height:0;max-height:none}
+
+/* 表头排序 */
+.gt thead th.srt{cursor:pointer}
+.gt thead th.srt:hover{background:var(--pri-l)}
+.gt th .ar{font-size:9px;color:var(--pri);margin-left:2px}
+.card[data-act]{cursor:context-menu}
+.blk[data-top]>h3{cursor:context-menu}
+.blk[data-top]>h3 .n{color:var(--txt3);font-weight:400}
+
+#work{flex:1;display:flex;flex-direction:column;min-width:0}
+#tabs{height:38px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--panel);border-bottom:1px solid var(--line);padding:0 8px}
+.tab{height:25px;padding:0 14px;border-radius:3px;border:1px solid var(--line);font-size:12px;color:var(--txt);background:var(--panel);white-space:nowrap}
+.tab:hover{border-color:var(--pri);color:var(--pri)}
+.tab.on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+#pane{flex:1;overflow:auto;background:var(--bg);position:relative;padding:8px}
+#status{height:24px;flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:0 10px;background:var(--line2);border-top:1px solid var(--line);font-size:11px;color:var(--txt2);white-space:nowrap;overflow:hidden}
+#status b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ===== 表格 ===== */
+.gt-card{background:var(--panel);border:1px solid var(--line);border-radius:3px;margin:0 auto;max-width:100%}
+.gt-head{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto}
+.gt-head .tt{font-size:12px;font-weight:600;color:var(--pri-d)}
+.gt-head .sp{flex:1}
+.gt-head .mini{font-size:11px;color:var(--txt2)}
+.gt-wrap{overflow:auto;max-height:calc(100vh - 210px)}
+table.gt{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:12px}
+.gt thead th{position:sticky;top:0;z-index:3;background:var(--panel);color:var(--pri);font-weight:600;text-align:center;height:26px;padding:0 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;user-select:none}
+.gt thead th:last-child{border-right:none}
+.gt td{height:24px;padding:0 6px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gt td:last-child{border-right:none}
+.gt tbody tr:hover td{background:var(--pri-l)}
+.gt tr.sum td{background:var(--sumbg);font-weight:700}
+.gt tr.sum td.amt{color:var(--red)}
+.gt tr.grp td{background:var(--panel);font-weight:600}
+.gt tr.leaf td{background:var(--leafbg)}
+.gt tr.sub td{background:var(--panel);color:var(--txt2)}
+.gt tr.mat td{background:var(--matbg);color:var(--txt2)}
+.gt tr.hid{display:none}
+.gt td.cat{text-align:center;font-size:11px;color:var(--txt3)}
+.gt tr.leaf td.cat{color:var(--leafcat)}
+.gt tr.mat td.cat{color:var(--matcat)}
+.gt tr.sub td.cat{color:var(--subcat)}
+.gt .t-r{text-align:right;font-variant-numeric:tabular-nums}
+.gt .t-c{text-align:center}
+.gt .amt{color:var(--red)}
+.gt .arw{display:inline-block;width:12px;color:var(--txt2);font-size:9px;cursor:pointer;user-select:none;text-align:center}
+.gt .dep1{padding-left:20px}
+.gt .dep2{padding-left:38px}
+.gt .dep3{padding-left:56px}
+.gt .dep4{padding-left:74px}
+.gt .dep5{padding-left:92px}
+.empty{padding:34px;text-align:center;color:var(--txt3);font-size:12px;line-height:2}
+
+table.kv td{height:25px}
+table.kv tbody tr:nth-child(odd) td{background:var(--zebra)}
+table.kv tbody tr:hover td{background:var(--pri-l)}
+table.kv .kn{width:34%;font-weight:400;color:var(--txt2)}
+table.kv .vv{font-weight:600}
+.inpf{width:88px;height:20px;border:1px solid var(--line);border-radius:2px;padding:0 4px;font-size:11px;background:var(--panel)}
+
+/* 图表 */
+.cards{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:3px;flex:1;min-width:148px;padding:8px 10px}
+.card .k{font-size:11px;color:var(--txt2)}
+.card .v{font-size:17px;font-weight:700;color:var(--pri);font-variant-numeric:tabular-nums;margin-top:2px;letter-spacing:-.3px}
+.card .s{font-size:10px;color:var(--txt3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk{background:var(--panel);border:1px solid var(--line);border-radius:3px;margin:0 auto 8px}
+.blk>h3{font-size:12px;font-weight:600;color:var(--pri-d);padding:6px 10px;border-bottom:1px solid var(--line2)}
+.blk .bd{padding:10px}
+.flexr{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.lg{display:flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap}
+.lg i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+.lg .n{width:96px;overflow:hidden;text-overflow:ellipsis}
+.lg .v{font-variant-numeric:tabular-nums;color:var(--txt2)}
+.lg .p{width:46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--txt2)}
+.brow{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px}
+.brow .n{width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .b{flex:1;height:11px;background:var(--line2);border-radius:2px;overflow:hidden}
+.brow .b i{display:block;height:100%;border-radius:2px}
+.brow .v{width:100px;text-align:right;font-variant-numeric:tabular-nums}
+.brow .p{width:46px;text-align:right;color:var(--txt2);font-variant-numeric:tabular-nums}
+.note-p{font-size:12px;line-height:1.9;color:var(--txt);white-space:pre-wrap}
+
+/* 弹窗 */
+#mask{position:fixed;inset:0;background:rgba(20,28,38,.42);display:none;z-index:50;align-items:center;justify-content:center}
+#mask.on{display:flex}
+.dlg{background:var(--panel);border-radius:4px;width:min(760px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.dlg h4{padding:9px 14px;font-size:13px;border-bottom:1px solid var(--line);color:var(--pri-d);flex:0 0 auto}
+.dlg .bd{padding:12px 14px;font-size:12px;line-height:1.8;overflow:auto}
+.dlg .ft{padding:9px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.dlg code{background:var(--line2);padding:1px 5px;border-radius:2px;font-size:11px}
+.dlg ol{margin:6px 0 6px 18px}
+.dlg li{margin:3px 0}
+.dlg .note{background:var(--pri-l);border-left:3px solid var(--pri);padding:7px 10px;margin:6px 0;border-radius:0 3px 3px 0}
+.pbtn{height:27px;padding:0 14px;border-radius:3px;background:var(--pri);color:#fff;font-size:12px}
+.pbtn.gh{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.imp{display:flex;gap:10px;min-height:320px}
+.imp .side{width:150px;flex:0 0 auto;border-right:1px solid var(--line2);padding-right:8px}
+.imp .side .it{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:3px;cursor:pointer;font-size:12px;color:var(--txt2)}
+.imp .side .it:hover{background:var(--line2)}
+.imp .side .it.on{background:var(--pri-l);color:var(--pri);font-weight:600}
+.imp .side .it .st{margin-left:auto;font-size:10px}
+.imp .side .it .st.ok{color:#3d8b5f}
+.imp .side .it .st.no{color:var(--txt3)}
+.imp .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.imp textarea{flex:1;min-height:280px;width:100%;resize:none;border:1px solid var(--line);border-radius:3px;padding:8px;font:11px/1.6 Consolas,"Microsoft YaHei",monospace;background:var(--panel);white-space:pre;overflow:auto}
+.imp textarea:focus{outline:none;border-color:var(--pri)}
+.imp .tip{font-size:11px;color:var(--txt2);margin-bottom:6px}
+.imp .res{font-size:11px;margin-top:6px;color:var(--pri)}
+
+@media print{
+  #top,#nav,#tabs,#tools,#status{display:none!important}
+  #main{display:block;height:auto}
+  #pane{overflow:visible;padding:0}
+  .gt-wrap{max-height:none;overflow:visible}
+  body{overflow:visible}
+  .billwrap{display:block}
+  .billtree{display:none}
+  .bar{display:none}
+}
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="crumb" id="crumb"></div>
+  <div class="sp"></div>
+  <span class="app">计价数据预览器 · 粘贴即可看 · 本地运行</span>
+</header>
+
+<div id="tools">
+  <button class="tbtn acc" id="bImp">粘贴数据</button>
+  <button class="tbtn" id="bDemo">示例工程</button>
+  <span style="width:1px;height:16px;background:var(--line)"></span>
+  <button class="tbtn" id="bCsv">导出CSV</button>
+  <button class="tbtn" id="bPrint">打印</button>
+  <button class="tbtn" id="bHelp">格式说明</button>
+  <span class="sp"></span>
+  <input id="q" placeholder="在当前表中搜索…">
+  <button class="tbtn" id="bTheme" title="切换深浅主题">主题</button>
+</div>
+
+<div id="main">
+  <nav id="nav"></nav>
+  <section id="work">
+    <div id="tabs"></div>
+    <div id="pane"></div>
+    <div id="status"></div>
+  </section>
+</div>
+
+<div class="menu" id="menu"></div>
+<div id="dragline"></div>
+<div id="mask"><div class="dlg" id="dlg"></div></div>
+
+<script>
+"use strict";
+/* =========================================================
+   0. 基础工具
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function num(v){
+  if(typeof v === 'number') return isFinite(v) ? v : null;
+  if(v == null) return null;
+  let s = String(v).trim().replace(/[,，\s￥¥$%]/g,'');
+  if(!s || s === '—' || s === '-' || s === '－') return null;
+  if(/^\(.*\)$/.test(s)) s = '-' + s.slice(1,-1);
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function fmt(n, d){
+  if(n == null || isNaN(n)) return '';
+  const neg = n < 0, a = Math.abs(n);
+  return (neg?'-':'') + a.toLocaleString('zh-CN',{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+const money = n => fmt(n, 2);
+const r2 = n => Math.round(n * 100) / 100;
+/* 数量：最多 4 位小数，去掉多余的 0 */
+function qf(n){
+  if(n == null || isNaN(n)) return '';
+  let s = n.toFixed(4);
+  if(s.indexOf('.') >= 0) s = s.replace(/0+$/,'').replace(/\.$/,'');
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, m => m);
+}
+function qfc(n){
+  if(n == null || isNaN(n)) return '';
+  const p = String(n).split('.');
+  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return p.join('.');
+}
+const qtyf = n => { const s = qf(n); return s ? qfc(s) : ''; };
+function rmbUpper(n){
+  if(n == null || isNaN(n)) return '';
+  const CN = '零壹贰叁肆伍陆柒捌玖', DU = ['仟','佰','拾',''], GW = ['','万','亿'];
+  let neg = n < 0; const t = Math.round(Math.abs(n) * 100);
+  let y = Math.floor(t / 100), j = Math.floor(t % 100 / 10), f = t % 10;
+  if(!y && !j && !f) return '零元整';
+  let gs = String(y), groups = [];
+  while(gs.length > 4){ groups.unshift(gs.slice(-4)); gs = gs.slice(0, -4); }
+  groups.unshift(gs);
+  let s = '';
+  groups.forEach((g, gi) => {
+    const nn = g.padStart(4, '0').split('').map(Number);
+    let out = '', zero = false;
+    nn.forEach((d, i) => {
+      if(d === 0){ zero = true; }
+      else { out += (zero && out ? '零' : '') + CN[d] + DU[i]; zero = false; }
+    });
+    if(out) s += out + GW[groups.length - 1 - gi];
+  });
+  s = s || '零';
+  s += '元';
+  if(!j && !f) s += '整';
+  else { if(!j) s += '零'; else s += CN[j] + '角'; if(f) s += CN[f] + '分'; }
+  return (neg ? '负' : '') + s;
+}
+
+/* =========================================================
+   1. 表头定义 / 粘贴解析
+   ========================================================= */
+const H = {
+  analysis: ['名称','内容'],
+  overview: ['名称','内容'],
+  bill:     ['编码','类别','名称','项目特征','规格型号','单位','工程量表达式','含量','工程量','单价','合价','综合单价','综合合价','单价构成文件','取费专业','人工费价格指数','机械费价格指数','管理费价格指数','备注'],
+  measure:  ['序号','类别','名称','单位','工程量','组价方式','计算基数','费率(%)','综合单价','综合合价','人工费价格指数','机械费价格指数','管理费价格指数','取费专业','单价构成文件','措施类别','备注','局部汇总'],
+  other:    ['序号','名称','计算基数','费率(%)','金额','费用类别','不可竞争费','不计入合价','备注'],
+  res:      ['编码','类别','名称','规格型号','单位','数量','预算价','市场价','价格来源','市场价合计','价差','价差合计','供货方式','甲供数量','市场价锁定','输出标记','产地','厂家','是否暂估','二次分析','直接修改单价','质量等级','品牌','备注'],
+  fee:      ['序号','费用代号','名称','计算基数','基数说明','费率(%)','金额','费用类别','备注','输出']
+};
+const KIND_LABEL = { analysis:'造价分析', overview:'工程概况', bill:'分部分项', measure:'措施项目', other:'其他项目', res:'人材机汇总', fee:'费用汇总' };
+const KIND_ORDER = ['analysis','overview','bill','measure','other','res','fee'];
+
+const norm = s => String(s == null ? '' : s).replace(/[\s:：()（）%]/g,'').toLowerCase();
+/* 表头行 → 表类型：与该表标准表头做「前缀连续匹配」，取匹配最长者 */
+function detectKind(row){
+  let best = '';
+  let bn = 0;
+  Object.keys(H).forEach(k => {
+    if(k === 'analysis' || k === 'overview') return;
+    const h = H[k];
+    let n = 0;
+    while(n < h.length && n < row.length && norm(row[n]) === norm(h[n])) n++;
+    if(n > bn){ bn = n; best = k; }
+  });
+  if(row.length >= 2 && norm(row[0]) === '名称' && norm(row[1]) === '内容' && bn < 2) return 'kv';
+  return bn >= 3 ? best : '';
+}
+/* 名称/内容 两列表 → 造价分析 还是 工程概况 */
+function kvKind(rows){
+  const keys = rows.map(r => String(r[0] || '')).join('|');
+  if(/工程总造价|分部分项工程费|措施项目费|规费|增值税|单方造价|其中/.test(keys)) return 'analysis';
+  if(/合同号|工程名称|专业|编制|审核|编制依据/.test(keys)) return 'overview';
+  return 'overview';
+}
+/* 行分割：Excel 复制的 TSV 中「行」用 \r\n 结束，而单元格内部的软换行是单独的 \n。
+   所以只要文本里出现过 \r，就按 \r 断行，单元格内的 \n 原样保留（不丢项目特征里的换行）。 */
+function splitLines(t){
+  const s = String(t == null ? '' : t);
+  let lines;
+  if(s.indexOf('\r') >= 0){
+    lines = s.replace(/\r\n/g, '\r').replace(/\n\r/g, '\r').split('\r');
+  } else {
+    lines = s.split('\n');
+  }
+  return lines.map(l => l.split('\t').map(c => String(c).trim()))
+    .filter(l => l.some(c => c !== ''));
+}
+/* 单元格内换行 → 显示为 ↵ 记号（数据本身不丢，title / 导出都是原文） */
+const nlMark = s => String(s == null ? '' : s).replace(/\r/g, '').replace(/\n/g, ' ↵ ');
+
+/* 把一整段粘贴文本切成若干张表：{kind, head, rows} */
+function parseClip(text){
+  const lines = splitLines(text);
+  if(!lines.length) return [];
+  const out = [];
+  let cur = null;
+  const push = () => { if(cur && cur.rows.length) out.push(cur); cur = null; };
+  let first = true;
+  lines.forEach(l => {
+    const k = detectKind(l);
+    if(k){
+      push();
+      cur = { kind:k, head:l, rows:[] };
+      first = false;
+      return;
+    }
+    if(!cur){
+      /* 没有表头就先攒着，等后面出现表头时丢弃；这里建一个"裸表" */
+      cur = { kind:'?', head:[], rows:[l] };
+      return;
+    }
+    cur.rows.push(l);
+  });
+  push();
+  /* 裸表：尝试用标准表头补齐 */
+  const res = [];
+  out.forEach(t => {
+    if(t.kind === '?'){
+      const k2 = guessRawKind(t.rows);
+      if(!k2) return;
+      const t2 = { kind:k2, head:H[k2].slice(), rows:t.rows.filter(r => !sameHead(r, H[k2])) };
+      res.push(t2);
+    } else if(t.kind === 'kv'){
+      const kk = kvKind(t.rows);
+      res.push({ kind:kk, head:H[kk].slice(), rows:t.rows.filter(r => !(r[0] === '名称' && r[1] === '内容')) });
+    } else res.push(t);
+  });
+  return res;
+}
+const sameHead = (r, h) => r.length >= 2 && norm(r[0]) === norm(h[0]) && norm(r[1]) === norm(h[1]);
+function guessRawKind(rows){
+  let best = '', bs = 0;
+  Object.keys(H).forEach(k => {
+    if(k === 'analysis' || k === 'overview') return;
+    const h = H[k];
+    let s = 0;
+    rows.slice(0, 40).forEach(r => {
+      if(r.length !== h.length && r.length !== h.length - 1) return;
+      s++;
+    });
+    if(s > bs){ bs = s; best = k; }
+  });
+  return bs ? best : '';
+}
+/* 行 → 对象（按表头列名） */
+function toObj(head, row){
+  const m = {};
+  head.forEach((c, i) => { m[c] = row[i] == null ? '' : row[i]; });
+  return m;
+}
+function colMap(head){
+  const m = {};
+  H_ALL.forEach(k => {
+    for(let i = 0; i < head.length; i++){
+      if(norm(head[i]) === norm(k)){ m[k] = i; return; }
+    }
+  });
+  return m;
+}
+const H_ALL = (function(){
+  const s = {};
+  Object.keys(H).forEach(k => H[k].forEach(c => { s[c] = 1; }));
+  return Object.keys(s);
+})();
+
+/* 分部层级推断（支持到四级）：
+   维护一个「剩余额度栈」——分部入栈并记下它还没被认领的金额，
+   清单行按顺序扣减栈顶的剩余额度；某个分部额度扣完就出栈。
+   这样兄弟分部、嵌套分部都能判断正确，不再依赖金额巧合。 */
+function assignTree(rows){
+  const stack = [], eps = 0.05;
+  const rest = s => (s.length ? s[s.length - 1].remain : Infinity);
+  rows.forEach(x => {
+    if(x.cat === '部'){
+      const a = num(x.total) != null ? num(x.total) : num(x.amount);
+      while(stack.length && a != null && a > rest(stack) + eps) stack.pop();
+      x._d = stack.length;
+      if(stack.length && a != null) stack[stack.length - 1].remain = r2(stack[stack.length - 1].remain - a);
+      stack.push({ x:x, remain:(a == null ? Infinity : a) });
+    } else if(x.cat === '项'){
+      const a = num(x.total) != null ? num(x.total) : num(x.amount);
+      if(a != null && stack.length) stack[stack.length - 1].remain = r2(stack[stack.length - 1].remain - a);
+    }
+  });
+  /* 保险：层级最多 4 级（相对根） */
+  rows.forEach(x => { if(x.cat === '部' && x._d > 3) x._d = 3; });
+}
+const xhDepth = xh => {
+  const s = String(xh == null ? '' : xh).trim();
+  if(!s) return 0;
+  const m = s.match(/^(\d+(?:\.\d+)*)/);
+  if(!m) return 0;
+  return m[1].split('.').length - 1;
+};
+
+/* =========================================================
+   2. 各表 → 行数据
+   ========================================================= */
+/* 分部分项：部 / 项 / 定 / 主 四类 */
+function rowsBill(t){
+  const cm = colMap(t.head);
+  const raw = [];
+  t.rows.forEach(r => {
+    const code  = (cm['编码'] != null ? r[cm['编码']] : '') || '';
+    const cat   = String((cm['类别'] != null ? r[cm['类别']] : '') || '').trim();
+    const name  = (cm['名称'] != null ? r[cm['名称']] : '') || '';
+    raw.push({
+      code: code, cat: cat, name: name,
+      feat:  cm['项目特征'] != null ? r[cm['项目特征']] : '',
+      spec:  cm['规格型号'] != null ? r[cm['规格型号']] : '',
+      unit:  cm['单位'] != null ? r[cm['单位']] : '',
+      expr:  cm['工程量表达式'] != null ? r[cm['工程量表达式']] : '',
+      hl:    num(cm['含量'] != null ? r[cm['含量']] : ''),
+      qty:   num(cm['工程量'] != null ? r[cm['工程量']] : ''),
+      price: num(cm['单价'] != null ? r[cm['单价']] : ''),
+      amount:num(cm['合价'] != null ? r[cm['合价']] : ''),
+      up:    num(cm['综合单价'] != null ? r[cm['综合单价']] : ''),
+      total: num(cm['综合合价'] != null ? r[cm['综合合价']] : ''),
+      note:  cm['备注'] != null ? r[cm['备注']] : ''
+    });
+  });
+  /* 分部行：类别=部 */
+  const parts = raw.filter(x => x.cat === '部');
+  parts.forEach(p => { p.amount = p.total != null ? p.total : p.amount; });
+  assignTree(raw);
+  const out = [];
+  let curPartD = -1, curLeafD = -1, last = null, rootDone = false;
+  raw.forEach(x => {
+    if(x.cat === '部'){
+      curPartD = x._d == null ? 0 : x._d;
+      curLeafD = -1;
+      out.push({ _cls:'grp', _dep:curPartD, _kids:1, c:x });
+    } else if(!x.cat && !rootDone && /整个项目|合计/.test(x.name)){
+      rootDone = true;
+      out.push({ _cls:'sum', _dep:0, _kids:1, c:x });
+    } else if(x.cat === '项'){
+      curLeafD = curPartD + 1;
+      out.push({ _cls:'leaf', _dep:curLeafD, _kids:1, c:x });
+      last = 'leaf';
+    } else if(x.cat === '定'){
+      out.push({ _cls:'sub', _dep:(curLeafD < 0 ? 1 : curLeafD + 1), c:x });
+    } else if(x.cat === '主'){
+      out.push({ _cls:'mat', _dep:(curLeafD < 0 ? 1 : curLeafD + 1), c:x });
+    } else {
+      out.push({ _cls:'', _dep:(curLeafD < 0 ? 0 : curLeafD), c:x });
+    }
+  });
+  /* 有「整个项目」根行时，其余整体下沉一级 */
+  if(rootDone) out.forEach(r => { if(r._cls !== 'sum') r._dep = (r._dep || 0) + 1; });
+  /* 可折叠标记 */
+  for(let i = 0; i < out.length; i++) if(i + 1 < out.length && out[i + 1]._dep > out[i]._dep) out[i]._kids = 1;
+  return out;
+}
+/* 措施项目 */
+function rowsMeasure(t){
+  const cm = colMap(t.head);
+  const raw = t.rows.map(r => ({
+    xh:    cm['序号'] != null ? r[cm['序号']] : '',
+    cat:   String(cm['类别'] != null ? r[cm['类别']] : '').trim(),
+    name:  cm['名称'] != null ? r[cm['名称']] : '',
+    unit:  cm['单位'] != null ? r[cm['单位']] : '',
+    qty:   num(cm['工程量'] != null ? r[cm['工程量']] : ''),
+    mode:  cm['组价方式'] != null ? r[cm['组价方式']] : '',
+    base:  cm['计算基数'] != null ? r[cm['计算基数']] : '',
+    rate:  num(cm['费率(%)'] != null ? r[cm['费率(%)']] : ''),
+    up:    num(cm['综合单价'] != null ? r[cm['综合单价']] : ''),
+    total: num(cm['综合合价'] != null ? r[cm['综合合价']] : ''),
+    mcat:  cm['措施类别'] != null ? r[cm['措施类别']] : '',
+    note:  cm['备注'] != null ? r[cm['备注']] : ''
+  }));
+  /* 层级按广联达序号规则：一/二 → 01/02 → 清单编码 → 定额行 */
+  const res = [];
+  let lastD = 0, inSub = false;
+  raw.forEach((x, i) => {
+    const xh = String(x.xh || '').trim();
+    const isQuota = !!x.cat && /-/.test(xh);          /* 定额行：类别非空且序号形如 7-6-HA1 */
+    let d;
+    if(isQuota) d = lastD + 1;
+    else if(i === 0 || !/^[\d一二三四五六七八九十]/.test(xh)) d = 0;
+    else if(/^[一二三四五六七八九十]+$/.test(xh)){ d = 1; inSub = false; }
+    else if(/^\d{1,2}$/.test(xh)){ d = 2; inSub = true; }
+    else if(/^\d{9,12}$/.test(xh)){ d = inSub ? 3 : 2; }
+    else d = 2;
+    if(!isQuota) lastD = d;
+    res.push({ _cls:(d <= 1 ? 'sum' : 'grp'), _dep:d, c:x });
+  });
+  for(let i = 0; i < res.length; i++) if(i + 1 < res.length && res[i + 1]._dep > res[i]._dep) res[i]._kids = 1;
+  return res;
+}
+/* 其他项目 / 费用汇总（按序号层级） */
+function rowsXh(t, kind){
+  const cm = colMap(t.head);
+  const raw = t.rows.map(r => ({
+    xh:    cm['序号'] != null ? r[cm['序号']] : '',
+    code:  cm['费用代号'] != null ? r[cm['费用代号']] : '',
+    name:  cm['名称'] != null ? r[cm['名称']] : '',
+    base:  cm['计算基数'] != null ? r[cm['计算基数']] : '',
+    bdesc: cm['基数说明'] != null ? r[cm['基数说明']] : '',
+    rate:  num(cm['费率(%)'] != null ? r[cm['费率(%)']] : ''),
+    amount:num(cm['金额'] != null ? r[cm['金额']] : ''),
+    cat:   cm['费用类别'] != null ? r[cm['费用类别']] : '',
+    nocomp:cm['不可竞争费'] != null ? r[cm['不可竞争费']] : '',
+    notot: cm['不计入合价'] != null ? r[cm['不计入合价']] : '',
+    note:  cm['备注'] != null ? r[cm['备注']] : ''
+  }));
+  const res = [];
+  let base = 0;
+  raw.forEach((x, i) => {
+    let d;
+    if(i === 0 && !/^[\d]/.test(String(x.xh).trim())){ d = 0; base = 1; }
+    else d = xhDepth(x.xh) + 1;
+    const root = (d <= 1);
+    res.push({ _cls:root ? 'sum' : '', _dep:d, c:x });
+  });
+  for(let i = 0; i < res.length; i++) if(i + 1 < res.length && res[i + 1]._dep > res[i]._dep) res[i]._kids = 1;
+  return res;
+}
+/* 人材机汇总 */
+const RES_CATS = [
+  { k:'all',      l:'全部' },
+  { k:'labor',    l:'人工表' },
+  { k:'material', l:'材料表' },
+  { k:'machine',  l:'机械表' },
+  { k:'device',   l:'设备表' },
+  { k:'mainmat',  l:'主材表' }
+];
+function resCat(c){
+  const s = String(c || '').trim();
+  if(!s) return 'other';
+  if(/人|工日/.test(s)) return 'labor';
+  if(/主/.test(s)) return 'mainmat';
+  if(/设|备/.test(s)) return 'device';
+  if(/机|械|台班/.test(s)) return 'machine';
+  if(/材|料/.test(s)) return 'material';
+  return 'other';
+}
+function rowsRes(t){
+  const cm = colMap(t.head);
+  return t.rows.map(r => {
+    const cat = cm['类别'] != null ? r[cm['类别']] : '';
+    return { c:{
+      code:  cm['编码'] != null ? r[cm['编码']] : '',
+      cat:   cat,
+      name:  cm['名称'] != null ? r[cm['名称']] : '',
+      spec:  cm['规格型号'] != null ? r[cm['规格型号']] : '',
+      unit:  cm['单位'] != null ? r[cm['单位']] : '',
+      qty:   num(cm['数量'] != null ? r[cm['数量']] : ''),
+      price: num(cm['预算价'] != null ? r[cm['预算价']] : ''),
+      mprice:num(cm['市场价'] != null ? r[cm['市场价']] : ''),
+      src:   cm['价格来源'] != null ? r[cm['价格来源']] : '',
+      amount:num(cm['市场价合计'] != null ? r[cm['市场价合计']] : ''),
+      diff:  num(cm['价差'] != null ? r[cm['价差']] : ''),
+      difft: num(cm['价差合计'] != null ? r[cm['价差合计']] : ''),
+      supply:cm['供货方式'] != null ? r[cm['供货方式']] : '',
+      note:  cm['备注'] != null ? r[cm['备注']] : ''
+    }, _rk:resCat(cat), _dep:0, _cls:'' };
+  });
+}
+/* 名称/内容 键值 */
+function rowsKv(t){ return t.rows.map(r => ({ k:String(r[0] || '').trim(), v:String(r[1] == null ? '' : r[1]).trim() })); }
+
+/* =========================================================
+   3. 数据模型
+   ========================================================= */
+function newDB(){
+  return { analysis:[], overview:[], bill:[], measure:[], other:[], res:[], fee:[],
+           meta:{}, area:0, topn:{ qd:10, res:10 }, bcols:{}, blvl:{} };
+}
+let PROJ = [], PIDX = -1, DB = newDB();
+let TAB = 'analysis', PART = '', Q = '';
+const COLL = new Set();
+let CUR_COLS = [], CUR_ROWS = [], VIEW_ROWS = [];
+/* 人材机排序：{k:列名, dir:1升序/-1降序}；k 为空表示不排序 */
+let SORT = { k:'', dir:1 };
+
+const emptyKind = k =>{
+  if(k === 'analysis') return !DB.analysis.length;
+  if(k === 'overview') return !DB.overview.length;
+  return !DB[k].length;
+};
+
+const isHeadRow = (r, head) => r.length >= 3 && head.length >= 3 &&
+  norm(r[0]) === norm(head[0]) && norm(r[1]) === norm(head[1]) && norm(r[2]) === norm(head[2]);
+/* 把解析出的表写入 DB（同类型多段会自动合并，重复的页表头行会被剔除） */
+function applyTables(tabs, db){
+  const byK = {};
+  tabs.forEach(t => { (byK[t.kind] = byK[t.kind] || []).push(t); });
+  let n = 0;
+  Object.keys(byK).forEach(k => {
+    const list = byK[k];
+    if(k === 'analysis' || k === 'overview'){
+      const m = new Map();
+      list.forEach(t => rowsKv(t).forEach(x => { if(x.k) m.set(x.k, x.v); }));
+      db[k] = Array.from(m.keys()).map(key => ({ k:key, v:m.get(key) }));
+    } else {
+      const head = list[0].head;
+      const rows = [].concat.apply([], list.map(t => t.rows)).filter(r => !isHeadRow(r, head));
+      const merged = { kind:k, head:head, rows:rows };
+      if(k === 'bill') db.bill = rowsBill(merged);
+      else if(k === 'measure') db.measure = rowsMeasure(merged);
+      else if(k === 'other') db.other = rowsXh(merged, 'other');
+      else if(k === 'fee') db.fee = rowsXh(merged, 'fee');
+      else if(k === 'res') db.res = rowsRes(merged);
+    }
+    n++;
+  });
+  /* 工程名：概况表的「工程名称」 */
+  const on = db.overview.find(x => x.k === '工程名称');
+  db.meta.name = on ? on.v : '';
+  return n;
+}
+/* 造价分析取值 */
+function anRaw(k){
+  const t = norm(k);
+  const r = DB.analysis.find(x => norm(x.k) === t);
+  return r ? r.v : '';
+}
+function anVal(k){ return num(anRaw(k)); }
+/* 费用汇总按序号取值 */
+function feeVal(xh){
+  const r = DB.fee.find(x => String(x.c.xh).trim() === String(xh));
+  return r ? num(r.c.amount) : null;
+}
+
+/* =========================================================
+   4. 列定义
+   ========================================================= */
+const C = (k, l, w, t, o) => Object.assign({ k:k, l:l, w:w, t:t || 't' }, o || {});
+const BILL_COLS = [
+  C('code','编码',112,'t'), C('cat','类别',38,'t',{c:1}), C('name','名称',210,'t',{tree:1,ni:1}),
+  C('feat','项目特征',190,'t'), C('spec','规格型号',100,'t'), C('unit','单位',44,'t',{c:1}),
+  C('expr','工程量表达式',100,'t'), C('hl','含量',62,'n'), C('qty','工程量',84,'n'),
+  C('price','单价',76,'n'), C('amount','合价',88,'n'), C('up','综合单价',84,'n'),
+  C('total','综合合价',100,'n',{amt:1}), C('note','备注',110,'t')
+];
+const MEASURE_COLS = [
+  C('xh','序号',118,'t'), C('cat','类别',38,'t',{c:1}), C('name','名称',230,'t',{tree:1}),
+  C('unit','单位',46,'t',{c:1}), C('qty','工程量',76,'n'), C('mode','组价方式',96,'t'),
+  C('base','计算基数',150,'t'), C('rate','费率(%)',60,'n'), C('up','综合单价',86,'n'),
+  C('total','综合合价',104,'n',{amt:1}), C('mcat','措施类别',110,'t'), C('note','备注',110,'t')
+];
+const OTHER_COLS = [
+  C('xh','序号',58,'t'), C('name','名称',220,'t',{tree:1}), C('base','计算基数',150,'t'),
+  C('rate','费率(%)',64,'n'), C('amount','金额',110,'n',{amt:1}), C('cat','费用类别',120,'t'),
+  C('nocomp','不可竞争费',86,'t',{c:1}), C('notot','不计入合价',86,'t',{c:1}), C('note','备注',120,'t')
+];
+const RES_COLS = [
+  C('code','编码',96,'t'), C('cat','类别',38,'t',{c:1}), C('name','名称',190,'t'),
+  C('spec','规格型号',120,'t'), C('unit','单位',48,'t',{c:1}), C('qty','数量',86,'n'),
+  C('price','预算价',76,'n'), C('mprice','市场价',76,'n'), C('src','价格来源',130,'t'),
+  C('amount','市场价合计',100,'n',{amt:1}), C('diff','价差',64,'n'), C('difft','价差合计',86,'n'),
+  C('supply','供货方式',86,'t'), C('note','备注',110,'t')
+];
+const FEE_COLS = [
+  C('xh','序号',56,'t'), C('code','费用代号',66,'t'), C('name','名称',190,'t',{tree:1}),
+  C('base','计算基数',140,'t'), C('bdesc','基数说明',170,'t'), C('rate','费率(%)',58,'n'),
+  C('amount','金额',110,'n',{amt:1}), C('cat','费用类别',120,'t'), C('note','备注',110,'t')
+];
+
+/* =========================================================
+   5. 表格渲染
+   ========================================================= */
+function cellTxt(col, v, row){
+  if(v == null || v === '') return '';
+  if(col.t === 'n'){
+    const n = num(v);
+    if(n == null) return '';
+    if(col.k === 'rate') return fmt(n, 2);
+    if(col.k === 'qty' || col.k === 'hl') return qtyf(n);
+    return money(n);
+  }
+  return String(v);
+}
+/* 分部分项层级视图：各层级默认显示的列 */
+const LVL_KEYS  = ['code','cat','name','feat','spec','unit','qty','up','total'];
+const QUOTA_KEYS= ['code','cat','name','spec','unit','expr','hl','qty','price','amount','up','total'];
+const LVL_TABS = [
+  { k:'',      l:'全部' }, { k:'1', l:'一级' }, { k:'2', l:'二级' }, { k:'3', l:'三级' },
+  { k:'4', l:'四级' }, { k:'leaf', l:'清单' }, { k:'quota', l:'定额' }
+];
+let LVL = '', SEL = -1;
+
+function rowsHtml(rows, cols){
+  return rows.map((r, j) => {
+    let s = '<tr class="' + (r._cls || '') + (r._hid ? ' hid' : '') + '" data-i="' + j + '">';
+    cols.forEach(c => {
+      const v = r.c[c.k];
+      const cls = (c.t === 'n' ? 't-r' : (c.c ? 't-c' : '')) + (c.amt ? ' amt' : '') +
+        (c.tree && !c.ni ? ' dep' + Math.min(r._dep || 0, 5) : '') + (c.k === 'cat' ? ' cat' : '');
+      let txt = esc(nlMark(cellTxt(c, v, r)));
+      if(c.tree) txt = '<span class="arw" data-a="' + j + '">' + (r._kids ? '▶' : '') + '</span>' + txt;
+      const raw = cellTxt(c, v, r);
+      s += '<td class="' + cls + '"' + (raw !== '' && (c.k === 'name' || c.k === 'feat' || c.k === 'spec' || c.k === 'base' || c.k === 'bdesc') ? ' title="' + esc(raw) + '"' : '') + '>' + txt + '</td>';
+    });
+    return s + '</tr>';
+  }).join('');
+}
+function grid(cols, rows, opt){
+  opt = opt || {};
+  const totalW = cols.reduce((s, c) => s + c.w, 0);
+  /* 宽度：按比例撑满容器，窄于 1000px 时才横向滚动 */
+  let h = '<div class="gt-card"' + (totalW ? ' style="min-width:' + Math.min(totalW, 1000) + 'px"' : '') + '>';
+  if(opt.title || opt.sub || opt.extra){
+    h += '<div class="gt-head"><span class="tt">' + esc(opt.title || '') + '</span>' +
+      (opt.sub ? '<span class="mini">' + esc(opt.sub) + '</span>' : '') + '<span class="sp"></span>' +
+      (opt.extra ? '<span class="mini">' + esc(opt.extra) + '</span>' : '') + '</div>';
+  }
+  h += '<div class="gt-wrap" id="gtw"><table class="gt"><colgroup>' +
+    cols.map(c => '<col style="width:' + c.w + 'px">').join('') + '</colgroup><thead><tr>' +
+    cols.map(c => {
+      if(!opt.sort) return '<th>' + esc(c.l) + '</th>';
+      const on = SORT.k === c.k;
+      return '<th class="srt" data-s="' + c.k + '" title="点击排序">' + esc(c.l) +
+        (on ? '<span class="ar">' + (SORT.dir > 0 ? '▲' : '▼') + '</span>' : '') + '</th>';
+    }).join('') + '</tr></thead><tbody>';
+  h += rowsHtml(rows, cols);
+  h += '</tbody></table></div></div>';
+  return h;
+}
+/* 过滤 + 折叠 */
+function visible(rows, cols){
+  const q = Q.trim().toLowerCase();
+  let vis = rows.map(() => true);
+  if(q){
+    rows.forEach((r, i) => {
+      let hit = false;
+      for(let j = 0; j < cols.length && !hit; j++){
+        const v = cellTxt(cols[j], r.c[cols[j].k], r);
+        if(v && String(v).toLowerCase().indexOf(q) >= 0) hit = true;
+      }
+      vis[i] = hit;
+    });
+    for(let i = rows.length - 1; i >= 0; i--){
+      if(!vis[i]) continue;
+      let d = rows[i]._dep || 0;
+      for(let j = i - 1; j >= 0; j--){
+        if((rows[j]._dep || 0) < d){ vis[j] = true; d = rows[j]._dep || 0; }
+      }
+    }
+  }
+  const out = [];
+  let hid = -1;
+  rows.forEach((r, i) => {
+    if(!vis[i]){ out.push(Object.assign({}, r, { _hid:1 })); return; }
+    if(hid >= 0 && (r._dep || 0) <= hid) hid = -1;
+    const o = Object.assign({}, r);
+    if(hid >= 0) o._hid = 1;
+    out.push(o);
+    if(o._kids && COLL.has(i) && hid < 0) hid = r._dep || 0;
+  });
+  return out;
+}
+
+/* =========================================================
+   6. 视图
+   ========================================================= */
+const TABS = [
+  { k:'analysis', l:'造价分析' }, { k:'overview', l:'工程概况' }, { k:'bill', l:'分部分项' },
+  { k:'measure', l:'措施项目' }, { k:'other', l:'其他项目' }, { k:'res', l:'人材机汇总' }, { k:'fee', l:'费用汇总' }
+];
+const PAL = ['#3d6db5','#5b9e78','#c0682a','#8a6fa8','#d99a4e','#5b8ecb','#b25f5f','#7a9e5b','#a85f8a','#5b7f9e'];
+
+function donut(items, size){
+  size = size || 132;
+  const total = items.reduce((s, x) => s + Math.abs(x.v), 0) || 1;
+  const R = size / 2, r = R * 0.6, cx = R, cy = R;
+  let a = -Math.PI / 2, paths = '';
+  items.forEach((x, i) => {
+    if(!x.v) return;
+    const ang = Math.abs(x.v) / total * Math.PI * 2;
+    const a2 = a + ang;
+    const big = ang > Math.PI ? 1 : 0;
+    const p = (rr, aa) => (cx + rr * Math.cos(aa)).toFixed(2) + ',' + (cy + rr * Math.sin(aa)).toFixed(2);
+    paths += '<path d="M' + p(R, a) + ' A' + R + ',' + R + ' 0 ' + big + ' 1 ' + p(R, a2) +
+      ' L' + p(r, a2) + ' A' + r + ',' + r + ' 0 ' + big + ' 0 ' + p(r, a) + ' Z" fill="' + PAL[i % PAL.length] + '"><title>' + esc(x.n) + ' ' + money(x.v) + '</title></path>';
+    a = a2;
+  });
+  return '<svg width="' + size + '" height="' + size + '" style="flex:0 0 auto">' + paths +
+    '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="var(--txt2)">合计</text>' +
+    '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--pri)">' + money(items.reduce((s, x) => s + x.v, 0)) + '</text></svg>';
+}
+const legend = items => '<div style="display:flex;flex-direction:column;gap:3px">' + items.map((x, i) =>
+  '<div class="lg"><i style="background:' + PAL[i % PAL.length] + '"></i><span class="n" title="' + esc(x.n) + '">' + esc(x.n) + '</span>' +
+  '<span class="v">' + money(x.v) + '</span><span class="p">' + fmt(x.p, 1) + '%</span></div>').join('') + '</div>';
+const barList = (items, w) => items.map((x, i) =>
+  '<div class="brow"><span class="n" style="width:' + (w || 150) + 'px" title="' + esc(x.n) + '">' + esc(x.n) + '</span>' +
+  '<span class="b"><i style="width:' + (x.p || 0).toFixed(1) + '%;background:' + PAL[i % PAL.length] + '"></i></span>' +
+  '<span class="v">' + money(x.v) + '</span><span class="p">' + fmt(x.p, 1) + '%</span></div>').join('');
+
+function vAnalysis(){
+  if(!DB.analysis.length && !DB.fee.length && !DB.bill.length)
+    return '<div class="gt-card" style="width:520px"><div class="empty">还没有数据<br>点工具栏「粘贴数据」，把广联达导出的表格直接 Ctrl+V 进去</div></div>';
+  const total = anVal('工程总造价(小写)') != null ? anVal('工程总造价(小写)') : feeVal('7');
+  const upper = anRaw('工程总造价(大写)') || (total != null ? rmbUpper(total) : '');
+  const per = anVal('单方造价');
+  const A = anVal('分部分项工程费') != null ? anVal('分部分项工程费') : feeVal('1');
+  const B = anVal('措施项目费') != null ? anVal('措施项目费') : feeVal('2');
+  const Cc = anVal('其他项目费') != null ? anVal('其他项目费') : feeVal('3');
+  const D = anVal('规费') != null ? anVal('规费') : feeVal('4');
+  const F = anVal('增值税') != null ? anVal('增值税') : feeVal('6');
+  const E = feeVal('5') != null ? feeVal('5') : (total != null && F != null ? r2(total - F) : null);
+  /* 单方造价：随建筑面积实时算 */
+  const area = num(DB.area);
+  const perCalc = (area && area > 0 && total != null) ? r2(total / area) : null;
+  let h = '<div style="max-width:1120px;margin:0 auto">';
+  /* 卡片 */
+  h += '<div class="cards">' +
+    '<div class="card"><div class="k">工程总造价（小写）</div><div class="v">' + (total == null ? '—' : money(total)) + '</div><div class="s">元</div></div>' +
+    '<div class="card"><div class="k">工程总造价（大写）</div><div class="v" style="font-size:13px;line-height:1.6">' + esc(upper || '—') + '</div><div class="s">' + esc(anRaw('工程总造价(大写)') ? '来自造价分析表' : '自动生成') + '</div></div>' +
+    '<div class="card" data-act="area" title="右键设置建筑面积"><div class="k">单方造价</div><div class="v" style="' + (perCalc == null ? 'font-size:13px;color:var(--txt3);font-weight:600' : '') + '">' +
+      (perCalc != null ? money(perCalc) : '请输入面积') + '</div>' +
+      '<div class="s">' + (area ? '元/m² · 建筑面积 ' + fmt(area, 2) + ' m²' : '元/m² · 右键输入面积') + '</div></div>' +
+    '<div class="card"><div class="k">不含税工程造价</div><div class="v">' + (E == null ? '—' : money(E)) + '</div><div class="s">元</div></div>' +
+    '<div class="card"><div class="k">增值税</div><div class="v">' + (F == null ? '—' : money(F)) + '</div><div class="s">税率 ' + (E ? fmt(F / E * 100, 2) : '—') + '%</div></div>' +
+    '</div>';
+  /* 造价构成 */
+  const comp = [
+    { n:'分部分项工程费', v:A || 0 }, { n:'措施项目费', v:B || 0 }, { n:'其他项目费', v:Cc || 0 },
+    { n:'规费', v:D || 0 }, { n:'增值税', v:F || 0 }
+  ].filter(x => x.v);
+  const ct = comp.reduce((s, x) => s + x.v, 0) || 1;
+  comp.forEach(x => x.p = x.v / ct * 100);
+  if(comp.length){
+    h += '<div class="blk"><h3>工程造价构成</h3><div class="bd flexr">' + donut(comp) + legend(comp) + '</div></div>';
+  }
+  /* 费用性质构成 */
+  const nat = [
+    { n:'人工费', v:anVal('其中:人工费') || 0 }, { n:'材料费', v:anVal('材料费') || 0 },
+    { n:'机械费', v:anVal('机械费') || 0 }, { n:'主材费', v:anVal('主材费') || 0 },
+    { n:'设备费', v:anVal('设备费') || 0 }, { n:'管理费', v:anVal('管理费') || 0 },
+    { n:'利润', v:anVal('利润') || 0 }
+  ];
+  const nsum = nat.reduce((s, x) => s + x.v, 0);
+  if(nsum){
+    nat.forEach(x => x.p = x.v / nsum * 100);
+    h += '<div class="blk"><h3>分部分项费用性质构成（人工 / 材料 / 机械 / 主材 / 管理费 / 利润）</h3><div class="bd flexr">' +
+      donut(nat) + legend(nat) + '</div>' +
+      '<div class="mini" style="padding:0 10px 10px;color:var(--txt2)">合计 ' + money(r2(nsum)) + ' 元' +
+      (A ? '（分部分项工程费 ' + money(A) + ' 元）' : '') + '</div></div>';
+  }
+  /* 分部构成 */
+  const parts = DB.bill.filter(r => r._cls === 'grp' && (r._dep || 0) === (DB.bill.length && DB.bill[0]._cls === 'sum' ? 1 : 0));
+  if(parts.length){
+    const items = parts.map(r => ({ n:r.c.name, v:num(r.c.total) != null ? num(r.c.total) : (num(r.c.amount) || 0) }));
+    const s2 = items.reduce((s, x) => s + x.v, 0) || 1;
+    items.forEach(x => x.p = x.v / s2 * 100);
+    items.sort((a, b) => b.v - a.v);
+    h += '<div class="blk"><h3>分部分项构成（按分部，共 ' + items.length + ' 个，合计 ' + money(r2(s2)) + ' 元）</h3><div class="bd">' + barList(items, 150) + '</div></div>';
+  }
+  /* 清单 TOPn */
+  const tn = (DB.topn && DB.topn.qd) || 10;
+  const qd = DB.bill.filter(r => r._cls === 'leaf' && num(r.c.total) != null)
+    .map(r => ({ n:String(r.c.name || ''), v:num(r.c.total) })).sort((a, b) => b.v - a.v);
+  if(qd.length){
+    const top = qd.slice(0, tn), s2 = qd.reduce((s, x) => s + x.v, 0) || 1;
+    top.forEach(x => x.p = x.v / s2 * 100);
+    h += '<div class="blk" data-top="qd"><h3>清单综合合价 TOP<span class="n">' + tn + '</span><span class="n">（右键改数量 · 共 ' + qd.length + ' 条清单，合计 ' + money(r2(s2)) + ' 元）</span></h3><div class="bd">' + barList(top, 150) + '</div></div>';
+  }
+  /* 人材机 TOPn */
+  const tr = (DB.topn && DB.topn.res) || 10;
+  if(DB.res.length){
+    const ms = DB.res.map(r => ({ n:String(r.c.name || '') + (r.c.spec ? ' ' + r.c.spec : ''), v:num(r.c.amount) || 0 }))
+      .filter(x => x.v).sort((a, b) => b.v - a.v);
+    if(ms.length){
+      const top = ms.slice(0, tr), s2 = ms.reduce((s, x) => s + x.v, 0) || 1;
+      top.forEach(x => x.p = x.v / s2 * 100);
+      h += '<div class="blk" data-top="res"><h3>人材机金额 TOP<span class="n">' + tr + '</span><span class="n">（右键改数量 · 共 ' + ms.length + ' 项，合计 ' + money(r2(s2)) + ' 元）</span></h3><div class="bd">' + barList(top, 170) + '</div></div>';
+    }
+  }
+  return h + '</div>';
+}
+
+function kvTable(rows, title, sub){
+  let h = '<div class="gt-card" style="max-width:820px"><div class="gt-head"><span class="tt">' + esc(title) + '</span>' +
+    (sub ? '<span class="mini">' + esc(sub) + '</span>' : '') + '</div><div class="gt-wrap">' +
+    '<table class="gt kv"><colgroup><col style="width:210px"><col></colgroup><tbody>';
+  rows.forEach(r => {
+    h += '<tr><td class="kn">' + esc(r.k) + '</td><td class="vv">' + (r.h || esc(r.v || '')) + '</td></tr>';
+  });
+  return h + '</tbody></table></div></div>';
+}
+function vOverview(){
+  if(!DB.overview.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有工程概况数据<br>在广联达「工程概况」界面复制表格，点「粘贴数据」即可</div></div>';
+  const rows = DB.overview.map(x => ({ k:x.k, v:x.v }));
+  return kvTable(rows, '工程概况', DB.overview.length + ' 项');
+}
+/* 分部分项：根行所在深度（有「整个项目」根行时为 1，否则 0） */
+const billRootD = () => (DB.bill.length && DB.bill[0]._cls === 'sum' ? 1 : 0);
+/* 分部最大层级（1~4） */
+function billMaxLv(){
+  const rd = billRootD();
+  let m = 0;
+  DB.bill.forEach(r => { if(r._cls === 'grp') m = Math.max(m, (r._dep || 0) - rd + 1); });
+  return Math.min(Math.max(m, 1), 4);
+}
+/* 当前层级视图的列（可用表头右键自定义，按层级分别记忆） */
+function billCols(){
+  const d = DB.bcols || (DB.bcols = {});
+  const L = curLvl();
+  let keys = d[L];
+  /* 默认：定额层级看单价/合价，其余层级（全部/一级~四级/清单）只看 9 列 */
+  if(!keys) keys = (L === 'quota' ? QUOTA_KEYS : LVL_KEYS);
+  return keys.map(k => BILL_COLS.find(c => c.k === k)).filter(Boolean);
+}
+/* 当前生效层级：目录节点单独设置的层级 > 顶部层级按钮 */
+function curLvl(){
+  if(SEL >= 0 && DB.blvl && DB.blvl[SEL]) return DB.blvl[SEL];
+  return LVL;
+}
+const lvlName = k => ((LVL_TABS.find(t => t.k === k) || {}).l || '全部');
+/* 取某节点的子树行（含自身） */
+function subRows(i){
+  const base = DB.bill[i];
+  if(!base) return [];
+  const d = base._dep || 0, out = [base];
+  for(let j = i + 1; j < DB.bill.length; j++){
+    if((DB.bill[j]._dep || 0) <= d) break;
+    out.push(DB.bill[j]);
+  }
+  return out;
+}
+/* 行过滤：先取目录选中范围，再按层级过滤
+   一级=仅一级分部；二级=一级+二级；三级=一+二+三；四级=一+二+三+四
+   清单=分部行+清单行；定额=分部行+清单行+定额行+主材行 */
+function billRows(){
+  const rd = billRootD(), lv = curLvl();
+  const pool = (SEL >= 0 && DB.bill[SEL]) ? subRows(SEL) : DB.bill;
+  if(!lv) return pool;
+  if(/^[1-4]$/.test(lv)){
+    const max = rd + (+lv) - 1;
+    return pool.filter(r => r._cls === 'grp' && (r._dep || 0) >= rd && (r._dep || 0) <= max);
+  }
+  if(lv === 'leaf')  return pool.filter(r => r._cls === 'grp' || r._cls === 'leaf');
+  if(lv === 'quota') return pool.filter(r => r._cls === 'grp' || r._cls === 'leaf' ||
+                                             r._cls === 'sub'  || r._cls === 'mat');
+  return pool;
+}
+/* 左侧目录树：只显示分部（含根行），最多四级；右键可设置层级 */
+function billTree(){
+  const rows = DB.bill, rd = billRootD();
+  const maxLv = billMaxLv();
+  let h = '<div class="billtree"><div class="th"><span>分部目录</span><span class="sp"></span>' +
+    '<span class="mini">' + maxLv + ' 级' + (SEL >= 0 && DB.blvl && DB.blvl[SEL] ? ' · ' + lvlName(DB.blvl[SEL]) : '') + '</span></div><div class="tl">';
+  rows.forEach((r, i) => {
+    const d = (r._dep || 0) - rd;
+    if(r._cls === 'grp'){ if(d < 0 || d > 3) return; }
+    else if(r._cls === 'sum'){ /* 根行 */ }
+    else return;
+    const amt = num(r.c.total) != null ? num(r.c.total) : num(r.c.amount);
+    const lv = DB.blvl && DB.blvl[i];
+    h += '<div class="tn' + (r._cls === 'sum' ? ' root' : '') + (SEL === i ? ' on' : '') + '" data-t="' + i + '" style="padding-left:' +
+      (6 + Math.max(0, d) * 14) + 'px" title="' + esc(r.c.name || '') + '（右键设置层级）">' +
+      '<span class="tx">' + esc(String(r.c.name || '')) + '</span>' +
+      (lv ? '<span class="lv">' + lvlName(lv) + '</span>' : '') +
+      (amt != null ? '<span class="amt">' + money(amt) + '</span>' : '') + '</div>';
+  });
+  return h + '</div></div>';
+}
+function vBill(){
+  if(!DB.bill.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有分部分项数据</div></div>';
+  const cols = billCols();
+  const maxLv = billMaxLv();
+  const lv = curLvl();
+  /* 层级按钮行：点目录节点时不清空层级（层级优先） */
+  let bar = '<div class="bar"><span class="bt">层级</span>' + LVL_TABS.map(t => {
+      if(/^[1-4]$/.test(t.k) && +t.k > maxLv) return '';
+      const on = (t.k === lv);
+      return '<span class="pc' + (on ? ' on' : '') + '" data-l="' + t.k + '">' + t.l + '</span>';
+    }).join('') +
+    (SEL >= 0 && DB.bill[SEL] ? '<span class="pc clr" data-l="__sel">仅「' + esc(String(DB.bill[SEL].c.name || '').slice(0, 8)) + '」· ' + lvlName(lv) + ' ✕</span>' : '') +
+    '</div>';
+  const rows = billRows();
+  CUR_COLS = cols; VIEW_ROWS = rows;
+  CUR_ROWS = visible(rows, cols);
+  const nq = rows.filter(r => r._cls === 'leaf').length;
+  const nd = rows.filter(r => r._cls === 'sub').length;
+  const nm = rows.filter(r => r._cls === 'mat').length;
+  let sub = '清单 ' + nq + ' 条 · 定额 ' + nd + ' 条 · 主材 ' + nm + ' 条';
+  const A = anVal('分部分项工程费') != null ? anVal('分部分项工程费') : feeVal('1');
+  if(A != null) sub = '分部分项工程费 ' + money(A) + ' · ' + sub;
+  return '<div id="pane-inner" class="fullh"><div class="billwrap">' + billTree() +
+    '<div class="billmain">' + bar +
+    grid(cols, CUR_ROWS, { full:1, title:'分部分项工程和单价措施项目清单与计价表', sub:sub, extra:CUR_ROWS.length + ' 行' }) +
+    '</div></div></div>';
+}
+function vMeasure(){
+  if(!DB.measure.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有措施项目数据</div></div>';
+  CUR_COLS = MEASURE_COLS; VIEW_ROWS = DB.measure;
+  CUR_ROWS = visible(DB.measure, MEASURE_COLS);
+  const B = anVal('措施项目费') != null ? anVal('措施项目费') : feeVal('2');
+  return '<div id="pane-inner" class="fullh">' + grid(MEASURE_COLS, CUR_ROWS, { full:1,
+    title:'措施项目清单与计价表', sub:(B != null ? '措施项目费 ' + money(B) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
+}
+function vOther(){
+  if(!DB.other.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有其他项目数据</div></div>';
+  CUR_COLS = OTHER_COLS; VIEW_ROWS = DB.other;
+  CUR_ROWS = visible(DB.other, OTHER_COLS);
+  const c = anVal('其他项目费') != null ? anVal('其他项目费') : feeVal('3');
+  return '<div id="pane-inner" class="fullh">' + grid(OTHER_COLS, CUR_ROWS, { full:1,
+    title:'其他项目清单与计价汇总表', sub:(c != null ? '其他项目费 ' + money(c) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
+}
+let RES_CUR = 'all';
+function vRes(){
+  if(!DB.res.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有人材机汇总数据</div></div>';
+  const cnt = {};
+  DB.res.forEach(r => { cnt[r._rk] = (cnt[r._rk] || 0) + 1; });
+  let bar = '<div class="bar"><span class="bt">类别</span>' + RES_CATS.map(g =>
+    '<span class="pc' + (RES_CUR === g.k ? ' on' : '') + '" data-r="' + g.k + '">' + g.l +
+    (g.k === 'all' ? ' ' + DB.res.length : ' ' + (cnt[g.k] || 0)) + '</span>').join('') + '</div>';
+  let rows = DB.res.filter(r => RES_CUR === 'all' || r._rk === RES_CUR);
+  /* 表头排序 */
+  if(SORT.k){
+    const c = RES_COLS.find(x => x.k === SORT.k);
+    const dir = SORT.dir;
+    rows = rows.slice().sort((a, b) => {
+      const va = a.c[SORT.k], vb = b.c[SORT.k];
+      let r;
+      if(c && c.t === 'n') r = ((num(va) == null ? -Infinity : num(va)) - (num(vb) == null ? -Infinity : num(vb)));
+      else r = String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb), 'zh-CN');
+      return r ? dir * r : 0;
+    });
+  }
+  const sum = rows.reduce((s, r) => s + (num(r.c.amount) || 0), 0);
+  CUR_COLS = RES_COLS; VIEW_ROWS = rows;
+  CUR_ROWS = visible(rows, RES_COLS);
+  return '<div id="pane-inner" class="fullh">' + bar + grid(RES_COLS, CUR_ROWS, { full:1, sort:1,
+    title:'人材机汇总 · ' + (RES_CATS.find(g => g.k === RES_CUR) || {}).l,
+    sub:'市场价合计 ' + money(r2(sum)) + ' 元', extra:CUR_ROWS.length + ' 行' }) + '</div>';
+}
+function vFee(){
+  if(!DB.fee.length) return '<div class="gt-card" style="width:520px"><div class="empty">还没有费用汇总数据</div></div>';
+  CUR_COLS = FEE_COLS; VIEW_ROWS = DB.fee;
+  CUR_ROWS = visible(DB.fee, FEE_COLS);
+  const g = feeVal('7');
+  return '<div id="pane-inner" class="fullh">' + grid(FEE_COLS, CUR_ROWS, { full:1,
+    title:'单位工程招标控制价汇总表', sub:(g != null ? '含税工程造价 ' + money(g) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
+}
+
+/* =========================================================
+   7. 渲染 / 事件
+   ========================================================= */
+function projName(p, i){
+  const n = (p.db.meta && p.db.meta.name) || '';
+  const on = (p.db.overview || []).find(x => x.k === '工程名称');
+  return p.name || n || (on ? on.v : '') || ('项目 ' + (i + 1));
+}
+function projTotal(p){
+  const a = (p.db.analysis || []).find(x => norm(x.k) === norm('工程总造价(小写)'));
+  if(a && num(a.v) != null) return num(a.v);
+  const f = (p.db.fee || []).find(x => String(x.c.xh).trim() === '7');
+  return f ? num(f.c.amount) : null;
+}
+function renderNav(){
+  const folder = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  let h = '<div class="pgrp">' + folder + '<span>工程项目</span><span style="margin-left:auto">' + PROJ.length + '</span></div>';
+  if(!PROJ.length) h += '<div style="padding:10px 8px;color:var(--txt3);font-size:11px;line-height:1.8">还没有项目<br>点「粘贴数据」开始</div>';
+  PROJ.forEach((p, i) => {
+    const t = projTotal(p);
+    h += '<div class="pnode' + (i === PIDX ? ' on' : '') + '" data-p="' + i + '" title="左键切换 · 长按可拖动排序 · 右键菜单">' +
+      '<span class="grip">⋮</span><span class="lb">' + esc(projName(p, i)) + '</span><span class="pv">' + (t == null ? '' : money(t)) + '</span></div>';
+  });
+  h += '<div class="padd"><button id="bNew">+ 新建空项目</button></div>';
+  $('#nav').innerHTML = h;
+  $$('#nav .pnode').forEach(n => {
+    const i = +n.dataset.p;
+    n.onclick = () => {
+      if(DRAG.moved) return;
+      PIDX = i; DB = PROJ[PIDX].db; TAB = 'analysis'; PART = ''; SEL = -1; LVL = ''; COLL.clear(); save(); render();
+    };
+    n.oncontextmenu = e => { e.preventDefault(); PIDX = i; DB = PROJ[PIDX].db; render(); projMenu(e.clientX, e.clientY, i); };
+    n.addEventListener('pointerdown', e => {
+      if(e.button) return;
+      DRAG.from = i; DRAG.moved = false; DRAG.el = n; DRAG.sy = e.clientY;
+      DRAG.timer = setTimeout(() => {
+        DRAG.on = true; n.classList.add('drag');
+        document.body.classList.add('dragging');
+      }, 400);
+    });
+  });
+  const bn = $('#bNew'); if(bn) bn.onclick = newProject;
+  const nm = projName(PROJ[PIDX] || { db:DB }, PIDX);
+  $('#crumb').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
+    '<span class="seg" style="font-weight:600">' + esc(PIDX >= 0 ? nm : '未载入') + '</span>' +
+    (PROJ.length > 1 ? '<span style="opacity:.6">·</span><span class="seg" style="opacity:.85">共 ' + PROJ.length + ' 个项目</span>' : '');
+}
+function render(){
+  renderNav();
+  $('#tabs').innerHTML = TABS.map(t => {
+    const empty = t.k === 'analysis' ? (!DB.analysis.length && !DB.fee.length) : (t.k === 'overview' ? !DB.overview.length : !DB[t.k].length);
+    return '<button class="tab' + (TAB === t.k ? ' on' : '') + '" data-t="' + t.k + '">' + t.l + (empty ? ' <span style="opacity:.5;font-size:10px">·</span>' : '') + '</button>';
+  }).join('');
+  let h = '', title = '';
+  if(TAB === 'analysis'){ h = vAnalysis(); title = '造价分析'; }
+  else if(TAB === 'overview'){ h = vOverview(); title = '工程概况'; }
+  else if(TAB === 'bill'){ h = vBill(); title = '分部分项'; }
+  else if(TAB === 'measure'){ h = vMeasure(); title = '措施项目'; }
+  else if(TAB === 'other'){ h = vOther(); title = '其他项目'; }
+  else if(TAB === 'res'){ h = vRes(); title = '人材机汇总'; }
+  else { h = vFee(); title = '费用汇总'; }
+  /* 表格页自带 #pane-inner.fullh 撑满高度，其余包一层普通容器 */
+  $('#pane').innerHTML = h.indexOf('id="pane-inner"') >= 0 ? h : '<div id="pane-inner">' + h + '</div>';
+  renderStatus(title);
+  bindPane();
+}
+function renderStatus(title){
+  const t = anVal('工程总造价(小写)') != null ? anVal('工程总造价(小写)') : feeVal('7');
+  const cnt = k => DB[k] ? DB[k].length : 0;
+  $('#status').innerHTML =
+    '<span>' + esc(title) + '</span>' +
+    '<span>工程：<b>' + esc(PIDX >= 0 ? projName(PROJ[PIDX], PIDX) : '—') + '</b></span>' +
+    '<span>总造价：<b>' + (t == null ? '—' : money(t)) + '</b></span>' +
+    '<span>清单 <b>' + DB.bill.filter(r => r._cls === 'leaf').length + '</b></span>' +
+    '<span>定额 <b>' + DB.bill.filter(r => r._cls === 'sub').length + '</b></span>' +
+    '<span>主材 <b>' + DB.bill.filter(r => r._cls === 'mat').length + '</b></span>' +
+    '<span>人材机 <b>' + cnt('res') + '</b></span>' +
+    '<span style="margin-left:auto;opacity:.75">项目名：左键切换 · 长按拖动排序 · 右键菜单　|　分部分项：表头右键选列</span>';
+}
+function bindPane(){
+  $$('#tabs .tab').forEach(b => b.onclick = () => { TAB = b.dataset.t; PART = ''; SEL = -1; COLL.clear(); SORT = { k:'', dir:1 }; render(); });
+  $$('#pane .arw').forEach(a => a.onclick = e => {
+    e.stopPropagation();
+    const i = +a.dataset.a;
+    if(COLL.has(i)) COLL.delete(i); else COLL.add(i);
+    const rows = VIEW_ROWS.length ? VIEW_ROWS : CUR_ROWS;
+    CUR_ROWS = visible(rows, CUR_COLS);
+    const tb = $('#pane table.gt tbody');
+    if(tb){ tb.innerHTML = rowsHtml(CUR_ROWS, CUR_COLS); bindPane(); }
+  });
+  /* 分部分项：层级按钮（层级优先，点目录不清除层级） */
+  $$('#pane .pc[data-l]').forEach(b => b.onclick = () => {
+    const v = b.dataset.l;
+    if(v === '__sel'){ SEL = -1; COLL.clear(); render(); return; }
+    LVL = v;
+    if(SEL >= 0){
+      if(!DB.blvl) DB.blvl = {};
+      if(v) DB.blvl[SEL] = v; else delete DB.blvl[SEL];   /* 当前目录节点同步 */
+    }
+    COLL.clear(); save(); render();
+  });
+  $$('#pane .tn[data-t]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.t;
+    SEL = (SEL === i ? -1 : i); COLL.clear(); render();           /* 保留 LVL，层级优先 */
+  });
+  $$('#pane .tn[data-t]').forEach(b => b.oncontextmenu = e => {
+    e.preventDefault();
+    treeMenu(e.clientX, e.clientY, +b.dataset.t);
+  });
+  /* 目录树空白区右键：批量设置 / 清除 */
+  const tl = $('#pane .billtree .tl');
+  if(tl) tl.oncontextmenu = e => {
+    if(e.target.closest && e.target.closest('.tn')) return;
+    e.preventDefault();
+    treeMenu(e.clientX, e.clientY, -1);
+  };
+  $$('#pane .pc[data-r]').forEach(b => b.onclick = () => { RES_CUR = b.dataset.r; COLL.clear(); render(); });
+  /* 表头排序 */
+  $$('#pane th.srt').forEach(th => th.onclick = () => {
+    const k = th.dataset.s;
+    if(SORT.k === k) SORT.dir = -SORT.dir; else { SORT.k = k; SORT.dir = 1; }
+    render();
+  });
+  /* 表头右键：分部分项列选择 */
+  $$('#pane table.gt thead th').forEach((th, idx) => {
+    th.oncontextmenu = e => {
+      if(TAB !== 'bill') return;
+      e.preventDefault();
+      thMenu(e.clientX, e.clientY, idx);
+    };
+  });
+  /* 单方造价：右键输入面积 */
+  $$('#pane .card[data-act="area"]').forEach(c => {
+    c.oncontextmenu = e => {
+      e.preventDefault();
+      const v = prompt('建筑面积（m²）', DB.area || '');
+      if(v == null) return;
+      DB.area = num(v) || 0; save(); render();
+    };
+  });
+  /* TOP 数量：右键 */
+  $$('#pane .blk[data-top] h3').forEach(hh => {
+    hh.oncontextmenu = e => {
+      e.preventDefault();
+      topMenu(e.clientX, e.clientY, hh.parentNode.dataset.top);
+    };
+  });
+}
+/* 表头右键菜单：勾选要显示的列（分部分项） */
+function thMenu(x, y, idx){
+  const m = $('#menu');
+  const cur = billCols().map(c => c.k);
+  m.innerHTML = '<div class="mi" style="color:var(--txt3);cursor:default">显示列（点一下切换）</div><hr>' +
+    BILL_COLS.map(c => '<div class="mi" data-c="' + c.k + '"><span>' + (cur.indexOf(c.k) >= 0 ? '✓' : '　') + '</span>' + esc(c.l) + '</div>').join('') +
+    '<hr><div class="mi" data-c="__reset">恢复默认</div>';
+  m.style.left = Math.min(x, innerWidth - 190) + 'px';
+  m.style.top = Math.min(y, innerHeight - 380) + 'px';
+  m.classList.add('on');
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    const k = it && it.dataset ? it.dataset.c : null;
+    if(!k) return;
+    m.classList.remove('on');
+    if(!DB.bcols) DB.bcols = {};
+    if(k === '__reset'){ delete DB.bcols[curLvl()]; }
+    else {
+      let keys = billCols().map(c => c.k);
+      const i = keys.indexOf(k);
+      if(i >= 0){ if(keys.length > 1) keys.splice(i, 1); }
+      else {
+        keys = BILL_COLS.filter(c => keys.indexOf(c.k) >= 0 || c.k === k).map(c => c.k);
+      }
+      DB.bcols[curLvl()] = keys;
+    }
+    save(); render();
+  };
+}
+/* TOP 数量右键菜单 */
+function topMenu(x, y, which){
+  const m = $('#menu');
+  if(!DB.topn) DB.topn = { qd:10, res:10 };
+  m.innerHTML = [5, 10, 15, 20, 30, 50].map(n =>
+    '<div class="mi" data-n="' + n + '">TOP ' + n + (DB.topn[which] === n ? ' ✓' : '') + '</div>').join('') +
+    '<hr><div class="mi" data-n="0">自定义…</div>';
+  m.style.left = Math.min(x, innerWidth - 190) + 'px';
+  m.style.top = Math.min(y, innerHeight - 260) + 'px';
+  m.classList.add('on');
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    const n = it && it.dataset ? it.dataset.n : null;
+    m.classList.remove('on');
+    if(n == null) return;
+    let v = +n;
+    if(!v){
+      const s = prompt('显示前多少条？', DB.topn[which] || 10);
+      v = parseInt(s, 10);
+      if(!v || v < 1) return;
+    }
+    DB.topn[which] = v; save(); render();
+  };
+}
+/* ---------------- 分部目录：右键设置层级（单独 / 批量） ---------------- */
+let LVL_SCOPE = 'one';   /* one=仅本节点  sub=本节点及下属  all=全部节点 */
+function treeMenu(x, y, i){
+  const m = $('#menu');
+  if(!DB.blvl) DB.blvl = {};
+  const nm = i >= 0 && DB.blvl ? String((DB.bill[i] || { c:{} }).c.name || '') : '';
+  const cur = i >= 0 ? (DB.blvl[i] || '') : LVL;
+  const scope = [
+    { k:'one', l:'仅本节点' }, { k:'sub', l:'本节点及下属' }, { k:'all', l:'全部节点' }
+  ];
+  m.innerHTML =
+    '<div class="mi" style="color:var(--txt3);cursor:default">' + esc(i >= 0 ? (nm || '分部') : '全部分部') + '</div><hr>' +
+    '<div class="mi" style="color:var(--txt3);cursor:default">设置显示层级</div>' +
+    LVL_TABS.map(t => '<div class="mi" data-l="' + t.k + '"><span>' + (cur === t.k ? '✓' : '　') + '</span>' + t.l + '</div>').join('') +
+    '<hr><div class="mi" style="color:var(--txt3);cursor:default">应用到</div>' +
+    scope.map(s => '<div class="mi" data-s="' + s.k + '"><span>' + (LVL_SCOPE === s.k ? '●' : '○') + '</span>' + s.l + '</div>').join('') +
+    '<hr><div class="mi" data-l="__clear">清除层级设置</div>';
+  m.style.left = Math.min(x, innerWidth - 190) + 'px';
+  m.style.top = Math.min(y, innerHeight - 400) + 'px';
+  m.classList.add('on');
+  const targets = () => {
+    if(LVL_SCOPE === 'all'){
+      const a = [];
+      DB.bill.forEach((r, j) => { if(r._cls === 'grp' || r._cls === 'sum') a.push(j); });
+      return a;
+    }
+    if(LVL_SCOPE === 'sub' && i >= 0){
+      const a = [];
+      subRows(i).forEach(r => { const j = DB.bill.indexOf(r); if(j >= 0 && (r._cls === 'grp' || r._cls === 'sum')) a.push(j); });
+      return a;
+    }
+    return i >= 0 ? [i] : [];
+  };
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    if(!it || !it.dataset) return;
+    const lv = it.dataset.l, sc = it.dataset.s;
+    if(sc){ LVL_SCOPE = sc; m.classList.remove('on'); treeMenu(x, y, i); return; }
+    if(lv == null) return;
+    m.classList.remove('on');
+    if(lv === '__clear'){
+      if(LVL_SCOPE === 'all') DB.blvl = {};
+      else targets().forEach(j => { delete DB.blvl[j]; });
+      if(i >= 0 && LVL_SCOPE === 'one') delete DB.blvl[i];
+    } else {
+      targets().forEach(j => { DB.blvl[j] = lv; });
+      LVL = lv;
+      if(i >= 0) SEL = i;
+    }
+    save(); render();
+  };
+}
+/* ---------------- 项目列表：长按拖动排序 ---------------- */
+let DRAG = { on:false, from:-1, moved:false, el:null, sy:0, timer:null };
+function dropIndex(y){
+  const ns = $$('#nav .pnode');
+  for(let i = 0; i < ns.length; i++){
+    const b = ns[i].getBoundingClientRect();
+    if(y < b.top + b.height / 2) return i;
+  }
+  return ns.length;
+}
+function dropLine(y){
+  const el = $('#dragline');
+  if(!el) return;
+  const i = dropIndex(y);
+  const ns = $$('#nav .pnode');
+  let top;
+  if(i < ns.length) top = ns[i].getBoundingClientRect().top;
+  else top = ns.length ? ns[ns.length - 1].getBoundingClientRect().bottom : 60;
+  el.style.top = (top - 1) + 'px';
+  el.classList.add('on');
+}
+document.addEventListener('pointermove', e => {
+  if(!DRAG.timer) return;
+  if(!DRAG.on){
+    if(Math.abs(e.clientY - DRAG.sy) > 6){ clearTimeout(DRAG.timer); DRAG.timer = null; }
+    return;
+  }
+  DRAG.moved = true;
+  dropLine(e.clientY);
+});
+document.addEventListener('pointerup', e => {
+  if(DRAG.timer){ clearTimeout(DRAG.timer); DRAG.timer = null; }
+  if(!DRAG.on) return;
+  DRAG.on = false;
+  document.body.classList.remove('dragging');
+  const dl = $('#dragline'); if(dl) dl.classList.remove('on');
+  const to = dropIndex(e.clientY);
+  if(to > -1 && to !== DRAG.from && to !== DRAG.from + 1){
+    const it = PROJ.splice(DRAG.from, 1)[0];
+    const t = to > DRAG.from ? to - 1 : to;
+    PROJ.splice(t, 0, it);
+    PIDX = t; DB = PROJ[PIDX].db; save();
+    toast('已把「' + projName(PROJ[t], t) + '」移到第 ' + (t + 1) + ' 位');
+  }
+  render();
+  setTimeout(() => { DRAG.moved = false; }, 60);
+});
+/* 项目右键菜单 */
+function projMenu(x, y, i){
+  const m = $('#menu');
+  m.innerHTML =
+    '<div class="mi" data-a="ren">重命名</div>' +
+    '<div class="mi" data-a="paste">向该项目粘贴数据</div>' +
+    '<div class="mi" data-a="clear">清空该项目数据</div>' +
+    '<hr><div class="mi dg" data-a="del">删除该项目</div>';
+  m.style.left = Math.min(x, innerWidth - 190) + 'px';
+  m.style.top = Math.min(y, innerHeight - 150) + 'px';
+  m.classList.add('on');
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    const a = it && it.dataset ? it.dataset.a : null;
+    m.classList.remove('on');
+    if(!a) return;
+    if(a === 'ren'){
+      const nv = prompt('项目名称', projName(PROJ[i], i));
+      if(nv != null && nv.trim()){ PROJ[i].name = nv.trim(); save(); render(); }
+    } else if(a === 'paste'){
+      openImport(i);
+    } else if(a === 'clear'){
+      if(confirm('确定清空「' + projName(PROJ[i], i) + '」的全部数据？')){
+        PROJ[i].db = newDB(); DB = PROJ[i].db; TAB = 'analysis'; PART = ''; SEL = -1; LVL = ''; COLL.clear(); SORT = { k:'', dir:1 };
+        save(); render();
+      }
+    } else if(a === 'del'){
+      if(confirm('确定删除项目「' + projName(PROJ[i], i) + '」？此操作不可撤销。')){
+        PROJ.splice(i, 1);
+        PIDX = PROJ.length ? Math.min(PIDX, PROJ.length - 1) : -1;
+        DB = PIDX >= 0 ? PROJ[PIDX].db : newDB();
+        save(); render();
+      }
+    }
+  };
+}
+document.addEventListener('click', () => $('#menu').classList.remove('on'));
+document.addEventListener('contextmenu', e => {
+  if(!e.target.closest('.pnode, thead th, .blk[data-top] h3, .card[data-act], .tn[data-t], .billtree .tl, #bCsv')) $('#menu').classList.remove('on');
+});
+
+/* =========================================================
+   8. 粘贴导入弹窗
+   ========================================================= */
+let IMP_TARGET = -1;
+function openImport(target){
+  IMP_TARGET = (target == null ? PIDX : target);
+  let sel = 'auto';
+  const fmtSide = () => {
+    const d = (IMP_TARGET >= 0 && PROJ[IMP_TARGET]) ? PROJ[IMP_TARGET].db : DB;
+    return '<div class="it' + (sel === 'auto' ? ' on' : '') + '" data-k="auto"><span>自动识别</span><span class="st ok">推荐</span></div><hr>' +
+      KIND_ORDER.map(k => {
+        const n = k === 'analysis' ? d.analysis.length : (k === 'overview' ? d.overview.length : d[k].length);
+        return '<div class="it' + (sel === k ? ' on' : '') + '" data-k="' + k + '"><span>' + KIND_LABEL[k] + '</span>' +
+          '<span class="st ' + (n ? 'ok' : 'no') + '">' + (n ? n + ' 行' : '空') + '</span></div>';
+      }).join('');
+  };
+  const refreshSide = () => {
+    $('#dlg .side').innerHTML = fmtSide();
+    $$('#dlg .side .it').forEach(x => x.onclick = () => { sel = x.dataset.k; refreshSide(); });
+  };
+  $('#dlg').innerHTML =
+    '<h4>粘贴数据<span style="font-weight:400;color:var(--txt2);font-size:11px"> · 粘进来自动导入，可连续贴多张表</span></h4>' +
+    '<div class="bd"><div class="imp">' +
+    '<div class="side">' + fmtSide() + '</div>' +
+    '<div class="main"><div class="tip">在广联达里选中表格（含表头）<code>Ctrl+C</code>，再到下面 <code>Ctrl+V</code> —— <b>会自动解析并导入</b>，输入框自动清空，可继续贴下一张，全部导完点「完成」。</div>' +
+    '<textarea id="ta" spellcheck="false" placeholder="名称\t内容\n工程总造价(小写)\t42,797.56\n…"></textarea>' +
+    '<div class="res" id="impres"></div></div></div></div>' +
+    '<div class="ft"><span style="flex:1;font-size:11px;color:var(--txt2);align-self:center" id="impHint">等待粘贴…</span>' +
+    '<button class="pbtn gh" id="impClear">清空本项目</button>' +
+    '<button class="pbtn" id="impDone">完成</button></div>';
+  $('#mask').classList.add('on');
+  const ta = $('#ta');
+  setTimeout(() => ta.focus(), 30);
+  let timer = null;
+  const doAuto = () => {
+    const txt = ta.value;
+    if(!txt.trim()){ $('#impres').textContent = ''; return; }
+    let tabs = parseClip(txt);
+    if(sel !== 'auto'){
+      const head = H[sel];
+      const lines = splitLines(txt).filter(r => !(r.length > 1 && norm(r[0]) === norm(head[0]) && norm(r[1]) === norm(head[1])));
+      tabs = [{ kind:sel, head:head, rows:lines }];
+    }
+    if(!tabs.length){
+      $('#impres').textContent = '没识别出表头，请连表头一起复制；或在左边点选要导入的表类型';
+      return;
+    }
+    let dbx;
+    if(IMP_TARGET >= 0 && PROJ[IMP_TARGET]) dbx = PROJ[IMP_TARGET].db;
+    else dbx = DB;
+    const n = applyTables(tabs, dbx);
+    if(IMP_TARGET < 0 || !PROJ[IMP_TARGET]){
+      let nm = dbx.meta.name || '';
+      const on = dbx.overview.find(x => x.k === '工程名称');
+      if(!nm && on) nm = on.v;
+      PIDX = addProject(nm || ('项目 ' + (PROJ.length + 1)), dbx);
+      IMP_TARGET = PIDX;
+    } else {
+      const on = dbx.overview.find(x => x.k === '工程名称');
+      if(!PROJ[IMP_TARGET].name && on) PROJ[IMP_TARGET].name = on.v;
+    }
+    DB = PROJ[Math.max(PIDX, 0)].db;
+    TAB = 'analysis'; PART = ''; SEL = -1; LVL = ''; COLL.clear(); SORT = { k:'', dir:1 };
+    save(); render(); refreshSide();
+    const m = {}; tabs.forEach(t => m[t.kind] = (m[t.kind] || 0) + t.rows.length);
+    const s = Object.keys(m).map(k => KIND_LABEL[k] + ' ' + m[k] + ' 行').join(' · ');
+    ta.value = '';
+    $('#impres').innerHTML = '<span style="color:#3d8b5f">✓ 已导入 ' + n + ' 张表（' + esc(s) + '）— 可继续粘贴下一张，全部导完点「完成」</span>';
+    ta.focus();
+  };
+  ta.oninput = () => {
+    $('#impres').textContent = '正在解析…';
+    clearTimeout(timer);
+    timer = setTimeout(doAuto, 420);
+  };
+  refreshSide();
+  $('#impDone').onclick = () => $('#mask').classList.remove('on');
+  $('#impClear').onclick = () => {
+    if(IMP_TARGET >= 0 && PROJ[IMP_TARGET]){
+      if(!confirm('清空「' + projName(PROJ[IMP_TARGET], IMP_TARGET) + '」的全部数据？')) return;
+      PROJ[IMP_TARGET].db = newDB(); DB = PROJ[IMP_TARGET].db; save(); render(); refreshSide();
+    } else { DB = newDB(); save(); render(); refreshSide(); }
+  };
+}
+function addProject(name, db){
+  PROJ.push({ name:name, db:db });
+  return PROJ.length - 1;
+}
+function newProject(){
+  const d = newDB();
+  PIDX = addProject('新项目 ' + PROJ.length, d);
+  DB = d; TAB = 'analysis'; PART = ''; COLL.clear();
+  save(); render();
+  setTimeout(() => openImport(PIDX), 60);
+}
+function toast(msg){
+  let t = $('#toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:rgba(30,40,52,.9);color:#fff;padding:7px 16px;border-radius:4px;font-size:12px;z-index:90;transition:opacity .25s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._t); t._t = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+/* 页面任意位置 Ctrl+V 直接唤出粘贴框并预填 */
+document.addEventListener('paste', e => {
+  const t = e.target;
+  if(t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) return;
+  const cd = e.clipboardData || (window.clipboardData);
+  const txt = cd ? cd.getData('text') : '';
+  if(!txt || !txt.trim()) return;
+  e.preventDefault();
+  openImport(PIDX);
+  setTimeout(() => {
+    const ta = $('#ta');
+    if(!ta) return;
+    ta.value = txt;
+    ta.dispatchEvent(new Event('input'));
+    ta.focus();
+  }, 60);
+});
+$('#bImp').onclick = () => openImport(PIDX);
+/* ---------------- CSV 导出 ---------------- */
+const csvEsc = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+function csvBlock(cols, rows, title){
+  if(!rows || !rows.length) return '';
+  let s = '[' + title + ']\n' + cols.map(c => csvEsc(c.l)).join(',') + '\n';
+  /* 数值列导出纯数字（不带千分位），避免 Excel 里变成文本 */
+  rows.forEach(r => {
+    s += cols.map(c => {
+      const v = r.c[c.k];
+      if(c.t === 'n'){ const n = num(v); return n == null ? '' : String(n); }
+      return csvEsc(cellTxt(c, v, r));
+    }).join(',') + '\n';
+  });
+  return s + '\n';
+}
+function kvBlock(list, title){
+  if(!list || !list.length) return '';
+  return '[' + title + ']\n名称,内容\n' + list.map(x => {
+    const s = String(x.v == null ? '' : x.v).trim();
+    const n = (/^[\d,，]+\.?\d*$/.test(s) ? num(s) : null);
+    return csvEsc(x.k) + ',' + (n == null ? csvEsc(x.v) : String(n));
+  }).join('\n') + '\n\n';
+}
+/* 某个项目的全部数据（七张表） */
+function allCsv(db){
+  const resRows = (db.res || []).map(r => ({ c: Object.assign({}, r.c, { rk:(RES_CATS.find(g => g.k === r._rk) || {}).l || '' }) }));
+  return kvBlock(db.analysis, KIND_LABEL.analysis) +
+    kvBlock(db.overview, KIND_LABEL.overview) +
+    csvBlock(BILL_COLS, db.bill, KIND_LABEL.bill) +
+    csvBlock(MEASURE_COLS, db.measure, KIND_LABEL.measure) +
+    csvBlock(OTHER_COLS, db.other, KIND_LABEL.other) +
+    csvBlock(RES_COLS.concat([C('rk','资源分类',70,'t')]), resRows, KIND_LABEL.res) +
+    csvBlock(FEE_COLS, db.fee, KIND_LABEL.fee);
+}
+function download(name, text){
+  const blob = new Blob(['\ufeff' + text], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function csvMenu(x, y){
+  const m = $('#menu');
+  const cur = PIDX >= 0 ? PROJ[PIDX] : null;
+  let h = '<div class="mi" data-x="cur">导出当前表（' + KIND_LABEL[TAB] + '）</div>' +
+    '<div class="mi" data-x="all">导出本项目全部数据（7 张表）</div>';
+  if(PROJ.length > 1){
+    h += '<hr><div class="mi" style="color:var(--txt3);cursor:default">选择项目导出全部</div>' +
+      PROJ.map((p, i) => '<div class="mi" data-p="' + i + '">' + esc(projName(p, i)) + '<span class="sub">' + (i === PIDX ? '当前' : '') + '</span></div>').join('');
+  }
+  m.innerHTML = h;
+  m.style.left = Math.min(x, innerWidth - 220) + 'px';
+  m.style.top = Math.min(y, innerHeight - 260) + 'px';
+  m.classList.add('on');
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    if(!it || !it.dataset) return;
+    m.classList.remove('on');
+    const pi = it.dataset.p != null ? +it.dataset.p : (cur ? PIDX : -1);
+    const what = it.dataset.x || 'all';
+    const p = pi >= 0 ? PROJ[pi] : null;
+    const db = p ? p.db : DB;
+    const nm = p ? projName(p, pi) : '导出';
+    if(what === 'cur'){
+      if(!CUR_ROWS.length){ toast('当前表没有数据'); return; }
+      const head = CUR_COLS.map(c => c.l).join(',');
+      const body = CUR_ROWS.filter(r => !r._hid).map(r =>
+        CUR_COLS.map(c => {
+          const v = r.c[c.k];
+          if(c.t === 'n'){ const n = num(v); return n == null ? '' : String(n); }
+          return csvEsc(cellTxt(c, v, r));
+        }).join(',')).join('\n');
+      download(nm + '_' + KIND_LABEL[TAB] + '.csv', head + '\n' + body);
+      toast('已导出当前表');
+    } else {
+      download(nm + '_全部数据.csv', allCsv(db));
+      toast('已导出「' + nm + '」全部数据');
+    }
+  };
+}
+$('#bCsv').onclick = e => { e.stopPropagation(); csvMenu(e.clientX || 40, (e.clientY || 60) + 24); };
+$('#bPrint').onclick = () => window.print();
+$('#bTheme').onclick = () => {
+  const d = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = d ? '' : 'dark';
+  localStorage.setItem('gbq_theme', d ? '' : 'dark');
+};
+$('#q').oninput = () => { Q = $('#q').value; render(); };
+$('#bHelp').onclick = () => {
+  $('#dlg').innerHTML = '<h4>怎么用</h4><div class="bd">' +
+    '<p><b>1. 在广联达里复制</b>：打开报表/界面，鼠标拖选整张表（含表头），<code>Ctrl+C</code>。</p>' +
+    '<p><b>2. 回这里粘贴</b>：点工具栏「粘贴数据」→ 在输入框 <code>Ctrl+V</code>，<b>等 0.5 秒自动解析导入</b>；也可以直接在页面空白处 <code>Ctrl+V</code>。' +
+    '导完输入框会自动清空，<b>可以继续贴下一张表</b>，全部导完点「完成」。</p>' +
+    '<div class="note">可以一次把 <b>造价分析 / 工程概况 / 分部分项 / 措施项目 / 其他项目 / 人材机汇总 / 费用汇总</b> 七张表全部贴进去，会自动按表头拆开，不需要一张一张来。项目特征里的换行也会保留。</div>' +
+    '<p><b>3. 几个鼠标操作</b></p>' +
+    '<ul style="margin:6px 0 6px 18px">' +
+    '<li>左侧项目名：<b>长按可拖动排序</b>，右键重命名 / 清空 / 删除</li>' +
+    '<li>分部分项：左侧是分部目录树（自动判断几级，最多四级）；顶部「全部/一级/二级/三级/四级/清单/定额」切换层级。' +
+    '<b>先点层级再点目录</b>，就以该层级看某个分部（层级优先）</li>' +
+    '<li>分部目录<b>右键</b>可单独或批量设置层级（仅本节点 / 本节点及下属 / 全部节点），设置后节点上会显示层级标签</li>' +
+    '<li>分部分项<b>表头右键</b>可勾选要显示的列（每个层级各自记忆）</li>' +
+    '<li>人材机汇总：<b>点击表头排序</b>（再点一次反向）</li>' +
+    '<li>造价分析：单方造价卡片 <b>右键输入建筑面积</b>；清单 TOP / 人材机 TOP 标题 <b>右键改数量</b></li>' +
+    '<li><b>导出CSV</b>：点按钮可选「导出当前表」或「导出本项目全部数据（7 张表）」，多个项目时还能指定导出哪个项目</li>' +
+    '</ul>' +
+    '<p><b>3. 需要的表头</b>（复制时记得连表头一起选）：</p>' +
+    '<ul style="margin:6px 0 6px 18px">' +
+    '<li>造价分析 / 工程概况：<code>名称</code>、<code>内容</code></li>' +
+    '<li>分部分项：<code>编码 类别 名称 项目特征 规格型号 单位 工程量表达式 含量 工程量 单价 合价 综合单价 综合合价</code></li>' +
+    '<li>措施项目：<code>序号 类别 名称 单位 工程量 组价方式 计算基数 费率(%) 综合单价 综合合价 措施类别</code></li>' +
+    '<li>其他项目：<code>序号 名称 计算基数 费率(%) 金额 费用类别</code></li>' +
+    '<li>人材机汇总：<code>编码 类别 名称 规格型号 单位 数量 预算价 市场价 市场价合计</code>（类别列写 人/材/机/主/设，自动分表）</li>' +
+    '<li>费用汇总：<code>序号 费用代号 名称 计算基数 基数说明 费率(%) 金额 费用类别</code></li>' +
+    '</ul>' +
+    '<p><b>4. 多个项目</b>：再点「粘贴数据」选「清空后导入」或新建空项目，可同时管理多个工程；左侧列表<b>右键</b>可重命名 / 清空 / 删除。</p>' +
+    '<p style="color:var(--txt2)">数据只存在这台电脑的浏览器里（localStorage），不会上传；点「导出CSV」可把当前表导出。</p>' +
+    '</div><div class="ft"><button class="pbtn" onclick="document.getElementById(\'mask\').classList.remove(\'on\')">知道了</button></div>';
+  $('#mask').classList.add('on');
+};
+$('#mask').onclick = e => { if(e.target.id === 'mask') $('#mask').classList.remove('on'); };
+document.addEventListener('keydown', e => { if(e.key === 'Escape') $('#mask').classList.remove('on'); });
+
+/* =========================================================
+   9. 本地保存
+   ========================================================= */
+const LSKEY = 'gbq_paste_v1';
+function save(){
+  try{
+    localStorage.setItem(LSKEY, JSON.stringify({ p:PROJ.map(p => ({ n:p.name, d:p.db })), i:PIDX }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const s = localStorage.getItem(LSKEY);
+    if(!s) return false;
+    const o = JSON.parse(s);
+    if(!o.p || !o.p.length) return false;
+    PROJ = o.p.map(x => ({ name:x.n, db:Object.assign(newDB(), x.d) }));
+    PIDX = Math.min(o.i == null ? 0 : o.i, PROJ.length - 1);
+    DB = PROJ[PIDX].db;
+    return true;
+  }catch(e){ return false; }
+}
+
+/* =========================================================
+   10. 示例数据
+   ========================================================= */
+function mkRow(h, vals){
+  return h.map((c, i) => (vals[i] == null ? '' : vals[i])).join('\t');
+}
+function demoText(){
+  const L = [];
+  /* 造价分析 */
+  L.push(['名称','内容'].join('\t'));
+  [['工程总造价(小写)','42,797.56'],['工程总造价(大写)','肆万贰仟柒佰玖拾柒元伍角陆分'],['单方造价','2.11'],
+   ['分部分项工程费','34760.93'],['其中:人工费','16791.07'],['材料费','3278.84'],['机械费','652.44'],
+   ['主材费','8684.64'],['设备费','0'],['管理费','3630.81'],['利润','1719.11'],
+   ['措施项目费','2708.19'],['其他项目费','0'],['规费','1794.7'],['增值税','3533.74']]
+   .forEach(x => L.push(x.join('\t')));
+  /* 工程概况 */
+  L.push(''); L.push(['名称','内容'].join('\t'));
+  [['合同号',''],['工程名称','1#楼-安装'],['专业','第四册 电气设备安装工程'],
+   ['清单编制依据','工程量清单项目计量规范(2013-河南)'],['定额编制依据','河南省通用安装工程预算定额(2016)'],
+   ['编制人',''],['编制单位',''],['审核人',''],['审核单位','']].forEach(x => L.push(x.join('\t')));
+  /* 分部分项 */
+  const BH = H.bill;
+  const bi = (...v) => mkRow(BH, v);
+  L.push(''); L.push(BH.join('\t'));
+  L.push(bi('','','整个项目','','','','','','','','','','34760.93'));
+  L.push(bi('','部','电气','','','','','','','','','','33968.45','[安装工程]'));
+  L.push(bi('','部','强电','','','','','','','','','','13432.86','[安装工程]'));
+  L.push(bi('030411001004','项','配管','1.名称:配管 2.材质:JDG 3.规格:DN15 4.配置形式:暗配 5.其他:未尽事宜详见相关设计、要求及规范','','m','258.88','','258.88','','','9.9','2562.91','安装工程','安装工程'));
+  L.push(bi('4-12-7','定','套接紧定式镀锌钢导管(JDG)敷设 砖、混凝土结构暗配 外径16mm','','','10m','QDL','0.1','25.888','71.38','1847.89','98.94','2561.36','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('17030155@12','主','JDG管','','外径16mm','m','','10.3','266.6464','3.35','893.27'));
+  L.push(bi('030411001006','项','配管','1.名称:配管 2.材质:刚性阻燃管 3.规格:FPC16 4.配置形式:暗配','','m','853.35','','853.35','','','10.63','9071.11','安装工程','安装工程'));
+  L.push(bi('4-12-132','定','刚性阻燃管敷设 砖、混凝土结构暗配 外径16mm','','','10m','QDL','0.1','85.335','98.3','8388.43','106.22','9064.28','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('29060143','主','刚性阻燃管','','外径16mm','m','','10.6','904.551','1.77','1601.06'));
+  L.push(bi('030411006001','项','接线盒','1.名称：接线盒 2.材质：钢制','','个','20','','20','','','10.73','214.6','安装工程','安装工程'));
+  L.push(bi('4-13-179','定','暗装接线盒安装','','','个','QDL','1','20','7.18','143.6','10.73','214.6','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('29110207@1','主','钢制接线盒','','','个','','1.02','20.4','4.11','83.84'));
+  L.push(bi('030411006002','项','接线盒','1.名称：接线盒 2.材质：塑料','','个','168','','168','','','9.43','1584.24','安装工程','安装工程'));
+  L.push(bi('4-13-179','定','暗装接线盒安装','','','个','QDL','1','168','7.18','1206.24','9.43','1584.24','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('29110207@5','主','塑料接线盒','','','个','','1.02','171.36','2.83','484.95'));
+  L.push(bi('','部','防雷接地','','','','','','','','','','8137.81','[安装工程]'));
+  L.push(bi('030409002001','项','接地母线','1.名称:户内接地母线 2.材质:镀锌扁钢 3.规格:-40*4','','m','30','','30','','','34.18','1025.4','安装工程','安装工程'));
+  L.push(bi('4-10-56','定','户内接地母线敷设','','','m','QDL','1','30','30.5','915','34.18','1025.4','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('01130301-1','主','镀锌扁钢','','综合','kg','','1.26','37.8','4.228','159.82'));
+  L.push(bi('030409003001','项','避雷引下线','1.名称:避雷引下线 2.安装形式:利用建筑物主筋','','m','556.07/5','','111.21','','','13.11','1457.96','安装工程','安装工程'));
+  L.push(bi('4-10-42','定','避雷引下线敷设 利用建筑结构钢筋引下','','','m','QDL','1','111.21','13.82','1536.92','13.11','1457.96','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('030409005002','项','避雷网','1.名称:避雷网 2.材质:镀锌圆钢 3.规格:φ10','','m','277.86','','277.86','','','20.35','5654.45','安装工程','安装工程'));
+  L.push(bi('4-10-44','定','避雷网安装 沿混凝土块敷设','','','m','QDL','1','277.86','17.82','4951.47','20.35','5654.45','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('01090517','主','镀锌圆钢','','φ16','m','','1.05','291.753','3.92','1143.67'));
+  L.push(bi('','部','火灾报警','','','','','','','','','','12397.78','[安装工程]'));
+  L.push(bi('030411006004','项','接线盒','1.名称:接线盒 2.材质:钢制 3.安装方式:暗装','','个','49','','49','','','10.73','525.77','安装工程','安装工程'));
+  L.push(bi('4-13-179','定','暗装接线盒安装','','','个','QDL','1','49','7.18','351.82','10.73','525.77','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('29110207@1','主','钢制接线盒','','','个','','1.02','49.98','4.11','205.42'));
+  L.push(bi('030411001009','项','配管','1.名称:配管 2.材质:JDG 3.规格:DN25','','m','770.91','','770.91','','','15.4','11872.01','安装工程','安装工程'));
+  L.push(bi('4-12-9','定','套接紧定式镀锌钢导管(JDG)敷设 砖、混凝土结构暗配 外径25mm','','','10m','QDL','0.1','77.091','113.66','8762.16','154.07','11877.41','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('17030155@15','主','JDG管','','外径25mm','m','','10.3','794.0373','4.96','3938.43'));
+  L.push(bi('','部','消防','','','','','','','','','','792.48','[安装工程]'));
+  L.push(bi('031002003001','项','套管','1.类型：一般钢套管 2.材质：焊接钢管','','个','39/5*1.5*0+8','','8','','','99.06','792.48','安装工程','安装工程'));
+  L.push(bi('10-11-30','定','一般钢套管制作安装 介质管道公称直径100mm以内','','','个','QDL','1','8','84.69','677.52','99.06','792.48','安装工程','通用安装工程','1.39','1.276','2.451'));
+  L.push(bi('17010271-1','主','焊接钢管','','DN150','m','','0.318','2.544','67.81','172.51'));
+  /* 措施项目 */
+  const MH = H.measure;
+  const mi = (...v) => mkRow(MH, v);
+  L.push(''); L.push(MH.join('\t'));
+  L.push(mi('措施项目','','','','','','','','','2708.19'));
+  L.push(mi('一','','总价措施费','','','','','','','2045.38','','','','','','总价措施费'));
+  L.push(mi('031302001001','','安全文明施工费','项','1','计算公式组价','FBFX_AQWMSGF+DJCS_AQWMSGF','','1379.62','1379.62','','','','缺省模板(实物量或计算公式组价)','安全文明施工费'));
+  L.push(mi('01','','其他措施费（费率类）','项','1','子措施组价','','','665.76','665.76','','','','','其他措施费'));
+  L.push(mi('031302002001','','夜间施工增加费','项','1','计算公式组价','FBFX_QTCSF+DJCS_QTCSF','25','166.44','166.44','','','','缺省模板(实物量或计算公式组价)','夜间施工增加费'));
+  L.push(mi('031302004001','','二次搬运费','项','1','计算公式组价','FBFX_QTCSF+DJCS_QTCSF','50','332.88','332.88','','','','缺省模板(实物量或计算公式组价)','二次搬运费'));
+  L.push(mi('031302005001','','冬雨季施工增加费','项','1','计算公式组价','FBFX_QTCSF+DJCS_QTCSF','25','166.44','166.44','','','','缺省模板(实物量或计算公式组价)','冬雨季施工增加费'));
+  L.push(mi('02','','其他（费率类）','项','1','计算公式组价','','','0','0','','','','缺省模板(实物量或计算公式组价)','其他(费率类)'));
+  L.push(mi('二','','单价措施费','','','','','','','662.81','','','','','','单价措施费'));
+  L.push(mi('031301017001','','脚手架搭拆','项','1','可计量清单','','','662.81','662.81','','','安装工程','安装工程','',''));
+  L.push(mi('7-6-HA1','安','脚手架搭拆费','100工日','0','','','','411.86','0','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('12-14-HA1','安','刷油、防腐蚀工程 脚手架搭拆费','100工日','0','','','','720.75','0','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('4-20-HA1','安','脚手架搭拆费','100工日','1.26026','','','','514.83','648.82','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('9-7-HA1','安','脚手架搭拆费','100工日','0','','','','514.83','0','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('10-13-HA1','安','脚手架搭拆费','100工日','0.0272','','','','514.83','14','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('12-14-HA2','安','绝热工程 脚手架搭拆费','100工日','0','','','','1029.66','0','1.39','1.276','2.451','通用安装工程','安装工程'));
+  L.push(mi('6-12-HA1','安','脚手架搭拆费','100工日','0','','','','514.83','0','1.39','1.276','2.451','通用安装工程','安装工程'));
+  /* 其他项目 */
+  const OH = H.other;
+  const oi = (...v) => mkRow(OH, v);
+  L.push(''); L.push(OH.join('\t'));
+  L.push(oi('其他项目','','','','0'));
+  L.push(oi('1','暂列金额','FBFXHJ','0','0','暂列金额','false','false'));
+  L.push(oi('2','暂估价','专业工程暂估价','','0','暂估价','false','false'));
+  L.push(oi('2.1','材料（工程设备）暂估价','ZGJCLHJ','','0','材料暂估价','false','true'));
+  L.push(oi('2.2','专业工程暂估价','专业工程暂估价','','0','专业工程暂估价','false','true'));
+  L.push(oi('3','计日工','计日工','','0','计日工','false','false'));
+  L.push(oi('4','总承包服务费','总承包服务费','','0','总承包服务费','false','false'));
+  /* 人材机汇总 */
+  const RH = H.res;
+  const ri = (...v) => mkRow(RH, v);
+  L.push(''); L.push(RH.join('\t'));
+  const R = [
+    ['00010101','人','普工','','工日','50.153295','87.1','87.1','','4368.35','0','0','自行采购'],
+    ['00010102','人','一般技工','','工日','67.338619','134','134','','9023.37','0','0','自行采购'],
+    ['00010103','人','高级技工','','工日','14.393589','201','201','','2893.11','0','0','自行采购'],
+    ['01010301','材','热轧圆盘条','φ10以内','kg','11.121','3.2','3.2','','35.59','0','0','自行采购'],
+    ['01030713','材','镀锌铁丝','φ1.2~2.2','kg','11.38128','5.32','5.32','','60.55','0','0','自行采购'],
+    ['01090121','材','圆钢','φ10~14','kg','1.264','3.25','3.25','','4.11','0','0','自行采购'],
+    ['02270121','材','棉纱','','kg','0.03','12','12','','0.36','0','0','自行采购'],
+    ['02270129','材','破布','','kg','0.048','6.19','6.19','','0.3','0','0','自行采购'],
+    ['02290125','材','油麻','','kg','17.552','5.5','5.5','','96.54','0','0','自行采购'],
+    ['03130119','材','尼龙砂轮片','φ400','片','0.456','8','8','','3.65','0','0','自行采购'],
+    ['03130913','材','低碳钢焊条','综合','kg','15.3612','5.2','5.2','','79.88','0','0','自行采购'],
+    ['03130929','材','低碳钢焊条','J422 φ3.2','kg','0.232','4.1','4.1','','0.95','0','0','自行采购'],
+    ['03131923','材','钢锯条','','条','33.80891','0.5','0.5','','16.9','0','0','自行采购'],
+    ['03131929','材','钢丝刷子','','把','0.048','2.59','2.59','','0.12','0','0','自行采购'],
+    ['04010149','材','水泥','P.C 32.5','kg','21.67308','0.36','0.36','','7.8','0','0','自行采购'],
+    ['04010157','材','水泥','P·O42.5','kg','3.52','0.38','0.38','','1.34','0','0','自行采购'],
+    ['04030137','材','砂子','','kg','10.552','0.07','0.07','','0.74','0','0','自行采购'],
+    ['04030147','材','砂子中砂','','m3','0.27786','67','110.53','自行询价','30.71','43.53','12.1','自行采购'],
+    ['13010175','材','酚醛调和漆','','kg','0.15','15','15','','2.25','0','0','自行采购'],
+    ['13010261','材','铅油','(厚漆)','kg','0.55572','8.5','8.5','','4.72','0','0','自行采购'],
+    ['13050153','材','酚醛防锈漆(各种颜色)','','kg','0.296','12.68','12.68','','3.75','0','0','自行采购'],
+    ['13050179','材','防锈漆','C53-1','kg','1.11144','16.3','16.3','','18.12','0','0','自行采购'],
+    ['13350193','材','密封油膏','','kg','2.064','6.8','6.8','','14.04','0','0','自行采购'],
+    ['14010106','材','清油','','kg','0.27786','19.2','19.2','','5.33','0','0','自行采购'],
+    ['14030126','材','汽油','','kg','0.072','7','8.42','自行询价','0.61','1.42','0.1','自行采购'],
+    ['14390115','材','氧气','','m3','0.72','3.82','3.82','','2.75','0','0','自行采购'],
+    ['14390141','材','乙炔气','','kg','0.24','8.82','8.82','','2.12','0','0','自行采购'],
+    ['14410321','材','粘合剂','','kg','0.85335','30.5','30.5','','26.03','0','0','自行采购'],
+    ['18031710','材','镀锌锁紧螺母','DN20*3','10个','52.851','4','4','','211.4','0','0','自行采购'],
+    ['18250105','材','扁钢卡子','-25*4','kg','37.78896','4.04','4.04','','152.67','0','0','自行采购'],
+    ['28030711','材','铜芯塑料绝缘软电线','BVR-4mm2','m','249.124479','2.58','2.58','','642.74','0','0','自行采购'],
+    ['29060125','材','钢管保护管','φ40*400','根','3','133.17','133.17','','399.51','0','0','自行采购'],
+    ['29060335','材','镀锌电线管塑料护口','DN15~20','个','106.762112','0.14','0.14','','14.95','0','0','自行采购'],
+    ['29060337','材','镀锌电线管塑料护口','DN25~32','个','119.645232','0.27','0.27','','32.3','0','0','自行采购'],
+    ['29060341','材','镀锌钢管塑料护口','DN15~20','个','527.325','0.15','0.15','','79.1','0','0','自行采购'],
+    ['29060501','材','难燃塑料管接头','15','个','220.420305','0.66','0.66','','145.48','0','0','自行采购'],
+    ['29170201','材','镀锌地线夹','15','套','213.524224','0.5','0.5','','106.76','0','0','自行采购'],
+    ['29170205','材','镀锌地线夹','25','套','635.846568','1.6','1.6','','1017.35','0','0','自行采购'],
+    ['QTCLF1','材','周转性材料费(占人工费)','','元','364.447179','1','1','','364.45','0','0','自行采购'],
+    ['QTCLF-1','材','其他材料费','','元','58.029492','1','1','','58.03','0','0','自行采购'],
+    ['01090517','主','镀锌圆钢','φ16','m','291.753','3.92','3.92','南阳信息价(2025年第五期均价)','1143.67','0','0','自行采购'],
+    ['01130301-1','主','镀锌扁钢','综合','kg','37.8','4.228','4.228','南阳信息价(2025年第五期均价)','159.82','0','0','自行采购'],
+    ['17010271-1','主','焊接钢管','DN150','m','2.544','67.81','67.81','南阳信息价(2025年第五期均价)','172.51','0','0','自行采购'],
+    ['17030155@12','主','JDG管','外径16mm','m','266.6464','3.35','3.35','南阳信息价(2025年第五期均价)','893.27','0','0','自行采购'],
+    ['17030155@15','主','JDG管','外径25mm','m','794.0373','4.96','4.96','南阳信息价(2025年第五期均价)','3938.43','0','0','自行采购'],
+    ['29060143','主','刚性阻燃管','外径16mm','m','904.551','1.77','1.77','南阳信息价(2025年第五期均价)','1601.06','0','0','自行采购'],
+    ['29110207@1','主','钢制接线盒','','个','70.38','4.11','4.11','南阳信息价(2025年第五期均价)','289.26','0','0','自行采购'],
+    ['29110207@5','主','塑料接线盒','','个','171.36','2.83','2.83','南阳信息价(2025年第五期均价)','484.95','0','0','自行采购'],
+    ['34110103-2','机','电','','kw·h','622.84165','0.7','0.8','自行询价','498.27','0.1','62.28','自行采购'],
+    ['50000','机','折旧费','','元','21.706938','0.85','0.85','','18.45','0','0','自行采购'],
+    ['50010','机','检修费','','元','4.465275','0.85','0.85','','3.8','0','0','自行采购'],
+    ['50020','机','维护费','','元','14.868881','0.85','0.85','','12.64','0','0','自行采购'],
+    ['50030','机','安拆费及场外运费','','元','131.321303','0.9','0.9','','118.19','0','0','自行采购'],
+    ['990744108','机','砂轮切割机','φ400','台班','0.104','28.54','28.54','','2.97','0','0','自行采购'],
+    ['990901010','机','交流弧焊机','容量(kV·A) 21','台班','10.19571','57.02','63.05','自动汇总','642.84','6.03','0','自行采购'],
+    ['HA_J00004','机','电焊机械(综合2)','','台班','0.104','73.93','81.95','自动汇总','8.52','8.02','0','自行采购']
+  ];
+  R.forEach(r => L.push(ri.apply(null, r)));
+  /* 费用汇总 */
+  const FH = H.fee;
+  const fi = (...v) => mkRow(FH, v);
+  L.push(''); L.push(FH.join('\t'));
+  const F = [
+    ['1','A','分部分项工程','FBFXHJ','分部分项合计','','34,760.93','分部分项工程费','','true'],
+    ['2','B','措施项目','CSXMHJ','措施项目合计','','2,708.19','措施项目费','','true'],
+    ['2.1','B1','其中：安全文明施工费','AQWMSGF','安全文明施工费','','1,379.62','安全文明施工费','','true'],
+    ['2.2','B2','其他措施费（费率类）','QTCSF + QTF','其他措施费+其他（费率类）','','665.76','其他措施费','','true'],
+    ['2.3','B3','单价措施费','DJCSHJ','单价措施合计','','662.81','单价措施费','','true'],
+    ['3','C','其他项目','C1 + C2 + C3 + C4 + C5','其中：1）暂列金额+2）专业工程暂估价+3）计日工+4）总承包服务费+5）其他','','0.00','其他项目费','','true'],
+    ['3.1','C1','其中：1）暂列金额','ZLJE','暂列金额','','0.00','暂列金额','','true'],
+    ['3.2','C2','2）专业工程暂估价','ZYGCZGJ','专业工程暂估价','','0.00','专业工程暂估价','','true'],
+    ['3.3','C3','3）计日工','JRG','计日工','','0.00','计日工','','true'],
+    ['3.4','C4','4）总承包服务费','ZCBFWF','总承包服务费','','0.00','总包服务费','','true'],
+    ['3.5','C5','5）其他','QTPTFY','其他普通费用','','0.00','其他普通费用','','true'],
+    ['4','D','规费','D1 + D2 + D3','定额规费+工程排污费+其他','','1,794.70','规费','不可竞争费','true'],
+    ['4.1','D1','定额规费','FBFX_GF + DJCS_GF','分部分项规费+单价措施规费','','1,794.70','定额规费','','true'],
+    ['4.2','D2','工程排污费','','','','0.00','工程排污费','据实计取','true'],
+    ['4.3','D3','其他','','','','0.00','','','true'],
+    ['5','E','不含税工程造价合计','A + B + C + D','分部分项工程+措施项目+其他项目+规费','','39,263.82','','','true'],
+    ['6','F','增值税','E','不含税工程造价合计','9','3,533.74','增值税','一般计税方法','true'],
+    ['7','G','含税工程造价合计','E + F','不含税工程造价合计+增值税','','42,797.56','工程造价','','true']
+  ];
+  F.forEach(r => L.push(fi.apply(null, r)));
+  return L.join('\n');
+}
+function doDemo(){
+  const d = newDB();
+  const tabs = parseClip(demoText());
+  applyTables(tabs, d);
+  const on = d.overview.find(x => x.k === '工程名称');
+  PIDX = addProject(on ? on.v : '1#楼-安装', d);
+  DB = d; TAB = 'analysis'; PART = ''; COLL.clear();
+  save(); render();
+  toast('已载入示例工程');
+}
+$('#bDemo').onclick = () => { if(confirm('载入示例工程？（会新建为独立项目，不影响现有数据）')) doDemo(); };
+
+/* =========================================================
+   11. 启动
+   ========================================================= */
+(function init(){
+  const th = localStorage.getItem('gbq_theme');
+  if(th) document.documentElement.dataset.theme = th;
+  if(!load()) doDemo();
+  else render();
+  window.addEventListener('beforeunload', save);
+})();
+</script>
+</body>
+</html>
