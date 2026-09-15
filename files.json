@@ -54,5 +54,9 @@
     {
         "name":  "14-计价文件预览器",
         "path":  "HTML/14-计价文件预览器.html"
+    },
+    {
+        "name":  "15-Excel清单处理工具",
+        "path":  "HTML/15-Excel清单处理工具.html"
     }
 ]
