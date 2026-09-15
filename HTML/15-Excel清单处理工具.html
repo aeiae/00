@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>表格处理工具</title>
+<style>
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #fff;
+  --text: #333;
+  --text-secondary: #666;
+  --border: #e0e0e0;
+  --accent: #4a90d9;
+  --accent-hover: #357abd;
+  --danger: #c0392b;
+  --danger-hover: #a93226;
+  --success: #27ae60;
+  --success-hover: #219a52;
+  --row-hover: #f0f6ff;
+  --row-stripe: #fafafa;
+  --row-selected: #fff3cd;
+  --row-selected-hover: #ffeaa7;
+  --col-hidden: rgba(0,0,0,0.08);
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --radius: 6px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, "Microsoft YaHei", sans-serif;
+  font-size: 12px; color: var(--text); background: var(--bg);
+  line-height: 1.4; min-height: 100vh;
+}
+/* --- Header --- */
+.header {
+  background: var(--card-bg); border-bottom: 1px solid var(--border);
+  padding: 8px 16px; display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
+}
+.header h1 { font-size: 14px; font-weight: 600; color: var(--text); }
+.header .file-name { color: var(--text-secondary); font-size: 11px; max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* --- Drop Zone --- */
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 24px; text-align: center; margin: 12px; cursor: pointer;
+  transition: all 0.2s; background: var(--card-bg); color: var(--text-secondary);
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); color: var(--accent); background: #f0f7ff; }
+.drop-zone input { display: none; }
+.drop-zone .icon { font-size: 28px; margin-bottom: 6px; opacity: 0.5; }
+/* --- Toolbar --- */
+.toolbar {
+  display: flex; gap: 6px; padding: 6px 12px; flex-wrap: wrap;
+  background: var(--card-bg); border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.toolbar .group { display: flex; gap: 4px; align-items: center; }
+.toolbar .sep { width:1px; height:18px; background:var(--border); margin:0 4px; }
+.btn {
+  font-size: 11px; padding: 4px 10px; border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; background: var(--card-bg); color: var(--text);
+  transition: all 0.15s; white-space: nowrap; line-height: 1.6;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); color: #fff; }
+.btn-danger { color: var(--danger); border-color: #f5c6cb; }
+.btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+.btn-success:hover { background: var(--success-hover); color: #fff; }
+.btn-sm { padding: 2px 7px; font-size: 10px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* --- Info Bar --- */
+.info-bar {
+  display: flex; justify-content: space-between; padding: 4px 12px;
+  font-size: 11px; color: var(--text-secondary); background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+/* --- Table Container --- */
+.table-wrap { overflow: auto; padding: 0; max-height: calc(100vh - 150px); }
+table {
+  width: auto; min-width: 100%; border-collapse: collapse;
+  font-size: 11px; table-layout: fixed;
+}
+th, td {
+  border: 1px solid var(--border); padding: 3px 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 220px; position: relative; vertical-align: middle;
+  height: 26px;
+}
+th {
+  background: #f8f9fa; font-weight: 600; text-align: center;
+  position: sticky; top: 0; z-index: 10; user-select: none;
+}
+th .col-actions { display: none; position: absolute; top: -1px; right: 0;
+  background: inherit; z-index: 20; gap: 1px; padding: 1px; border: 1px solid var(--border);
+  border-top: none;
+}
+th:hover .col-actions { display: flex; }
+tr:nth-child(even) td { background: var(--row-stripe); }
+tr:hover td { background: var(--row-hover); }
+td.col-hidden, th.col-hidden { background: var(--col-hidden); color: #aaa; }
+td[contenteditable="true"] { background: #fff !important; outline: 2px solid var(--accent);
+  white-space: normal; overflow: visible; z-index: 5; position: relative; }
+/* row selection */
+tr.selected td { background: var(--row-selected); }
+tr.selected:hover td { background: var(--row-selected-hover); }
+.col-header-wrap { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.col-index { font-size: 9px; color: #999; font-weight: 400; }
+.col-empty-badge { font-size: 9px; background: #ffe0b2; color: #e65100;
+  padding: 0 3px; border-radius: 2px; margin-left: 3px; }
+/* --- Column Manager Panel --- */
+.panel-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+  z-index: 200; justify-content: center; align-items: flex-start;
+  padding-top: 60px;
+}
+.panel-overlay.show { display: flex; }
+.panel {
+  background: var(--card-bg); border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 420px; max-height: 70vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-head {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; font-weight: 600;
+}
+.panel-body { overflow-y: auto; padding: 8px 0; flex: 1; }
+.panel-foot {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 6px;
+}
+.col-item {
+  display: flex; align-items: center; padding: 5px 14px; gap: 8px;
+  cursor: grab; font-size: 11px; border-bottom: 1px solid #f0f0f0;
+}
+.col-item:hover { background: #f8f9fa; }
+.col-item .drag-handle { color: #ccc; cursor: grab; font-size: 14px; }
+.col-item .col-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-item .col-preview { color: var(--text-secondary); font-size: 10px;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-item input[type="checkbox"] { accent-color: var(--accent); }
+.col-item.dragging { opacity: 0.4; background: #e3f2fd; }
+.col-item.drag-over { border-top: 2px solid var(--accent); }
+/* --- Context Menu --- */
+.ctx-menu {
+  display: none; position: fixed; z-index: 300; background: var(--card-bg);
+  border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  min-width: 160px; padding: 4px 0; font-size: 11px;
+}
+.ctx-menu.show { display: block; }
+.ctx-menu .ctx-item {
+  padding: 5px 14px; cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.ctx-menu .ctx-item:hover { background: var(--accent); color: #fff; }
+.ctx-menu .ctx-item.danger:hover { background: var(--danger); color: #fff; }
+.ctx-menu .ctx-item:disabled { color: #ccc; cursor: not-allowed; }
+.ctx-menu .ctx-item:disabled:hover { background: none; color: #ccc; }
+.ctx-menu .ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
+.ctx-menu .ctx-label { padding: 3px 14px; color: #999; font-size: 10px; }
+/* --- Toast --- */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 6px 16px; border-radius: 4px;
+  font-size: 11px; z-index: 999; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+/* --- Empty State --- */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+.empty-state .icon { font-size: 48px; opacity: 0.2; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>表格处理工具</h1>
+  <span class="file-name" id="fileName"></span>
+</div>
+
+<!-- Drop Zone -->
+<div class="drop-zone" id="dropZone">
+  <div class="icon">&#128194;</div>
+  <div>拖拽 xlsx / csv 文件到此处，或点击选择文件</div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar" id="toolbar" style="display:none;">
+  <div class="group">
+    <button class="btn btn-sm" onclick="app.deleteEmptyCols()" title="删除所有数据全为空的列">删除空列</button>
+    <button class="btn btn-sm" onclick="app.toggleColManager()" title="拖动调整列顺序">列顺序</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <button class="btn btn-sm" onclick="app.resetView()" title="恢复原始列顺序和显示">重置视图</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <button class="btn btn-sm btn-danger" onclick="app.deleteEmptyRows()" title="删除所有单元格均为空的行">删除空行</button>
+    <button class="btn btn-sm" onclick="app.quickClean()" title="删除包含标题/合计/措施等指定关键词的行">快速整理清单</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <button class="btn btn-sm" onclick="app.undoSelection()" title="撤回上一次的选择操作">&#8634; 撤回选择</button>
+    <button class="btn btn-sm btn-danger" id="btnDelRows" onclick="app.deleteSelectedRows()" disabled title="删除所有选中的行">删除选中行</button>
+    <button class="btn btn-sm" onclick="app.clearRowSelection()" title="取消所有行的选中状态">清除选择</button>
+    <button class="btn btn-sm" onclick="app.selectAllRows()" title="选中所有数据行">全选行</button>
+  </div>
+  <div class="sep"></div>
+  <div class="group">
+    <button class="btn btn-sm btn-success" onclick="app.exportFile()" title="导出为 xlsx 文件">导出 xlsx</button>
+    <button class="btn btn-sm btn-success" onclick="app.exportCSV()" title="导出为 csv 文件">导出 csv</button>
+  </div>
+</div>
+
+<!-- Info Bar -->
+<div class="info-bar" id="infoBar" style="display:none;">
+  <span id="infoText"></span>
+  <span id="visibleInfo"></span>
+</div>
+
+<!-- Table -->
+<div class="table-wrap" id="tableWrap" style="display:none;">
+  <table id="dataTable">
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- Empty State -->
+<div class="empty-state" id="emptyState">
+  <div class="icon">&#128202;</div>
+  <div>请选择或拖拽一个表格文件</div>
+</div>
+
+<!-- Column Manager Panel -->
+<div class="panel-overlay" id="colPanelOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <span>列管理</span>
+      <button class="btn btn-sm" onclick="app.toggleColManager()">&#10005;</button>
+    </div>
+    <div class="panel-body" id="colPanelBody"></div>
+    <div class="panel-foot">
+      <button class="btn btn-sm btn-primary" onclick="app.applyColOrder()">应用顺序</button>
+    </div>
+  </div>
+</div>
+
+<!-- Context Menu (row/cell) -->
+<div class="ctx-menu" id="ctxMenu"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+const app = {
+  rawData: [],       // array of row arrays (row 0 = header)
+  rowMeta: [],       // parallel to rawData: { selected: bool }
+  headers: [],
+  colCount: 0,
+  rowCount: 0,
+  fileName: '',
+  colMeta: [],       // per-column meta: { index, header, visible, isEmpty }
+  ctx: null,         // current context menu target { r, ci, value }
+  _anchor: null,     // last selected row index for shift-range
+  selHistory: [],    // stack of selection-state snapshots for undo
+
+  // ---- File Loading ----
+  init() {
+    const dz = document.getElementById('dropZone');
+    const fi = document.getElementById('fileInput');
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) this.loadFile(e.dataTransfer.files[0]);
+    });
+    fi.addEventListener('change', e => { if (e.target.files.length) this.loadFile(e.target.files[0]); });
+
+    // Context menu: close on outside click
+    document.addEventListener('click', () => this.hideCtx());
+    document.addEventListener('scroll', () => this.hideCtx());
+  },
+
+  loadFile(file) {
+    this.fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+        if (!data.length) return this.showToast('文件没有数据');
+        this.rawData = data;
+        this.headers = data[0] || [];
+        this.colCount = Math.max(...data.map(r => r.length), this.headers.length);
+        this.rowCount = data.length;
+        this.rawData = data.map(row => {
+          while (row.length < this.colCount) row.push('');
+          return row.slice(0, this.colCount);
+        });
+        this.rowMeta = this.rawData.map(() => ({ selected: false }));
+        this.buildColMeta();
+        this.render();
+        this.showUI();
+        document.getElementById('fileName').textContent = file.name;
+      } catch (err) {
+        this.showToast('读取失败: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  },
+
+  buildColMeta() {
+    this.colMeta = [];
+    for (let c = 0; c < this.colCount; c++) {
+      const vals = this.rawData.map(r => r[c]);
+      const isEmpty = vals.every(v => v === '' || v == null || String(v).trim() === '');
+      this.colMeta.push({ index: c, header: String(this.headers[c] || ''), visible: true, isEmpty });
+    }
+  },
+
+  showUI() {
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('infoBar').style.display = 'flex';
+    document.getElementById('tableWrap').style.display = 'block';
+    this.updateInfo();
+  },
+
+  updateInfo() {
+    const emptyCols = this.colMeta.filter(c => c.isEmpty).length;
+    const selRows = this.rowMeta.filter(m => m.selected).length;
+    document.getElementById('infoText').textContent =
+      `${this.rowCount} 行 × ${this.colCount} 列  |  空列: ${emptyCols}  |  选中行: ${selRows}`;
+    const visibleCols = this.colMeta.filter(c => c.visible).length;
+    document.getElementById('visibleInfo').textContent = `显示: ${visibleCols} 列`;
+    const btnDel = document.getElementById('btnDelRows');
+    btnDel.disabled = selRows === 0;
+    btnDel.textContent = selRows > 0 ? `删除选中行(${selRows})` : '删除选中行';
+  },
+
+  // ---- Rendering ----
+  render() {
+    const thead = document.getElementById('thead');
+    const tbody = document.getElementById('tbody');
+    const visibleIndices = this.colMeta.filter(c => c.visible).map(c => c.index);
+
+    // Header
+    let htr = '<tr>';
+    htr += '<th style="width:40px;background:#f0f0f0;">#</th>';
+    visibleIndices.forEach(ci => {
+      const meta = this.colMeta.find(m => m.index === ci);
+      const hiddenClass = meta.isEmpty ? ' col-hidden' : '';
+      const emptyBadge = meta.isEmpty ? '<span class="col-empty-badge">空</span>' : '';
+      htr += `<th class="${hiddenClass}" data-col="${ci}">
+        <div class="col-header-wrap">
+          <span class="col-index">${this.colLetter(ci)}</span>
+          ${emptyBadge}
+          <div class="col-actions">
+            <button class="btn btn-sm btn-danger" onclick="app.deleteCol(${ci})" title="删除此列">&#128465;</button>
+          </div>
+        </div>
+      </th>`;
+    });
+    htr += '</tr>';
+    thead.innerHTML = htr;
+
+    // Body (limit render for performance)
+    let bodyHtml = '';
+    const maxRender = 800;
+    const dataRows = this.rawData.length;
+    const step = dataRows > maxRender ? Math.ceil(dataRows / maxRender) : 1;
+
+    for (let r = 0; r < this.rawData.length; r += step) {
+      const sel = this.rowMeta[r] && this.rowMeta[r].selected ? ' selected' : '';
+      let tr = `<tr class="${sel.trim()}" data-row="${r}">`;
+      tr += `<td style="background:#f0f0f0;text-align:center;color:#999;cursor:pointer;" data-rowidx="${r}" title="点击选中/取消此行">${r}</td>`;
+      visibleIndices.forEach(ci => {
+        const val = (this.rawData[r] && this.rawData[r][ci] !== undefined) ? this.rawData[r][ci] : '';
+        const meta = this.colMeta.find(m => m.index === ci);
+        const hiddenClass = meta.isEmpty ? ' col-hidden' : '';
+        tr += `<td class="${hiddenClass}" data-row="${r}" data-col="${ci}" title="${this.escapeHtml(String(val))}">${this.escapeHtml(String(val))}</td>`;
+      });
+      tr += '</tr>';
+      bodyHtml += tr;
+    }
+    tbody.innerHTML = bodyHtml;
+
+    // Bind row index cell click (selection: plain / ctrl / shift)
+    tbody.querySelectorAll('td[data-rowidx]').forEach(td => {
+      td.addEventListener('click', e => {
+        const r = parseInt(td.dataset.rowidx);
+        this.handleRowSelect(e, r);
+      });
+    });
+
+    // Bind data cell click for row selection (plain = select single, shift/ctrl = multi)
+    tbody.querySelectorAll('td[data-col]').forEach(td => {
+      td.addEventListener('click', e => {
+        if (td.getAttribute('contenteditable') === 'true') return; // don't disturb editing
+        const r = parseInt(td.dataset.row);
+        this.handleRowSelect(e, r);
+      });
+    });
+
+    // Bind cell double-click editing
+    tbody.querySelectorAll('td[data-col]').forEach(td => {
+      td.addEventListener('dblclick', e => this.startEdit(e, td));
+    });
+
+    // Bind context menu on body
+    tbody.oncontextmenu = e => { e.preventDefault(); this.openCtx(e); };
+  },
+
+  colLetter(idx) {
+    let s = ''; idx++;
+    while (idx > 0) { idx--; s = String.fromCharCode(65 + (idx % 26)) + s; idx = Math.floor(idx / 26); }
+    return s;
+  },
+
+  escapeHtml(s) {
+    const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+  },
+
+  // ---- Cell Editing ----
+  startEdit(e, td) {
+    e.stopPropagation();
+    if (td.getAttribute('contenteditable') === 'true') return;
+    const r = parseInt(td.dataset.row), ci = parseInt(td.dataset.col);
+    const original = this.rawData[r][ci];
+    td.setAttribute('contenteditable', 'true');
+    td.focus();
+    // select all
+    const range = document.createRange(); range.selectNodeContents(td);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+
+    const finish = (save) => {
+      td.removeAttribute('contenteditable');
+      td.removeEventListener('blur', onBlur);
+      td.removeEventListener('keydown', onKey);
+      if (save) {
+        const newVal = td.textContent.trim();
+        this.rawData[r][ci] = newVal;
+        td.title = newVal;
+        this.showToast('已修改单元格');
+      } else {
+        td.textContent = original;
+      }
+      this.updateInfo();
+    };
+    const onBlur = () => finish(true);
+    const onKey = ev => {
+      if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); td.blur(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+    };
+    td.addEventListener('blur', onBlur);
+    td.addEventListener('keydown', onKey);
+  },
+
+  // ---- Context Menu ----
+  openCtx(e) {
+    const td = e.target.closest('td[data-col]') || e.target.closest('td[data-rowidx]');
+    if (!td) return;
+    const r = parseInt(td.dataset.row || td.dataset.rowidx);
+    const ci = td.dataset.col ? parseInt(td.dataset.col) : null;
+    const value = ci !== null ? String(this.rawData[r][ci] || '') : '';
+    this.ctx = { r, ci, value };
+
+    const selCount = this.rowMeta.slice(1).filter(m => m.selected).length;
+    const sameValCount = ci !== null
+      ? this.rawData.slice(1).filter((row, i) => i + 1 !== r && String(row[ci] || '') === value).length
+      : 0;
+
+    let html = '';
+    if (ci !== null) {
+      const shortVal = value.length > 12 ? value.substring(0, 12) + '…' : value;
+      html += `<div class="ctx-label">关键词: "${this.escapeHtml(shortVal) || '(空)'}"</div>`;
+      html += `<div class="ctx-item" onclick="app.selectSameValue()">选中同值行 (${sameValCount})</div>`;
+      html += `<div class="ctx-sep"></div>`;
+    }
+    html += `<div class="ctx-item" onclick="app.insertRow('above')">在上方插入行</div>`;
+    html += `<div class="ctx-item" onclick="app.insertRow('below')">在下方插入行</div>`;
+    html += `<div class="ctx-sep"></div>`;
+    html += `<div class="ctx-item danger" onclick="app.deleteSingleRow()">删除此行</div>`;
+    if (selCount > 0) {
+      html += `<div class="ctx-item danger" onclick="app.deleteSelectedRows()">删除选中行 (${selCount})</div>`;
+    }
+
+    const menu = document.getElementById('ctxMenu');
+    menu.innerHTML = html;
+    menu.classList.add('show');
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 170) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 180) + 'px';
+  },
+
+  hideCtx() { document.getElementById('ctxMenu').classList.remove('show'); },
+
+  selectSameValue() {
+    if (!this.ctx || this.ctx.ci === null) return;
+    const { r, ci, value } = this.ctx;
+    this.saveSel();
+    let cnt = 0;
+    for (let i = 0; i < this.rawData.length; i++) {
+      if (String(this.rawData[i][ci] || '') === value) { this.rowMeta[i].selected = true; cnt++; }
+    }
+    this._anchor = null;
+    this.hideCtx();
+    this.render(); this.updateInfo();
+    this.showToast(`已选中 ${cnt} 行 (同值: ${value.substring(0,12) || '(空)'})`);
+  },
+
+  insertRow(pos) {
+    if (!this.ctx) return;
+    const r = this.ctx.r;
+    const at = pos === 'below' ? r + 1 : r;
+    const empty = new Array(this.colCount).fill('');
+    this.rawData.splice(at, 0, empty);
+    this.rowMeta.splice(at, 0, { selected: false });
+    this.rowCount = this.rawData.length;
+    // re-bind data-row attributes are handled by render
+    this.hideCtx();
+    this.render(); this.updateInfo();
+    this.showToast(pos === 'below' ? '已在下方插入空行' : '已在上方插入空行');
+  },
+
+  deleteSingleRow() {
+    if (!this.ctx) return;
+    const r = this.ctx.r;
+    this.rawData.splice(r, 1);
+    this.rowMeta.splice(r, 1);
+    this.rowCount = this.rawData.length;
+    this.hideCtx();
+    this.render(); this.updateInfo();
+    this.showToast('已删除此行');
+  },
+
+  deleteSelectedRows() {
+    const keep = [];
+    for (let i = 0; i < this.rawData.length; i++) {
+      if (!this.rowMeta[i].selected) keep.push(i);
+    }
+    if (keep.length === this.rawData.length) return this.showToast('没有选中的行');
+    const newRaw = [], newMeta = [];
+    this.rawData.forEach((row, i) => { if (keep.includes(i)) { newRaw.push(row); newMeta.push(this.rowMeta[i]); } });
+    this.rawData = newRaw; this.rowMeta = newMeta;
+    this.rowCount = this.rawData.length;
+
+    // auto clean empty rows & columns after deletion
+    let er = 0, ec = 0;
+    // empty rows
+    const rk = [];
+    for (let i = 0; i < this.rawData.length; i++) {
+      if (this.rawData[i].every(v => v === '' || v == null || String(v).trim() === '')) er++;
+      else rk.push(i);
+    }
+    if (er) {
+      const nR = [], nM = [];
+      this.rawData.forEach((row, i) => { if (rk.includes(i)) { nR.push(row); nM.push(this.rowMeta[i]); } });
+      this.rawData = nR; this.rowMeta = nM; this.rowCount = nR.length;
+    }
+    // empty columns
+    const emptyCols = [];
+    for (let c = 0; c < this.colCount; c++) {
+      if (this.rawData.every(row => row[c] === '' || row[c] == null || String(row[c]).trim() === '')) emptyCols.push(c);
+    }
+    if (emptyCols.length) {
+      ec = emptyCols.length;
+      emptyCols.sort((a, b) => b - a).forEach(ci => {
+        this.rawData = this.rawData.map(row => { const n = [...row]; n.splice(ci, 1); return n; });
+        if (this.headers[ci] !== undefined) this.headers.splice(ci, 1);
+        this.colCount--;
+      });
+      this.colMeta = this.colMeta.filter(m => !emptyCols.includes(m.index));
+      this.colMeta.forEach((m, i) => m.index = i);
+      this.buildColMeta();
+    }
+
+    this.render(); this.updateInfo();
+    this.showToast(`已删除选中行，并清理 ${er} 空行 / ${ec} 空列`);
+  },
+
+  clearRowSelection() {
+    this.saveSel();
+    this.rowMeta.forEach(m => m.selected = false);
+    this._anchor = null;
+    this.render(); this.updateInfo();
+    this.showToast('已清除选择');
+  },
+
+  selectAllRows() {
+    this.saveSel();
+    for (let i = 0; i < this.rowMeta.length; i++) this.rowMeta[i].selected = true;
+    this.render(); this.updateInfo();
+    this.showToast('已全选数据行');
+  },
+
+  // ---- Selection history (undo) ----
+  saveSel() {
+    this.selHistory.push(this.rowMeta.map(m => m.selected));
+    if (this.selHistory.length > 100) this.selHistory.shift();
+  },
+
+  undoSelection() {
+    if (!this.selHistory.length) return this.showToast('没有可撤回的选择');
+    const prev = this.selHistory.pop();
+    this.rowMeta.forEach((m, i) => m.selected = !!prev[i]);
+    this._anchor = null;
+    this.render(); this.updateInfo();
+    this.showToast('已撤回上次选择');
+  },
+
+  handleRowSelect(e, r) {
+    e.stopPropagation();
+    this.saveSel();
+    if (e.shiftKey && this._anchor !== null) {
+      const lo = Math.min(this._anchor, r), hi = Math.max(this._anchor, r);
+      this.rowMeta.forEach((m, i) => { if (i >= lo && i <= hi) m.selected = true; });
+    } else if (e.ctrlKey || e.metaKey) {
+      this.rowMeta[r].selected = !this.rowMeta[r].selected;
+      this._anchor = r;
+    } else {
+      this.rowMeta.forEach((m, i) => m.selected = (i === r));
+      this._anchor = r;
+    }
+    // update row highlight in place (no full re-render, keeps editing stable)
+    const tbody = document.getElementById('tbody');
+    if (tbody) tbody.querySelectorAll('tr[data-row]').forEach(tr => {
+      const ri = parseInt(tr.dataset.row);
+      tr.classList.toggle('selected', !!(this.rowMeta[ri] && this.rowMeta[ri].selected));
+    });
+    this.updateInfo();
+  },
+
+  // ---- Quick clean (delete rows containing keywords) ----
+  quickClean() {
+    const kws = ['最高投标限价','编制人','编制单位','法定代表人','分部分项','其他项目',
+      '专业工程暂估价','总承包服务费','环境保护税','合计','安全生产','暂列金额','计日工',
+      '增值税','本页小计','措施项目清单计价表','环境保护费','二次搬运','其他大型机械进出场及安拆'];
+    const keep = []; let cnt = 0;
+    for (let i = 0; i < this.rawData.length; i++) {
+      const hit = this.rawData[i].some(v => {
+        const s = String(v == null ? '' : v);
+        return kws.some(k => s.includes(k));
+      });
+      if (hit) cnt++; else keep.push(i);
+    }
+    if (cnt === 0) return this.showToast('没有匹配的行');
+    const newRaw = [], newMeta = [];
+    this.rawData.forEach((row, i) => { if (keep.includes(i)) { newRaw.push(row); newMeta.push(this.rowMeta[i]); } });
+    this.rawData = newRaw; this.rowMeta = newMeta;
+    this.rowCount = this.rawData.length;
+    this.render(); this.updateInfo();
+    this.showToast(`已清理 ${cnt} 行`);
+  },
+
+  // ---- Row Operations (empty) ----
+  deleteEmptyRows() {
+    const keep = [];
+    let cnt = 0;
+    for (let i = 0; i < this.rawData.length; i++) {
+      const isEmpty = this.rawData[i].every(v => v === '' || v == null || String(v).trim() === '');
+      if (isEmpty) cnt++; else keep.push(i);
+    }
+    if (cnt === 0) return this.showToast('没有空行');
+    const newRaw = [], newMeta = [];
+    this.rawData.forEach((row, i) => { if (keep.includes(i)) { newRaw.push(row); newMeta.push(this.rowMeta[i]); } });
+    this.rawData = newRaw; this.rowMeta = newMeta;
+    this.rowCount = this.rawData.length;
+    this.render(); this.updateInfo();
+    this.showToast(`已删除 ${cnt} 个空行`);
+  },
+
+  // ---- Column Operations ----
+  deleteCol(ci) {
+    this.rawData = this.rawData.map(row => { const n = [...row]; n.splice(ci, 1); return n; });
+    if (this.headers[ci] !== undefined) this.headers.splice(ci, 1);
+    this.colCount--;
+    this.colMeta = this.colMeta.filter(m => m.index !== ci);
+    this.colMeta.forEach((m, i) => m.index = i);
+    this.render(); this.updateInfo();
+    this.showToast('已删除列');
+  },
+
+  deleteEmptyCols() {
+    const emptyIndices = this.colMeta.filter(m => m.isEmpty).map(m => m.index).sort((a,b) => b - a);
+    if (!emptyIndices.length) return this.showToast('没有空列');
+    emptyIndices.forEach(ci => {
+      this.rawData = this.rawData.map(row => { const n = [...row]; n.splice(ci, 1); return n; });
+      if (this.headers[ci] !== undefined) this.headers.splice(ci, 1);
+      this.colCount--;
+    });
+    this.colMeta = this.colMeta.filter(m => !m.isEmpty);
+    this.colMeta.forEach((m, i) => m.index = i);
+    this.render(); this.updateInfo();
+    this.showToast(`已删除 ${emptyIndices.length} 个空列`);
+  },
+
+  resetView() {
+    this.colMeta.forEach(m => { m.visible = true; });
+    this.render(); this.updateInfo();
+    this.showToast('已重置视图');
+  },
+
+  // ---- Column Manager Panel ----
+  toggleColManager() {
+    const p = document.getElementById('colPanelOverlay');
+    if (p.classList.contains('show')) { p.classList.remove('show'); return; }
+    this.renderColPanel();
+    p.classList.add('show');
+  },
+
+  renderColPanel() {
+    const body = document.getElementById('colPanelBody');
+    let html = '';
+    this.colMeta.forEach((m, i) => {
+      const previewVal = this.rawData.length > 1 ? (this.rawData[1][m.index] || '') : '';
+      html += `<div class="col-item" draggable="true" data-idx="${i}">
+        <span class="drag-handle">&#9776;</span>
+        <span class="col-name"><b>${this.escapeHtml(m.header || '(无标题)')}</b></span>
+        <span class="col-preview">${this.escapeHtml(String(previewVal).substring(0, 30))}</span>
+        ${m.isEmpty ? '<span class="col-empty-badge">空</span>' : ''}
+      </div>`;
+    });
+    body.innerHTML = html;
+    body.querySelectorAll('.col-item').forEach(item => {
+      item.addEventListener('dragstart', e => { item.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.dataset.idx); });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+      item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+      item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+      item.addEventListener('drop', e => {
+        e.preventDefault(); item.classList.remove('drag-over');
+        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+        const toIdx = parseInt(item.dataset.idx);
+        if (fromIdx === toIdx) return;
+        const [moved] = this.colMeta.splice(fromIdx, 1);
+        this.colMeta.splice(toIdx, 0, moved);
+        this.renderColPanel();
+      });
+    });
+  },
+
+  applyColOrder() {
+    document.getElementById('colPanelOverlay').classList.remove('show');
+    this.render(); this.updateInfo();
+    this.showToast('已应用列顺序');
+  },
+
+  // ---- Export ----
+  exportFile() {
+    const visibleMeta = this.colMeta.filter(c => c.visible);
+    const outData = this.rawData.map(row => visibleMeta.map(m => row[m.index]));
+    const ws = XLSX.utils.aoa_to_sheet(outData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    XLSX.writeFile(wb, `processed_${this.fileName.replace(/\.[^.]+$/, '')}.xlsx`);
+    this.showToast('已导出 xlsx');
+  },
+
+  exportCSV() {
+    const visibleMeta = this.colMeta.filter(c => c.visible);
+    const outData = this.rawData.map(row => visibleMeta.map(m => row[m.index]));
+    const ws = XLSX.utils.aoa_to_sheet(outData);
+    const csv = XLSX.utils.sheet_csv(ws);
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `processed_${this.fileName.replace(/\.[^.]+$/, '')}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    this.showToast('已导出 csv');
+  },
+
+  // ---- Toast ----
+  showToast(msg) {
+    const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(this._toastTimer); this._toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+};
+
+app.init();
+</script>
+</body>
+</html>
