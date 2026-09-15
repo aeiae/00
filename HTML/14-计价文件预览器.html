@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=1920">
 <title>计价数据预览器</title>
 <style>
 :root{
@@ -68,11 +68,17 @@ button{cursor:pointer;background:none;border:none}
 .pzone .pzb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pzone .hz{font-size:11px;color:var(--txt3);margin-left:auto}
 .pbtn.sm{height:23px;padding:0 10px;font-size:11px}
+.pbtn.dg{background:var(--red);color:#fff}
+.pbtn.dg:hover{filter:brightness(1.08)}
 
 #main{display:flex;height:calc(100% - 34px - 32px - 24px)}
 
 /* ===== 左侧：项目列表 ===== */
-#nav{width:186px;flex:0 0 186px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:0 0 24px}
+#nav{width:186px;flex:0 0 186px;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:0 0 24px;position:relative}
+#nav.hid,.billtree.hid{display:none}
+.vrsz{position:absolute;top:0;right:0;width:5px;height:100%;cursor:col-resize;z-index:7}
+.vrsz:hover{background:var(--pri);opacity:.35}
+.tbtn.off{opacity:.5}
 .pgrp{height:24px;display:flex;align-items:center;gap:5px;padding:0 8px;font-size:11px;font-weight:600;color:var(--txt2);background:var(--line2);position:sticky;top:0;z-index:2}
 .pnode{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;border-bottom:1px solid var(--line2);user-select:none}
 .pnode:hover{background:var(--line2)}
@@ -110,7 +116,7 @@ body.dragging{user-select:none;cursor:grabbing}
 
 /* 分部分项：左侧目录树 + 右侧表格 */
 .billwrap{display:flex;gap:8px;min-height:0}
-.billtree{width:210px;flex:0 0 210px;background:var(--panel);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;overflow:hidden}
+.billtree{width:210px;flex:0 0 210px;background:var(--panel);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .billtree .th{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-weight:600;color:var(--pri-d);border-bottom:1px solid var(--line);background:var(--panel)}
 .billtree .th .sp{flex:1}
 .billtree .th .mini{font-size:10px;font-weight:400;color:var(--txt2)}
@@ -135,6 +141,9 @@ body.dragging{user-select:none;cursor:grabbing}
 .tn.man .tx{font-weight:700}
 .lgdot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px;vertical-align:middle}
 .tn.man .lv{background:var(--pri);color:#fff}
+.tn .ta{flex:0 0 auto;width:13px;text-align:center;font-size:9px;color:var(--txt2);cursor:pointer;user-select:none}
+.tn .ta:hover{color:var(--pri)}
+.tn .ta.on{color:var(--pri)}
 .pc.clr{border-style:dashed;color:var(--pri);border-color:var(--pri)}
 .billmain{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
 #pane-inner.fullh .billwrap{flex:1;min-height:0}
@@ -172,6 +181,8 @@ table.gt{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed
 .gt thead th .rsz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:4}
 .gt thead th .rsz:hover{background:var(--pri);opacity:.35}
 .gt td{height:var(--rh,24px);padding:0 6px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 项目特征等列：按换行符真实多行显示 */
+.gt td.wl{white-space:pre-line;height:auto;line-height:1.45;vertical-align:top;overflow:visible;word-break:break-all}
 .gt td:last-child{border-right:none}
 .gt tbody tr:hover td{background:var(--pri-l)}
 .gt tr.sum td{background:var(--sumbg);font-weight:700}
@@ -197,7 +208,10 @@ table.gt{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed
 .gt .t-r{text-align:right;font-variant-numeric:tabular-nums}
 .gt .t-c{text-align:center}
 .gt .amt{color:var(--red)}
-.gt .arw{display:inline-block;width:12px;color:var(--txt2);font-size:9px;cursor:pointer;user-select:none;text-align:center}
+.gt .arw{display:inline-block;width:12px;color:var(--txt2);font-size:10px;cursor:pointer;user-select:none;text-align:center}
+.gt .arw:hover{color:var(--pri)}
+.gt .arw.on{color:var(--pri)}
+.gt tbody tr.grp{cursor:context-menu}
 .gt .dep1{padding-left:20px}
 .gt .dep2{padding-left:38px}
 .gt .dep3{padding-left:56px}
@@ -248,6 +262,9 @@ table.kv .vv{font-weight:600}
 .lvtb .nm{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lvtb .am{text-align:right;font-variant-numeric:tabular-nums;color:var(--txt2)}
 .lvtb tr.man td{background:var(--pri-l)}
+.lvtb .rnip{width:100%;height:24px;border:1px solid var(--line);border-radius:3px;background:var(--panel);color:var(--txt);font-size:12px;padding:0 6px}
+.lvtb .rnip:focus{outline:none;border-color:var(--pri)}
+.lvtb .ix{width:26px;color:var(--txt3);font-size:11px;text-align:right}
 
 /* 弹窗 */
 #mask{position:fixed;inset:0;background:rgba(20,28,38,.42);display:none;z-index:50;align-items:center;justify-content:center}
@@ -276,6 +293,70 @@ table.kv .vv{font-weight:600}
 .imp .tip{font-size:11px;color:var(--txt2);margin-bottom:6px}
 .imp .res{font-size:11px;margin-top:6px;color:var(--pri)}
 
+/* 打印预览（点「打印」先出预览，再选导出 Excel / PDF） */
+#pv{position:fixed;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column}
+#pv.on{display:flex}
+.pv-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.pv-bar .tt{font-size:13px;font-weight:600;color:var(--pri-d)}
+.pv-bar .sp{flex:1}
+.pv-bar .mini{font-size:11px;color:var(--txt2)}
+.pv-body{flex:1;min-height:0;overflow:auto;padding:12px;display:flex;justify-content:center}
+.pv-tabs{flex:0 0 auto;display:flex;gap:4px;flex-wrap:wrap;padding:6px 12px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.pv-tab{padding:5px 13px;font-size:12px;border:1px solid var(--line);border-bottom:none;border-radius:7px 7px 0 0;cursor:pointer;color:var(--txt2);background:var(--bg2);line-height:1.5}
+.pv-tab.on{background:var(--bg);color:var(--pri-d);font-weight:600;border-color:var(--pri)}
+.pv-tab.empty{opacity:.45}
+.pv-sheet{background:#fff;color:#1b2430;padding:16px 18px;border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);width:max-content;max-width:100%;align-self:flex-start}
+.pv-sheet .ph{border-bottom:2px solid #1b2430;padding-bottom:6px;margin-bottom:8px}
+.pv-sheet .ph h3{margin:0;font-size:15px;letter-spacing:1px}
+.pv-sheet .ph .m{font-size:11px;color:#5a6675;margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
+table.pvt{border-collapse:collapse;font-size:11px;table-layout:fixed}
+table.pvt th,table.pvt td{border:1px solid #b9c2cc;padding:3px 6px;vertical-align:middle;word-break:break-word;overflow-wrap:anywhere}
+table.pvt th{background:#eef2f6;font-weight:600;white-space:normal;text-align:center;position:static}
+table.pvt td{white-space:normal}
+table.pvt td.wl{white-space:pre-line}
+table.pvt td.t-r{text-align:right;font-variant-numeric:tabular-nums}
+/* 预览里的造价分析：浅色卡片/图块，白底更干净，且与导出的 PDF 视觉一致 */
+#pv .pv-analysis{color:#1b2430}
+#pv .pv-analysis .cards{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+#pv .pv-analysis .card{background:#f5f7fa;border:1px solid #e1e7ef;border-radius:4px;flex:1;min-width:150px;padding:8px 10px}
+#pv .pv-analysis .card .k{font-size:11px;color:#5a6675}
+#pv .pv-analysis .card .v{font-size:16px;font-weight:700;color:#1f3a5f;font-variant-numeric:tabular-nums;margin-top:2px;word-break:break-word}
+#pv .pv-analysis .card .s{font-size:10px;color:#8a93a0;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pv .pv-analysis .blk{background:#fff;border:1px solid #e1e7ef;border-radius:4px;margin:0 0 10px}
+#pv .pv-analysis .blk>h3{font-size:12px;font-weight:600;color:#1f3a5f;padding:6px 10px;border-bottom:1px solid #e1e7ef;white-space:normal}
+#pv .pv-analysis .blk .bd{padding:10px}
+#pv .pv-analysis .blk .mini{color:#5a6675;font-size:11px;padding:0 10px 10px}
+#pv .pv-analysis .flexr{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#pv .pv-analysis .lg{display:flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap}
+#pv .pv-analysis .lg i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+#pv .pv-analysis .lg .n{width:96px;overflow:hidden;text-overflow:ellipsis;color:#3a4655}
+#pv .pv-analysis .lg .v{color:#5a6675;font-variant-numeric:tabular-nums}
+#pv .pv-analysis .lg .p{width:46px;text-align:right;color:#8a93a0;font-variant-numeric:tabular-nums}
+#pv .pv-analysis .brow{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px}
+#pv .pv-analysis .brow .n{width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#3a4655}
+#pv .pv-analysis .brow .b{flex:1;height:11px;background:#e6ebf1;border-radius:2px;overflow:hidden;min-width:60px}
+#pv .pv-analysis .brow .b i{display:block;height:100%;border-radius:2px}
+#pv .pv-analysis .brow .v{width:100px;text-align:right;color:#1b2430;font-variant-numeric:tabular-nums}
+#pv .pv-analysis .brow .p{width:46px;text-align:right;color:#8a93a0;font-variant-numeric:tabular-nums}
+/* 工程概况卡片（与 PDF 同款） */
+.pv-ov{margin:2px 0;max-width:760px;border:1px solid #cdd5df;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.pv-ov .ov-head{background:#1f3a5f;color:#fff;font-size:12px;font-weight:600;padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.pv-ov .ov-head .ov-c{font-weight:400;font-size:11px;opacity:.82}
+.pv-ov .ov-list{display:block}
+.pv-ov .ov-row{display:flex;border-top:1px solid #e6ebf1}
+.pv-ov .ov-row:first-child{border-top:none}
+.pv-ov .ov-k{flex:0 0 132px;background:#f3f6fa;color:#5a6675;font-size:11px;padding:6px 10px;display:flex;align-items:center;border-right:1px solid #e6ebf1;line-height:1.4}
+.pv-ov .ov-v{flex:1;color:#222a33;font-size:12px;padding:6px 12px;word-break:break-word;white-space:pre-line;line-height:1.5}
+.pv-ov .ov-row.ze .ov-k{background:#eef2f7}
+.pv-ov .ov-row.ze .ov-v{background:#fbfcfe}
+table.pvt td.t-c{text-align:center}
+table.pvt tr.grp td{background:#f2f5f8;font-weight:600}
+table.pvt tr.leaf td{background:#fbfcfd}
+table.pvt tr.sub td{color:#4a5563}
+table.pvt tr.mat td{background:#fafbfc;color:#6b7280}
+table.pvt tr.sum td{background:#eef2f6;font-weight:700}
+.pv-empty{padding:40px;color:var(--txt3);font-size:12px}
+
 @media print{
   #top,#nav,#tabs,#tools,#status{display:none!important}
   #main{display:block;height:auto}
@@ -285,6 +366,13 @@ table.kv .vv{font-weight:600}
   .billwrap{display:block}
   .billtree{display:none}
   .bar{display:none}
+  /* 预览打开时：只打印预览区 */
+  body.pv-on #top,body.pv-on #nav,body.pv-on #tools,body.pv-on #tabs,body.pv-on #status,
+  body.pv-on #main,body.pv-on #mask,body.pv-on #menu{display:none!important}
+  body.pv-on #pv{position:static;display:block;height:auto;overflow:visible;background:#fff}
+  body.pv-on .pv-bar,body.pv-on .pv-tabs{display:none!important}
+  body.pv-on .pv-body{display:block;overflow:visible;padding:0;height:auto}
+  body.pv-on .pv-sheet{border:none;box-shadow:none;width:auto;max-width:none;padding:0}
 }
 </style>
 </head>
@@ -293,18 +381,18 @@ table.kv .vv{font-weight:600}
 <header id="top">
   <div class="crumb" id="crumb"></div>
   <div class="sp"></div>
-  <span class="app">计价数据预览器 · 粘贴即可看 · 本地运行</span>
 </header>
 
 <div id="tools">
   <button class="tbtn acc" id="bImp">粘贴数据</button>
   <button class="tbtn" id="bDemo">示例工程</button>
   <span style="width:1px;height:16px;background:var(--line)"></span>
-  <button class="tbtn" id="bCsv">导出Excel</button>
-  <button class="tbtn" id="bPrint">打印</button>
+  <button class="tbtn" id="bPrint">导出</button>
   <button class="tbtn" id="bHelp">格式说明</button>
   <span class="sp"></span>
   <span class="qbox"><input id="q" placeholder="在当前表中搜索…"><button class="qx" id="qClear" title="清除搜索">✕</button></span>
+  <button class="tbtn" id="bNav" title="显示/隐藏左侧「工程项目」栏">项目栏</button>
+  <button class="tbtn" id="bTree" title="显示/隐藏「分部目录」栏（分部分项页）">分部栏</button>
   <button class="tbtn" id="bTheme" title="切换深浅主题">主题</button>
 </div>
 
@@ -319,6 +407,20 @@ table.kv .vv{font-weight:600}
 
 <div class="menu" id="menu"></div>
 <div id="dragline"></div>
+<div id="pv">
+  <div class="pv-bar">
+    <span class="tt">导出预览</span>
+    <span class="mini" id="pvInfo"></span>
+    <span class="sp"></span>
+    <span class="mini">点上面标签切换七张表 · 导出会一次导出全部七张表（CSV / Excel / PDF）</span>
+    <button class="pbtn gh" id="pvCsv">导出 CSV</button>
+    <button class="pbtn gh" id="pvXlsx">导出 Excel</button>
+    <button class="pbtn" id="pvPdf">导出 PDF</button>
+    <button class="pbtn gh" id="pvClose">关闭</button>
+  </div>
+  <div class="pv-tabs" id="pvTabs"></div>
+  <div class="pv-body" id="pvBody"></div>
+</div>
 <div id="mask"><div class="dlg" id="dlg"></div></div>
 
 <script>
@@ -345,6 +447,18 @@ function fmt(n, d){
 }
 const money = n => fmt(n, 2);
 const r2 = n => Math.round(n * 100) / 100;
+/* 截断字符串（用于卡片/图例/条形名称，避免溢出） */
+function trunc(s, n){
+  s = String(s == null ? '' : s);
+  if(n <= 0) return s;
+  let out = '', w = 0;
+  for(const ch of s){
+    const cw = /[㐀-鿿豈-﫿＀-￯]/.test(ch) ? 1 : (ch === ' ' ? 0.5 : 0.55);
+    if(w + cw > n) return out + '…';
+    out += ch; w += cw;
+  }
+  return out;
+}
 /* 数量：最多 4 位小数，去掉多余的 0 */
 function qf(n){
   if(n == null || isNaN(n)) return '';
@@ -547,19 +661,19 @@ function assignTree(rows){
   const stack = [], eps = 0.05;
   const rest = s => (s.length ? s[s.length - 1].remain : Infinity);
   rows.forEach(x => {
-    if(x.cat === '部'){
+    if(catCls(x.cat) === 'grp'){
       const a = num(x.total) != null ? num(x.total) : num(x.amount);
       while(stack.length && a != null && a > rest(stack) + eps) stack.pop();
       x._d = stack.length;
       if(stack.length && a != null) stack[stack.length - 1].remain = r2(stack[stack.length - 1].remain - a);
       stack.push({ x:x, remain:(a == null ? Infinity : a) });
-    } else if(x.cat === '项'){
+    } else if(catCls(x.cat) === 'leaf'){
       const a = num(x.total) != null ? num(x.total) : num(x.amount);
       if(a != null && stack.length) stack[stack.length - 1].remain = r2(stack[stack.length - 1].remain - a);
     }
   });
   /* 保险：层级最多 4 级（相对根） */
-  rows.forEach(x => { if(x.cat === '部' && x._d > 3) x._d = 3; });
+  rows.forEach(x => { if(catCls(x.cat) === 'grp' && x._d > 3) x._d = 3; });
 }
 const xhDepth = xh => {
   const s = String(xh == null ? '' : xh).trim();
@@ -573,6 +687,19 @@ const xhDepth = xh => {
    2. 各表 → 行数据
    ========================================================= */
 /* 分部分项：部 / 项 / 定 / 主 四类 */
+/* 类别 → 行类型：部=分部；项、补项=清单；定、借、借换、补子目=定额；主、设=主材 */
+function catCls(cat){
+  const x = String(cat == null ? '' : cat).trim();
+  if(!x) return '';
+  if(x === '部') return 'grp';
+  if(x === '项' || x.indexOf('补项') >= 0) return 'leaf';
+  if(x === '定' || x === '借' || x === '借换' || x.indexOf('补子目') >= 0) return 'sub';
+  if(x === '主' || x === '设') return 'mat';
+  if(/项$/.test(x)) return 'leaf';
+  if(/子目|定|借/.test(x)) return 'sub';
+  if(/主|设/.test(x)) return 'mat';
+  return '';
+}
 function rowsBill(t){
   const cm = colMap(t.head);
   const raw = [];
@@ -596,26 +723,27 @@ function rowsBill(t){
     });
   });
   /* 分部行：类别=部 */
-  const parts = raw.filter(x => x.cat === '部');
+  const parts = raw.filter(x => catCls(x.cat) === 'grp');
   parts.forEach(p => { p.amount = p.total != null ? p.total : p.amount; });
   assignTree(raw);
   const out = [];
   let curPartD = -1, curLeafD = -1, last = null, rootDone = false;
   raw.forEach(x => {
-    if(x.cat === '部'){
+    const kc = catCls(x.cat);
+    if(kc === 'grp'){
       curPartD = x._d == null ? 0 : x._d;
       curLeafD = -1;
       out.push({ _cls:'grp', _dep:curPartD, _kids:1, c:x });
     } else if(!x.cat && !rootDone && /整个项目|合计/.test(x.name)){
       rootDone = true;
       out.push({ _cls:'sum', _dep:0, _kids:1, c:x });
-    } else if(x.cat === '项'){
+    } else if(kc === 'leaf'){
       curLeafD = curPartD + 1;
       out.push({ _cls:'leaf', _dep:curLeafD, _kids:1, c:x });
       last = 'leaf';
-    } else if(x.cat === '定'){
+    } else if(kc === 'sub'){
       out.push({ _cls:'sub', _dep:(curLeafD < 0 ? 1 : curLeafD + 1), c:x });
-    } else if(x.cat === '主'){
+    } else if(kc === 'mat'){
       out.push({ _cls:'mat', _dep:(curLeafD < 0 ? 1 : curLeafD + 1), c:x });
     } else {
       out.push({ _cls:'', _dep:(curLeafD < 0 ? 0 : curLeafD), c:x });
@@ -745,7 +873,7 @@ function newDB(){
 let PROJ = [], PIDX = -1, DB = newDB();
 let TAB = 'analysis', PART = '', Q = '';
 const COLL = new Set();
-let CUR_COLS = [], CUR_ROWS = [], VIEW_ROWS = [];
+let CUR_COLS = [], CUR_ROWS = [], VIEW_ROWS = [], CUR_ARW = 0;
 /* 人材机排序：{k:列名, dir:1升序/-1降序}；k 为空表示不排序 */
 let SORT = { k:'', dir:1 };
 
@@ -838,6 +966,12 @@ const FEE_COLS = [
    ========================================================= */
 function cellTxt(col, v, row){
   if(v == null || v === '') return '';
+  /* 其他项目：不可竞争费 / 不计入合价 是布尔标记，true→是、false→留空（不显示难看的 false） */
+  if(col.k === 'nocomp' || col.k === 'notot'){
+    const s = String(v).trim().toLowerCase();
+    if(s === 'false' || s === '0') return '';
+    if(s === 'true' || s === '1') return '是';
+  }
   if(col.t === 'n'){
     const n = num(v);
     if(n == null) return '';
@@ -849,7 +983,7 @@ function cellTxt(col, v, row){
 }
 /* 分部分项层级视图：各层级默认显示的列 */
 const LVL_KEYS  = ['code','cat','name','feat','spec','unit','qty','up','total'];
-const QUOTA_KEYS= ['code','cat','name','spec','unit','expr','hl','qty','price','amount','up','total'];
+const QUOTA_KEYS= ['code','cat','name','feat','spec','unit','expr','hl','qty','price','amount','up','total'];
 const LVL_TABS = [
   { k:'',      l:'全部' }, { k:'1', l:'一级' }, { k:'2', l:'二级' }, { k:'3', l:'三级' },
   { k:'4', l:'四级' }, { k:'leaf', l:'清单' }, { k:'quota', l:'定额' }
@@ -865,12 +999,23 @@ let GSET = { colw:{}, rowh:{}, cols:{} };
 function loadGS(){
   try{
     const s = localStorage.getItem(GSKEY);
-    if(s){ const o = JSON.parse(s); if(o && typeof o === 'object') GSET = Object.assign({ colw:{}, rowh:{}, cols:{} }, o); }
+    if(s){ const o = JSON.parse(s); if(o && typeof o === 'object') GSET = Object.assign({ colw:{}, rowh:{}, cols:{} }, o); delete GSET.specx; }
+    /* 分部分项的默认列改版过（一级~清单=简版列 / 全部·定额=完整列）：
+       清掉旧的「显示列」记忆，免得新规则被旧设置盖住（列宽不受影响） */
+    if(GSET.bv !== 2){
+      ['cols', 'xoff', 'xin'].forEach(g => {
+        if(!GSET[g]) return;
+        Object.keys(GSET[g]).forEach(k => { if(k.indexOf('bill|') === 0) delete GSET[g][k]; });
+      });
+      GSET.bv = 2; saveGS();
+    }
   }catch(e){}
 }
 function saveGS(){ try{ localStorage.setItem(GSKEY, JSON.stringify(GSET)); }catch(e){} }
-/* 表格命名空间：分部分项按层级分别记忆，其余按 Tab */
-const tblNS = () => (TAB === 'bill' ? 'bill|' + curLvl() : TAB);
+/* 表格命名空间：分部分项按层级分别记忆，其余按 Tab
+   清单层级里手动展开了定额 → 用 bill|leaf+（列单独记一套） */
+const billNS = () => ('bill|' + curLvl() + (leafOpen() ? '+' : ''));
+const tblNS = () => (TAB === 'bill' ? billNS() : TAB);
 /* 列宽（无自定义则取默认） */
 const colW = (ns, c) => { const m = GSET.colw[ns]; return (m && m[c.k] != null) ? m[c.k] : c.w; };
 const rowH = ns => (GSET.rowh[ns] || 24);
@@ -882,7 +1027,7 @@ function gCols(ns, all, defKeys){
   return r.length ? r : all;
 }
 
-function rowsHtml(rows, cols){
+function rowsHtml(rows, cols, arwOn){
   return rows.map((r, j) => {
     let s = '<tr class="' + (r._cls || '') + (r._lv ? ' lvd' + r._lv : '') + (r._hid ? ' hid' : '') + '" data-i="' + j + '">';
     cols.forEach(c => {
@@ -890,10 +1035,18 @@ function rowsHtml(rows, cols){
       const cls = (c.t === 'n' ? 't-r' : (c.c ? 't-c' : '')) + (c.amt ? ' amt' : '') +
         (c.tree && !c.ni ? ' dep' + Math.min(r._dep || 0, 5) : '') +
         (c.k === 'cat' ? ' cat' : (c.k === 'name' ? ' nm' : ''));
-      let txt = esc(nlMark(cellTxt(c, v, r)));
-      if(c.tree) txt = '<span class="arw" data-a="' + j + '">' + (r._kids ? '▶' : '') + '</span>' + txt;
       const raw = cellTxt(c, v, r);
-      s += '<td class="' + cls + '"' + (raw !== '' && (c.k === 'name' || c.k === 'feat' || c.k === 'spec' || c.k === 'base' || c.k === 'bdesc') ? ' title="' + esc(raw) + '"' : '') + '>' + txt + '</td>';
+      /* 项目特征里有换行符 → 真实多行显示（不再用 ↵ 拼成一行） */
+      const ml = c.k === 'feat' && /\n/.test(raw);
+      let txt = ml ? esc(raw) : esc(nlMark(raw));
+      if(c.tree){
+        const u = uid(r), cld = COLL.has(u);
+        /* 分部分项：分部 / 清单 / 定额三类行一律带箭头（哪怕当前视图里没有子行） */
+        const canA = r._kids || (arwOn && (r._cls === 'grp' || r._cls === 'leaf' || r._cls === 'sub'));
+        txt = '<span class="arw' + (cld ? ' on' : '') + '" data-a="' + u + '" title="' + (cld ? '已折叠，点开' : '点折叠') + '">' +
+        (canA ? (cld ? '▶' : '▼') : '') + '</span>' + txt;
+      }
+      s += '<td class="' + cls + (ml ? ' wl' : '') + '"' + (raw !== '' && (c.k === 'name' || c.k === 'feat' || c.k === 'spec' || c.k === 'base' || c.k === 'bdesc') ? ' title="' + esc(raw) + '"' : '') + '>' + txt + '</td>';
     });
     return s + '</tr>';
   }).join('');
@@ -904,13 +1057,13 @@ function grid(cols, rows, opt){
   const rh = rowH(ns);
   const totalW = cols.reduce((s, c) => s + colW(ns, c), 0);
   let h = '<div class="gt-card"' + (totalW ? ' style="min-width:' + totalW + 'px"' : '') + '>';
-  if(opt.title || opt.sub || opt.extra || opt.pk){
+  if(opt.title || opt.sub || opt.extra){
     h += '<div class="gt-head"><span class="tt">' + esc(opt.title || '') + '</span>' +
       (opt.sub ? '<span class="mini">' + esc(opt.sub) + '</span>' : '') + '<span class="sp"></span>' +
-      (opt.extra ? '<span class="mini">' + esc(opt.extra) + '</span>' : '') +
-      (opt.pk ? '<button class="pbtn sm" data-pk="' + opt.pk + '" title="把该表数据粘贴进来（会覆盖当前这张表）">粘贴数据</button>' : '') + '</div>';
+      (opt.extra ? '<span class="mini">' + esc(opt.extra) + '</span>' : '') + '</div>';
   }
-  h += '<div class="gt-wrap" id="gtw"><table class="gt" data-ns="' + esc(ns) + '" style="--rh:' + rh + 'px;min-width:' + totalW + 'px"><colgroup>' +
+  /* 宽度写死 = 各列之和：定宽布局下多余空间不会摊到其他列，拖某一列时别的列不动 */
+  h += '<div class="gt-wrap" id="gtw"><table class="gt" data-ns="' + esc(ns) + '" style="--rh:' + rh + 'px;min-width:' + totalW + 'px;width:' + totalW + 'px"><colgroup>' +
     cols.map(c => '<col data-k="' + c.k + '" style="width:' + colW(ns, c) + 'px">').join('') + '</colgroup><thead><tr>' +
     cols.map(c => {
       const on = opt.sort && SORT.k === c.k;
@@ -920,10 +1073,14 @@ function grid(cols, rows, opt){
         esc(c.l) + (on ? '<span class="ar">' + (SORT.dir > 0 ? '▲' : '▼') + '</span>' : '') +
         '<span class="rsz" data-r="' + c.k + '" title="拖动调整列宽"></span></th>';
     }).join('') + '</tr></thead><tbody>';
-  h += rowsHtml(rows, cols);
+  h += rowsHtml(rows, cols, opt.arw);
+  CUR_ARW = !!opt.arw;
   h += '</tbody></table></div></div>';
   return h;
 }
+/* 行唯一编号：折叠状态按「行」记，不按下标（切层级/筛选/搜索后仍然对得上） */
+let UIDX = 0;
+const uid = r => (r._uid != null ? r._uid : (r._uid = 'r' + (++UIDX)));
 /* 过滤 + 折叠 */
 function visible(rows, cols){
   const q = Q.trim().toLowerCase();
@@ -945,16 +1102,26 @@ function visible(rows, cols){
       }
     }
   }
+  /* 按当前行数组重建父子关系（层级视图 / 搜索过滤后也成立） */
+  const n = rows.length, dep = new Array(n), par = new Array(n), kids = new Array(n);
+  /* _edep：分部分项视图按「手动/自动层级」算出的有效深度，保证层级筛选后父子关系仍然正确 */
+  for(let i = 0; i < n; i++){ dep[i] = rows[i]._edep != null ? rows[i]._edep : (rows[i]._dep || 0); par[i] = -1; kids[i] = 0; uid(rows[i]); }
+  const st = [];
+  for(let i = 0; i < n; i++){
+    while(st.length && dep[st[st.length - 1]] >= dep[i]) st.pop();
+    par[i] = st.length ? st[st.length - 1] : -1;
+    st.push(i);
+  }
+  for(let i = 0; i < n; i++){ let p = par[i]; while(p >= 0){ kids[p] = 1; p = par[p]; } }
   const out = [];
-  let hid = -1;
-  rows.forEach((r, i) => {
-    if(!vis[i]){ out.push(Object.assign({}, r, { _hid:1 })); return; }
-    if(hid >= 0 && (r._dep || 0) <= hid) hid = -1;
-    const o = Object.assign({}, r);
-    if(hid >= 0) o._hid = 1;
+  for(let i = 0; i < n; i++){
+    const o = Object.assign({}, rows[i]);
+    o._kids = kids[i] ? 1 : 0;
+    if(!vis[i]){ o._hid = 1; out.push(o); continue; }
+    let p = par[i];
+    while(p >= 0){ if(COLL.has(uid(rows[p]))){ o._hid = 1; break; } p = par[p]; }
     out.push(o);
-    if(o._kids && COLL.has(i) && hid < 0) hid = r._dep || 0;
-  });
+  }
   return out;
 }
 
@@ -986,6 +1153,26 @@ function donut(items, size){
     '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="var(--txt2)">合计</text>' +
     '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--pri)">' + money(items.reduce((s, x) => s + x.v, 0)) + '</text></svg>';
 }
+/* 同款环形图，但输出独立 SVG（带 xmlns、显式颜色），供 PDF 里当图片绘制 */
+function svgDonut(items, size){
+  size = size || 132;
+  const total = items.reduce((s, x) => s + Math.abs(x.v), 0) || 1;
+  const R = size / 2, r = R * 0.6, cx = R, cy = R;
+  let a = -Math.PI / 2, paths = '';
+  items.forEach((x, i) => {
+    if(!x.v) return;
+    const ang = Math.abs(x.v) / total * Math.PI * 2;
+    const a2 = a + ang;
+    const big = ang > Math.PI ? 1 : 0;
+    const p = (rr, aa) => (cx + rr * Math.cos(aa)).toFixed(2) + ',' + (cy + rr * Math.sin(aa)).toFixed(2);
+    paths += '<path d="M' + p(R, a) + ' A' + R + ',' + R + ' 0 ' + big + ' 1 ' + p(R, a2) +
+      ' L' + p(r, a2) + ' A' + r + ',' + r + ' 0 ' + big + ' 0 ' + p(r, a) + ' Z" fill="' + PAL[i % PAL.length] + '"><title>' + esc(x.n) + ' ' + money(x.v) + '</title></path>';
+    a = a2;
+  });
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">' + paths +
+    '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="10" fill="#5a6675">合计</text>' +
+    '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#1f3a5f">' + money(items.reduce((s, x) => s + x.v, 0)) + '</text></svg>';
+}
 const legend = items => '<div style="display:flex;flex-direction:column;gap:3px">' + items.map((x, i) =>
   '<div class="lg"><i style="background:' + PAL[i % PAL.length] + '"></i><span class="n" title="' + esc(x.n) + '">' + esc(x.n) + '</span>' +
   '<span class="v">' + money(x.v) + '</span><span class="p">' + fmt(x.p, 1) + '%</span></div>').join('') + '</div>';
@@ -994,78 +1181,58 @@ const barList = (items, w) => items.map((x, i) =>
   '<span class="b"><i style="width:' + (x.p || 0).toFixed(1) + '%;background:' + PAL[i % PAL.length] + '"></i></span>' +
   '<span class="v">' + money(x.v) + '</span><span class="p">' + fmt(x.p, 1) + '%</span></div>').join('');
 
-function vAnalysis(){
-  if(!DB.analysis.length && !DB.fee.length && !DB.bill.length) return emptyPaste('analysis');
+/* 造价分析结构化数据：预览（HTML）与 PDF（canvas）共用，保证两边一致 */
+function analysisModel(){
   const total = anVal('工程总造价(小写)') != null ? anVal('工程总造价(小写)') : feeVal('7');
   const upper = anRaw('工程总造价(大写)') || (total != null ? rmbUpper(total) : '');
-  const per = anVal('单方造价');
   const A = anVal('分部分项工程费') != null ? anVal('分部分项工程费') : feeVal('1');
   const B = anVal('措施项目费') != null ? anVal('措施项目费') : feeVal('2');
   const Cc = anVal('其他项目费') != null ? anVal('其他项目费') : feeVal('3');
   const D = anVal('规费') != null ? anVal('规费') : feeVal('4');
   const F = anVal('增值税') != null ? anVal('增值税') : feeVal('6');
   const E = feeVal('5') != null ? feeVal('5') : (total != null && F != null ? r2(total - F) : null);
-  /* 单方造价：随建筑面积实时算 */
   const area = num(DB.area);
   const perCalc = (area && area > 0 && total != null) ? r2(total / area) : null;
-  let h = '<div style="max-width:1120px;margin:0 auto">';
-  h += '<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="pbtn sm" data-pk="analysis">粘贴数据</button></div>';
-  /* 卡片 */
-  h += '<div class="cards">' +
-    '<div class="card"><div class="k">工程总造价（小写）</div><div class="v">' + (total == null ? '—' : money(total)) + '</div><div class="s">元</div></div>' +
-    '<div class="card"><div class="k">工程总造价（大写）</div><div class="v" style="font-size:13px;line-height:1.6">' + esc(upper || '—') + '</div><div class="s">' + esc(anRaw('工程总造价(大写)') ? '来自造价分析表' : '自动生成') + '</div></div>' +
-    '<div class="card" data-act="area" title="右键设置建筑面积"><div class="k">单方造价</div><div class="v" style="' + (perCalc == null ? 'font-size:13px;color:var(--txt3);font-weight:600' : '') + '">' +
-      (perCalc != null ? money(perCalc) : '请输入面积') + '</div>' +
-      '<div class="s">' + (area ? '元/m² · 建筑面积 ' + fmt(area, 2) + ' m²' : '元/m² · 右键输入面积') + '</div></div>' +
-    '<div class="card"><div class="k">不含税工程造价</div><div class="v">' + (E == null ? '—' : money(E)) + '</div><div class="s">元</div></div>' +
-    '<div class="card"><div class="k">增值税</div><div class="v">' + (F == null ? '—' : money(F)) + '</div><div class="s">税率 ' + (E ? fmt(F / E * 100, 2) : '—') + '%</div></div>' +
-    '</div>';
-  /* 造价构成 */
+  const cards = [
+    { k:'工程总造价（小写）', v: total == null ? '—' : money(total), s:'元' },
+    { k:'工程总造价（大写）', v: upper || '—', s: anRaw('工程总造价(大写)') ? '来自造价分析表' : '自动生成', big:true },
+    { k:'单方造价', v: perCalc != null ? money(perCalc) : '请输入面积', s: area ? '元/m² · 建筑面积 ' + fmt(area, 2) + ' m²' : '元/m² · 右键输入面积', dim: perCalc == null },
+    { k:'不含税工程造价', v: E == null ? '—' : money(E), s:'元' },
+    { k:'增值税', v: F == null ? '—' : money(F), s:'税率 ' + (E ? fmt(F / E * 100, 2) : '—') + '%' }
+  ];
   const comp = [
     { n:'分部分项工程费', v:A || 0 }, { n:'措施项目费', v:B || 0 }, { n:'其他项目费', v:Cc || 0 },
     { n:'规费', v:D || 0 }, { n:'增值税', v:F || 0 }
   ].filter(x => x.v);
   const ct = comp.reduce((s, x) => s + x.v, 0) || 1;
   comp.forEach(x => x.p = x.v / ct * 100);
-  if(comp.length){
-    h += '<div class="blk"><h3>工程造价构成</h3><div class="bd flexr">' + donut(comp) + legend(comp) + '</div></div>';
-  }
-  /* 费用性质构成 */
   const nat = [
     { n:'人工费', v:anVal('其中:人工费') || 0 }, { n:'材料费', v:anVal('材料费') || 0 },
     { n:'机械费', v:anVal('机械费') || 0 }, { n:'主材费', v:anVal('主材费') || 0 },
     { n:'设备费', v:anVal('设备费') || 0 }, { n:'管理费', v:anVal('管理费') || 0 },
     { n:'利润', v:anVal('利润') || 0 }
   ];
-  const nsum = nat.reduce((s, x) => s + x.v, 0);
-  if(nsum){
-    nat.forEach(x => x.p = x.v / nsum * 100);
-    h += '<div class="blk"><h3>分部分项费用性质构成（人工 / 材料 / 机械 / 主材 / 管理费 / 利润）</h3><div class="bd flexr">' +
-      donut(nat) + legend(nat) + '</div>' +
-      '<div class="mini" style="padding:0 10px 10px;color:var(--txt2)">合计 ' + money(r2(nsum)) + ' 元' +
-      (A ? '（分部分项工程费 ' + money(A) + ' 元）' : '') + '</div></div>';
-  }
-  /* 分部构成（按层级：右键切换显示到一级~四级） */
+  const natSum = nat.reduce((s, x) => s + x.v, 0);
+  if(natSum) nat.forEach(x => x.p = x.v / natSum * 100);
   const plv = Math.min(Math.max(DB.partShow || 1, 1), billMaxLv());
   const pItems = partStat(plv);
+  let partSum = 0;
   if(pItems.length){
-    const s2 = pItems.reduce((s, x) => s + x.v, 0) || 1;
-    pItems.forEach(x => x.p = x.v / s2 * 100);
+    partSum = pItems.reduce((s, x) => s + x.v, 0) || 1;
+    pItems.forEach(x => x.p = x.v / partSum * 100);
     pItems.sort((a, b) => b.v - a.v);
-    h += '<div class="blk" data-plv="1"><h3>分部分项构成（按' + ['', '一级', '二级', '三级', '四级'][plv] + '分部 · 共 ' + pItems.length +
-      ' 个，合计 ' + money(r2(s2)) + ' 元 · 右键切换层级）</h3><div class="bd">' + barList(pItems, 190) + '</div></div>';
   }
-  /* 清单 TOPn */
   const tn = (DB.topn && DB.topn.qd) || 10;
   const qd = DB.bill.filter(r => r._cls === 'leaf' && num(r.c.total) != null)
     .map(r => ({ n:String(r.c.name || ''), v:num(r.c.total) })).sort((a, b) => b.v - a.v);
+  let qdSum = 0;
+  const qdTop = [];
   if(qd.length){
-    const top = qd.slice(0, tn), s2 = qd.reduce((s, x) => s + x.v, 0) || 1;
-    top.forEach(x => x.p = x.v / s2 * 100);
-    h += '<div class="blk" data-top="qd"><h3>清单综合合价 TOP<span class="n">' + tn + '</span><span class="n">（右键改数量 · 共 ' + qd.length + ' 条清单，合计 ' + money(r2(s2)) + ' 元）</span></h3><div class="bd">' + barList(top, 150) + '</div></div>';
+    const top = qd.slice(0, tn); qdSum = qd.reduce((s, x) => s + x.v, 0) || 1;
+    top.forEach(x => { x.p = x.v / qdSum * 100; qdTop.push(x); });
   }
-  /* 人材机金额 TOP：人工 / 材料 / 机械 分别设置数量 */
   const RK = [['lb', '人工', 'labor'], ['mt', '材料', 'material'], ['mc', '机械', 'machine']];
+  const resGroups = [];
   RK.forEach(g => {
     const n = (DB.topn && DB.topn[g[0]]) || 5;
     const ms = DB.res.filter(r => r._rk === g[2])
@@ -1074,9 +1241,47 @@ function vAnalysis(){
     if(!ms.length) return;
     const top = ms.slice(0, n), s2 = ms.reduce((s, x) => s + x.v, 0) || 1;
     top.forEach(x => x.p = x.v / s2 * 100);
-    h += '<div class="blk" data-top="' + g[0] + '"><h3>' + g[1] + '费金额 TOP<span class="n">' + n +
-      '</span><span class="n">（右键改数量 · 共 ' + ms.length + ' 项，合计 ' + money(r2(s2)) + ' 元）</span></h3>' +
-      '<div class="bd">' + barList(top, 170) + '</div></div>';
+    resGroups.push({ key:g[0], label:g[1], n, top, count:ms.length, sum:r2(s2) });
+  });
+  return { total, upper, perCalc, area, E, F, A, cards, comp,
+    nat:natSum ? nat : [], natSum:natSum ? r2(natSum) : 0,
+    plv, pItems, partCount:pItems.length, partSum:r2(partSum),
+    tn, qdTop, qdCount:qd.length, qdSum:r2(qdSum), resGroups };
+}
+function vAnalysis(){
+  if(!DB.analysis.length && !DB.fee.length && !DB.bill.length) return emptyPaste('analysis');
+  const m = analysisModel();
+  let h = '<div style="max-width:1120px;margin:0 auto">';
+  /* 卡片 */
+  h += '<div class="cards">' + m.cards.map(c =>
+    '<div class="card"' + (c.k === '单方造价' ? ' data-act="area"' : '') + '><div class="k">' + esc(c.k) + '</div><div class="v"' +
+    (c.big ? ' style="font-size:13px;line-height:1.6"' : '') + (c.dim ? ' style="font-size:13px;color:var(--txt3);font-weight:600"' : '') + '>' +
+    esc(c.v) + '</div><div class="s">' + esc(c.s) + '</div></div>').join('') + '</div>';
+  /* 造价构成 */
+  if(m.comp.length){
+    h += '<div class="blk"><h3>工程造价构成</h3><div class="bd flexr">' + donut(m.comp) + legend(m.comp) + '</div></div>';
+  }
+  /* 费用性质构成 */
+  if(m.nat.length){
+    h += '<div class="blk"><h3>分部分项费用性质构成（人工 / 材料 / 机械 / 主材 / 管理费 / 利润）</h3><div class="bd flexr">' +
+      donut(m.nat) + legend(m.nat) + '</div>' +
+      '<div class="mini" style="padding:0 10px 10px;color:var(--txt2)">合计 ' + money(m.natSum) + ' 元' +
+      (m.A ? '（分部分项工程费 ' + money(m.A) + ' 元）' : '') + '</div></div>';
+  }
+  /* 分部构成 */
+  if(m.pItems.length){
+    h += '<div class="blk" data-plv="1"><h3>分部分项构成（按' + ['', '一级', '二级', '三级', '四级'][m.plv] + '分部 · 共 ' + m.partCount +
+      ' 个，合计 ' + money(m.partSum) + ' 元 · 右键切换层级）</h3><div class="bd">' + barList(m.pItems, 190) + '</div></div>';
+  }
+  /* 清单 TOPn */
+  if(m.qdTop.length){
+    h += '<div class="blk" data-top="qd"><h3>清单综合合价 TOP<span class="n">' + m.tn + '</span><span class="n">（右键改数量 · 共 ' + m.qdCount + ' 条清单，合计 ' + money(m.qdSum) + ' 元）</span></h3><div class="bd">' + barList(m.qdTop, 150) + '</div></div>';
+  }
+  /* 人材机金额 TOP */
+  m.resGroups.forEach(g => {
+    h += '<div class="blk" data-top="' + g.key + '"><h3>' + g.label + '费金额 TOP<span class="n">' + g.n +
+      '</span><span class="n">（右键改数量 · 共 ' + g.count + ' 项，合计 ' + money(g.sum) + ' 元）</span></h3>' +
+      '<div class="bd">' + barList(g.top, 170) + '</div></div>';
   });
   return h + '</div>';
 }
@@ -1084,7 +1289,7 @@ function vAnalysis(){
 function kvTable(rows, title, sub, pk){
   let h = '<div class="gt-card" style="max-width:820px"><div class="gt-head"><span class="tt">' + esc(title) + '</span>' +
     (sub ? '<span class="mini">' + esc(sub) + '</span>' : '') + '<span class="sp"></span>' +
-    (pk ? '<button class="pbtn sm" data-pk="' + pk + '">粘贴数据</button>' : '') + '</div><div class="gt-wrap">' +
+    '</div><div class="gt-wrap">' +
     '<table class="gt kv"><colgroup><col style="width:210px"><col></colgroup><tbody>';
   rows.forEach(r => {
     h += '<tr><td class="kn">' + esc(r.k) + '</td><td class="vv">' + (r.h || esc(r.v || '')) + '</td></tr>';
@@ -1129,13 +1334,56 @@ function partPath(r){
   return st.slice(0, L - 1).join(' › ') + ' › ' + nm;
 }
 /* 当前层级视图的列（表头右键自定义，按层级分别记忆，全局生效） */
-function billCols(){
-  const L = curLvl();
-  return gCols('bill|' + L, BILL_COLS, L === 'quota' ? QUOTA_KEYS : LVL_KEYS);
+/* 列显示覆盖：xoff[ns] = 用户在该视图主动隐藏的列（默认不隐藏任何列） */
+const xarr = (o, ns) => ((o && o[ns]) ? o[ns] : []);
+const colOff = (ns, k) => xarr(GSET.xoff, ns).indexOf(k) >= 0;
+function setColFlag(which, ns, k, on){
+  const key = which === 'off' ? 'xoff' : 'xin';
+  if(!GSET[key]) GSET[key] = {};
+  let a = (GSET[key][ns] || []).slice(), i = a.indexOf(k);
+  if(on && i < 0) a.push(k);
+  if(!on && i >= 0) a.splice(i, 1);
+  if(a.length) GSET[key][ns] = a; else delete GSET[key][ns];
+  saveGS();
 }
+/* 分部分项某层级视图实际显示的列
+   一级/二级/三级/四级/清单 → 简版列；全部 / 定额 / 清单里展开了定额 → 完整列 */
+function billColsOf(ns){
+  let L = ns.indexOf('|') >= 0 ? ns.slice(ns.indexOf('|') + 1) : ns;
+  const exp = L.slice(-1) === '+';                 /* 清单层级里手动展开了定额 */
+  if(exp) L = L.slice(0, -1);
+  const wide = (L === 'quota' || L === '' || exp);
+  let cols = gCols(ns, BILL_COLS, wide ? QUOTA_KEYS : LVL_KEYS);
+  /* 完整列视图强制带上「项目特征」（表头右键可取消） */
+  if(wide && !cols.some(c => c.k === 'feat') && !colOff(ns, 'feat')){
+    const i = cols.findIndex(c => c.k === 'spec');
+    cols.splice(i >= 0 ? i : Math.min(3, cols.length), 0, BILL_COLS.find(c => c.k === 'feat'));
+  }
+  const off = xarr(GSET.xoff, ns);
+  if(off.length) cols = cols.filter(c => off.indexOf(c.k) < 0);
+  return cols;
+}
+function billCols(){ return billColsOf(billNS()); }
 /* 当前生效层级（顶部层级按钮） */
 function curLvl(){
   return LVL;
+}
+/* 切层级：进「清单」层级时把所有清单行先收起来（要看定额就点清单行的箭头展开） */
+function setLvl(v){
+  LVL = v;
+  if(v === 'leaf'){
+    COLL.clear();
+    DB.bill.forEach(r => { if(r._cls === 'leaf') COLL.add(uid(r)); });
+  }
+}
+/* 清单层级里是否有清单行被手动展开（展开了就按「定额」那套列显示） */
+function leafOpen(){
+  if(curLvl() !== 'leaf') return false;
+  for(let i = 0; i < DB.bill.length; i++){
+    const r = DB.bill[i];
+    if(r._cls === 'leaf' && !COLL.has(uid(r))) return true;
+  }
+  return false;
 }
 const lvlName = k => ((LVL_TABS.find(t => t.k === k) || {}).l || '全部');
 /* 取某节点的子树行（含自身） */
@@ -1151,7 +1399,8 @@ function subRows(i){
 }
 /* 行过滤：先取目录选中范围，再按层级过滤
    一级=仅一级分部；二级=一级+二级；三级=一+二+三；四级=一+二+三+四
-   清单=分部行+清单行；定额=分部行+清单行+定额行+主材行 */
+   清单=分部行+清单行（清单行默认收起，点它的箭头才展开下面的定额+主材）
+   定额=分部行+清单行+定额行+主材行 */
 function billRows(){
   const lv = curLvl();
   const pool = (SEL >= 0 && DB.bill[SEL]) ? subRows(SEL) : DB.bill;
@@ -1160,7 +1409,17 @@ function billRows(){
     const max = +lv;
     return pool.filter(r => r._cls === 'grp' && partLevel(r) <= max);
   }
-  if(lv === 'leaf')  return pool.filter(r => r._cls === 'grp' || r._cls === 'leaf');
+  if(lv === 'leaf'){
+    const out = [];
+    let open = false;                                /* 最近一个清单行是否被展开 */
+    pool.forEach(r => {
+      if(r._cls === 'grp'){ out.push(r); return; }
+      if(r._cls === 'leaf'){ out.push(r); open = !COLL.has(uid(r)); return; }
+      if(r._cls === 'sub' || r._cls === 'mat'){ if(open) out.push(r); return; }
+      out.push(r);
+    });
+    return out;
+  }
   if(lv === 'quota') return pool.filter(r => r._cls === 'grp' || r._cls === 'leaf' ||
                                              r._cls === 'sub'  || r._cls === 'mat');
   return pool;
@@ -1172,16 +1431,22 @@ function billTree(){
   let h = '<div class="billtree"><div class="th"><span>分部目录</span>' +
     '<span style="display:inline-flex;gap:3px">' + [1, 2, 3, 4].map(n =>
       '<i class="lgdot" style="background:var(--lvc' + n + ')" title="第' + n + '级分部的颜色"></i>').join('') + '</span>' +
-    '<span class="sp"></span><span class="mini">' + maxLv + ' 级 · 右键设层级</span></div><div class="tl">';
+    '<span class="sp"></span></div><div class="tl">';
+  let hideLv = 99;   /* 正在折叠的层级：比它深的分部都收起 */
   rows.forEach((r, i) => {
     if(r._cls !== 'grp' && r._cls !== 'sum') return;
     const L = r._cls === 'sum' ? 0 : partLevel(r);
+    if(L > hideLv) return;                     /* 在折叠的子树里：不显示 */
+    hideLv = 99;
+    const cld = COLL.has(uid(r));
     const amt = num(r.c.total) != null ? num(r.c.total) : num(r.c.amount);
     const man = r._cls === 'grp' && partManual(r);
     h += '<div class="tn' + (r._cls === 'sum' ? ' root' : (man ? ' man' : '') + ' lv' + L) + (SEL === i ? ' on' : '') + '" data-t="' + i + '" style="padding-left:' +
-      (6 + Math.max(0, L - 1) * 15) + 'px" title="' + esc(r.c.name || '') + (r._cls === 'grp' ? '（第 ' + L + ' 级分部 · 右键设置层级）' : '') + '">' +
+      (6 + Math.max(0, L - 1) * 15) + 'px" title="' + esc(r.c.name || '') + (r._cls === 'grp' ? '（第 ' + L + ' 级分部 · 右键设层级）' : '') + '">' +
+      '<span class="ta' + (cld ? ' on' : '') + '" data-ta="' + i + '" title="' + (cld ? '已折叠，点开' : '点折叠') + '">' + (cld ? '▶' : '▼') + '</span>' +
       '<span class="tx">' + esc(String(r.c.name || '')) + '</span>' +
       (amt != null ? '<span class="amt">' + money(amt) + '</span>' : '') + '</div>';
+    if(cld) hideLv = L;
   });
   return h + '</div></div>';
 }
@@ -1200,6 +1465,18 @@ function vBill(){
     '</div>';
   const rows = billRows();
   rows.forEach(r => { if(r._cls === 'grp') r._lv = partLevel(r); else r._lv = 0; });
+  /* 有效深度：分部用（手动/自动）层级，清单/定额/主材挂到最近分部下——
+     这样手动改过层级后，层级筛选视图里的折叠/展开依然按真实父子关系工作。
+     主材挂在其上一级「定额」下面 → 定额行的箭头可以收起/展开主材 */
+  let curD = 0, hasSub = false;
+  rows.forEach(r => {
+    if(r._cls === 'sum'){ r._edep = 0; hasSub = false; }
+    else if(r._cls === 'grp'){ curD = r._lv || r._dep || 1; r._edep = curD; hasSub = false; }
+    else if(r._cls === 'leaf'){ r._edep = curD + 1; hasSub = false; }
+    else if(r._cls === 'sub'){ r._edep = curD + 2; hasSub = true; }
+    else if(r._cls === 'mat'){ r._edep = hasSub ? curD + 3 : curD + 2; }
+    else r._edep = curD + 1;
+  });
   CUR_COLS = cols; VIEW_ROWS = rows;
   CUR_ROWS = visible(rows, cols);
   const nq = rows.filter(r => r._cls === 'leaf').length;
@@ -1210,7 +1487,7 @@ function vBill(){
   if(A != null) sub = '分部分项工程费 ' + money(A) + ' · ' + sub;
   return '<div id="pane-inner" class="fullh"><div class="billwrap">' + billTree() +
     '<div class="billmain">' + bar +
-    grid(cols, CUR_ROWS, { full:1, ns:'bill|' + lv, pk:'bill', title:'分部分项工程清单', sub:sub, extra:CUR_ROWS.length + ' 行' }) +
+    grid(cols, CUR_ROWS, { full:1, ns:billNS(), arw:1, title:'分部分项工程清单', sub:sub, extra:CUR_ROWS.length + ' 行' }) +
     '</div></div></div>';
 }
 function vMeasure(){
@@ -1219,7 +1496,7 @@ function vMeasure(){
   CUR_COLS = cols; VIEW_ROWS = DB.measure;
   CUR_ROWS = visible(DB.measure, cols);
   const B = anVal('措施项目费') != null ? anVal('措施项目费') : feeVal('2');
-  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, pk:'measure', ns:'measure',
+  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, ns:'measure',
     title:'措施项目清单与计价表', sub:(B != null ? '措施项目费 ' + money(B) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
 }
 function vOther(){
@@ -1228,7 +1505,7 @@ function vOther(){
   CUR_COLS = cols; VIEW_ROWS = DB.other;
   CUR_ROWS = visible(DB.other, cols);
   const c = anVal('其他项目费') != null ? anVal('其他项目费') : feeVal('3');
-  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, pk:'other', ns:'other',
+  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, ns:'other',
     title:'其他项目清单与计价汇总表', sub:(c != null ? '其他项目费 ' + money(c) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
 }
 let RES_CUR = 'all';
@@ -1256,7 +1533,7 @@ function vRes(){
   const sum = rows.reduce((s, r) => s + (num(r.c.amount) || 0), 0);
   CUR_COLS = cols; VIEW_ROWS = rows;
   CUR_ROWS = visible(rows, cols);
-  return '<div id="pane-inner" class="fullh">' + bar + grid(cols, CUR_ROWS, { full:1, pk:'res', sort:1, ns:'res',
+  return '<div id="pane-inner" class="fullh">' + bar + grid(cols, CUR_ROWS, { full:1, sort:1, ns:'res',
     title:'人材机汇总 · ' + (RES_CATS.find(g => g.k === RES_CUR) || {}).l,
     sub:'市场价合计 ' + money(r2(sum)) + ' 元', extra:CUR_ROWS.length + ' 行' }) + '</div>';
 }
@@ -1266,7 +1543,7 @@ function vFee(){
   CUR_COLS = cols; VIEW_ROWS = DB.fee;
   CUR_ROWS = visible(DB.fee, cols);
   const g = feeVal('7');
-  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, pk:'fee', ns:'fee',
+  return '<div id="pane-inner" class="fullh">' + grid(cols, CUR_ROWS, { full:1, ns:'fee',
     title:'单位工程招标控制价汇总表', sub:(g != null ? '含税工程造价 ' + money(g) : ''), extra:CUR_ROWS.length + ' 行' }) + '</div>';
 }
 
@@ -1336,7 +1613,12 @@ function render(){
   renderStatus(title);
   const qc = $('#qClear');
   if(qc) qc.classList.toggle('on', !!Q);
+  /* 当前项目已有数据 → 工具栏不再显示「粘贴数据」（重贴走右键项目「向该项目粘贴数据」） */
+  const anyData = TABS.some(t => (DB[t.k] || []).length);
+  const bi = $('#bImp');
+  if(bi) bi.style.display = anyData ? 'none' : '';
   bindPane();
+  bindPanels();
 }
 function renderStatus(title){
   const t = anVal('工程总造价(小写)') != null ? anVal('工程总造价(小写)') : feeVal('7');
@@ -1348,34 +1630,56 @@ function renderStatus(title){
     '<span>清单 <b>' + DB.bill.filter(r => r._cls === 'leaf').length + '</b></span>' +
     '<span>定额 <b>' + DB.bill.filter(r => r._cls === 'sub').length + '</b></span>' +
     '<span>主材 <b>' + DB.bill.filter(r => r._cls === 'mat').length + '</b></span>' +
-    '<span>人材机 <b>' + cnt('res') + '</b></span>' +
-    '<span style="margin-left:auto;opacity:.75">项目名：左键切换 · 长按拖动排序 · 右键菜单　|　表头：左键排序 · 右键列/行高 · 拖右侧调列宽</span>';
+    '<span>人材机 <b>' + cnt('res') + '</b></span>';
 }
 function bindPane(){
   $$('#tabs .tab').forEach(b => b.onclick = () => { TAB = b.dataset.t; PART = ''; SEL = -1; COLL.clear(); SORT = { k:'', dir:1 }; render(); });
   $$('#pane .arw').forEach(a => a.onclick = e => {
     e.stopPropagation();
-    const i = +a.dataset.a;
-    if(COLL.has(i)) COLL.delete(i); else COLL.add(i);
+    const u = a.dataset.a;
+    if(!u) return;
+    if(COLL.has(u)) COLL.delete(u); else COLL.add(u);
+    /* 清单层级里展开/收起定额：列会在「简版列 ↔ 完整列」之间切换 → 整页重画 */
+    if(TAB === 'bill' && curLvl() === 'leaf'){ render(); return; }
     const rows = VIEW_ROWS.length ? VIEW_ROWS : CUR_ROWS;
     CUR_ROWS = visible(rows, CUR_COLS);
     const tb = $('#pane table.gt tbody');
-    if(tb){ tb.innerHTML = rowsHtml(CUR_ROWS, CUR_COLS); bindPane(); }
+    if(tb){ tb.innerHTML = rowsHtml(CUR_ROWS, CUR_COLS, CUR_ARW); bindPane(); }
   });
   /* 分部分项：层级按钮（层级优先，点目录不清除层级） */
   $$('#pane .pc[data-l]').forEach(b => b.onclick = () => {
     const v = b.dataset.l;
-    if(v === '__sel'){ SEL = -1; COLL.clear(); render(); return; }
-    LVL = v;
-    COLL.clear(); render();
+    if(v === '__sel'){ SEL = -1; COLL.clear(); if(curLvl() === 'leaf') setLvl('leaf'); render(); return; }
+    setLvl(v);
+    COLL.clear(); if(v === 'leaf') setLvl('leaf'); render();
   });
   $$('#pane .tn[data-t]').forEach(b => b.onclick = () => {
     const i = +b.dataset.t;
-    SEL = (SEL === i ? -1 : i); COLL.clear(); render();           /* 保留 LVL，层级优先 */
+    SEL = (SEL === i ? -1 : i); COLL.clear();
+    if(curLvl() === 'leaf') setLvl('leaf');                          /* 清单层级：清单行仍然默认收起 */
+    render();                                                        /* 保留 LVL，层级优先 */
   });
   $$('#pane .tn[data-t]').forEach(b => b.oncontextmenu = e => {
     e.preventDefault();
-    openPartLv(+b.dataset.t);
+    partNodeMenu(e.clientX, e.clientY, +b.dataset.t);
+  });
+  /* 目录节点的折叠箭头：与清单表共用折叠状态 */
+  $$('#pane .tn .ta').forEach(a => a.onclick = e => {
+    e.stopPropagation();
+    const i = +a.dataset.ta, r = DB.bill[i];
+    if(!r) return;
+    const u = uid(r);
+    if(COLL.has(u)) COLL.delete(u); else COLL.add(u);
+    render();
+  });
+  /* 清单里右键分部行：与左侧目录一样弹菜单（鼠标位置） */
+  if(TAB === 'bill') $$('#pane table.gt tbody tr.grp').forEach(tr => tr.oncontextmenu = e => {
+    e.preventDefault();
+    const r = CUR_ROWS[+tr.dataset.i];
+    if(!r || r._cls !== 'grp') return;
+    let idx = -1;
+    DB.bill.forEach((x, j) => { if(idx < 0 && (x === r || (x._uid && x._uid === r._uid))) idx = j; });
+    partNodeMenu(e.clientX, e.clientY, idx);
   });
   /* 目录树空白区右键：批量设置层级 */
   const tl = $('#pane .billtree .tl');
@@ -1424,24 +1728,43 @@ function bindPane(){
   $$('#pane .blk[data-plv] h3').forEach(hh => {
     hh.oncontextmenu = e => { e.preventDefault(); partMenu(e.clientX, e.clientY); };
   });
-  /* 表格标题栏「粘贴数据」按钮 */
-  $$('#pane button[data-pk]').forEach(b => b.onclick = () => openPasteBox(b.dataset.pk));
   /* 页面内粘贴区（空数据时直接嵌在页面上） */
   $$('#pane .pzone').forEach(z => {
     const kind = z.dataset.k;
     const ta = z.querySelector('textarea');
+    const mcb = z.querySelector('#pzMulti');
+    const done = z.querySelector('#pzDone');
+    const stat = z.querySelector('#pzStat');
+    const isMulti = () => !!(mcb && mcb.checked);
+    const showStat = () => {
+      if(stat && ta) stat.textContent = '已贴 ' + ta.value.split(/\r?\n/).filter(l => l.trim() !== '').length + ' 行，可继续贴';
+    };
+    if(mcb) mcb.onchange = () => {
+      if(done) done.style.display = mcb.checked ? '' : 'none';
+      if(!mcb.checked && stat) stat.textContent = '';
+      if(ta) ta.placeholder = mcb.checked
+        ? '已勾选分次粘贴：每贴一段都会续到这里，全部贴完再点「完成合并导入」'
+        : (HEAD_TIP[kind] || '');
+    };
+    const append = t => { if(!ta) return; zoneAppend(ta, t); showStat(); toast('已追加一段，继续贴下一段或点「完成合并导入」'); };
     if(ta) ta.onpaste = e => {
       e.preventDefault();
       const cd = e.clipboardData || window.clipboardData;
       const t = cd ? cd.getData('text') : '';
       if(!t || !t.trim()){ toast('剪贴板里没有文本'); return; }
+      if(isMulti()){ append(t); return; }        /* 分次模式：只续文本，不识别 */
       ta.value = '';
       handlePasteText(kind, t);
     };
     const rb = z.querySelector('#pzRead');
-    if(rb) rb.onclick = () => readClip(kind);
+    if(rb) rb.onclick = () => readClip(kind, isMulti() ? append : null);
     const wb = z.querySelector('#pzWin');
     if(wb) wb.onclick = () => openPasteBox(kind);
+    if(done) done.onclick = () => {
+      const v = ta ? ta.value : '';
+      if(!v.trim()){ toast('框里还没有内容'); return; }
+      handlePasteText(kind, v);
+    };
     const ae = document.activeElement;
     if(ta && (!ae || ae.tagName === 'BODY')) setTimeout(() => ta.focus(), 30);
   });
@@ -1466,19 +1789,29 @@ function emptyPaste(kind){
     '<textarea id="pz" spellcheck="false" placeholder="' + esc(tip) + '"></textarea>' +
     '<div class="pzb"><button class="pbtn sm" id="pzRead">从剪贴板读取</button>' +
     '<button class="pbtn sm gh" id="pzWin">打开大窗口（可一次贴多张表）</button>' +
+    '<label class="ckb" style="padding:2px 6px"><input type="checkbox" id="pzMulti">' +
+    '<span style="font-size:11px">分多次粘贴合并（数据太大剪贴板失灵时勾上）</span></label>' +
+    '<button class="pbtn sm" id="pzDone" style="display:none">完成合并导入</button>' +
+    '<span class="hz" id="pzStat"></span>' +
     '<span class="hz">需要表头：' + esc(tip.split('\t').slice(0, 6).join(' / ')) + ' …</span></div>' +
     '</div></div>';
 }
 /* 直接读剪贴板（https/localhost 才行，file:// 打不开就提示手动 Ctrl+V） */
-function readClip(kind){
+function readClip(kind, append){
   if(!navigator.clipboard || !navigator.clipboard.readText){
     toast('这个浏览器不允许直接读剪贴板，请在框里按 Ctrl+V');
     return;
   }
   navigator.clipboard.readText().then(t => {
     if(!t || !t.trim()){ toast('剪贴板里没有文本'); return; }
+    if(append){ append(t); return; }
     handlePasteText(kind, t);
   }).catch(() => toast('读不到剪贴板，请在框里按 Ctrl+V'));
+}
+/* 追加一段到粘贴框（分多次贴大数据用），返回累计行数 */
+function zoneAppend(ta, t){
+  ta.value = ta.value ? ta.value.replace(/\s+$/, '') + '\n' + t : t;
+  return ta.value.split(/\r?\n/).filter(l => l.trim() !== '').length;
 }
 /* 表头是否与该表对得上：返回解析出的表数组 */
 function handlePasteText(kind, txt){
@@ -1557,20 +1890,41 @@ function openPasteBox(kind){
     '<div class="tip">从广联达复制「<b>' + esc(KIND_LABEL[kind]) + '</b>」表（连表头一起），在下面 <code>Ctrl+V</code>。' +
     '表头对上就导入；对不上会提示。粘贴会<b>覆盖</b>当前这张表。</div>' +
     '<textarea id="pta" spellcheck="false" style="width:100%;min-height:220px;resize:vertical;border:1px solid var(--line);border-radius:3px;padding:8px;font:11px/1.6 Consolas,monospace;white-space:pre;overflow:auto" placeholder="' + esc(HEAD_TIP[kind] || '') + '"></textarea>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+    '<label class="ckb" style="padding:2px 4px"><input type="checkbox" id="ptMulti">' +
+    '<span style="font-size:11px">分多次粘贴合并（数据太大剪贴板失灵时勾上）</span></label>' +
+    '<button class="pbtn sm" id="ptDone" style="display:none">完成合并导入</button>' +
+    '<span id="ptStat" style="font-size:11px;color:var(--txt3)"></span></div>' +
     '<div class="res" id="pres" style="font-size:11px;margin-top:6px;color:var(--pri)"></div>',
     '<button class="pbtn gh" id="ptRead">从剪贴板读取</button>' +
     '<button class="pbtn gh" id="ptCancel">关闭</button>');
   const ta = $('#pta');
+  ta.dataset.k = kind;
+  const mcb = $('#ptMulti'), done = $('#ptDone'), stat = $('#ptStat');
+  const isMulti = () => !!(mcb && mcb.checked);
+  const showStat = () => { if(stat) stat.textContent = '已贴 ' + ta.value.split(/\r?\n/).filter(l => l.trim() !== '').length + ' 行，可继续贴'; };
+  if(mcb) mcb.onchange = () => {
+    if(done) done.style.display = mcb.checked ? '' : 'none';
+    if(!mcb.checked && stat) stat.textContent = '';
+    ta.placeholder = mcb.checked ? '已勾选分次粘贴：每贴一段都会续到这里，全部贴完再点「完成合并导入」' : (HEAD_TIP[kind] || '');
+  };
+  const append = t => { zoneAppend(ta, t); showStat(); toast('已追加一段，继续贴下一段或点「完成合并导入」'); };
   setTimeout(() => ta.focus(), 30);
   ta.onpaste = e => {
     e.preventDefault();
     const cd = e.clipboardData || window.clipboardData;
     const t = cd ? cd.getData('text') : '';
     if(!t || !t.trim()){ toast('剪贴板里没有文本'); return; }
+    if(isMulti()){ append(t); return; }
     ta.value = '';
     handlePasteText(kind, t);
   };
-  $('#ptRead').onclick = () => readClip(kind);
+  if(done) done.onclick = () => {
+    const v = ta.value;
+    if(!v.trim()){ toast('框里还没有内容'); return; }
+    handlePasteText(kind, v);
+  };
+  $('#ptRead').onclick = () => readClip(kind, isMulti() ? append : null);
   $('#ptCancel').onclick = () => $('#mask').classList.remove('on');
 }
 /* 表名 → 全部列 / 默认列 */
@@ -1613,7 +1967,8 @@ function partMenu(x, y){
 function thMenu(x, y, ns){
   const m = $('#menu');
   const all = allColsOf(ns);
-  const cur = gCols(ns, all).map(c => c.k);
+  /* 按「实际显示」打勾：分部分项各层级视图可能有强制显示/隐藏的列 */
+  const cur = (/^bill\|/.test(ns) ? billColsOf(ns) : gCols(ns, all)).map(c => c.k);
   const rh = rowH(ns);
   m.innerHTML =
     '<div class="mi" style="color:var(--txt3);cursor:default">显示列（点一下切换）</div>' +
@@ -1644,18 +1999,82 @@ function thMenu(x, y, ns){
       return;
     }
     if(!k) return;
-    if(k === '__reset'){ delete GSET.cols[ns]; }
+    if(k === '__reset'){
+      delete GSET.cols[ns];
+      if(GSET.xoff) delete GSET.xoff[ns];
+      if(GSET.xin) delete GSET.xin[ns];
+    }
     else if(k === '__resetw'){ delete GSET.colw[ns]; }
     else {
-      let keys = gCols(ns, all).map(c => c.k);
+      const keys = cur.slice();
       const i = keys.indexOf(k);
-      if(i >= 0){ if(keys.length > 1) keys.splice(i, 1); }
-      else keys = all.filter(c => keys.indexOf(c.k) >= 0 || c.k === k).map(c => c.k);
-      GSET.cols[ns] = keys;
+      if(i >= 0){                        /* 正在显示 → 隐藏 */
+        if(keys.length > 1) keys.splice(i, 1);
+        setColFlag('off', ns, k, true);
+        setColFlag('in', ns, k, false);
+        GSET.cols[ns] = all.filter(c => keys.indexOf(c.k) >= 0).map(c => c.k);
+      } else {                           /* 已隐藏 → 显示 */
+        setColFlag('off', ns, k, false);
+        GSET.cols[ns] = all.filter(c => keys.indexOf(c.k) >= 0 || c.k === k).map(c => c.k);
+      }
     }
     saveGS(); render();
   };
 }
+/* 竖向拖动条：工程项目栏 / 分部目录栏的宽度 */
+function startVResize(e, el, key, min, max){
+  e.preventDefault(); e.stopPropagation();
+  const x0 = e.clientX, w0 = el.getBoundingClientRect().width || 200;
+  let w = w0;
+  document.body.style.cursor = 'col-resize';
+  const mv = ev => {
+    w = Math.min(max, Math.max(min, Math.round(w0 + ev.clientX - x0)));
+    el.style.width = w + 'px'; el.style.flex = '0 0 ' + w + 'px';
+  };
+  const up = () => {
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+    document.body.style.cursor = '';
+    GSET[key] = w; saveGS();
+  };
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
+}
+/* 每次渲染后：套用面板宽度 / 显示隐藏，并挂上拖动条 */
+function bindPanels(){
+  const nav = $('#nav'), tree = $('#pane .billtree');
+  if(nav){
+    nav.classList.toggle('hid', !!GSET.navhide);
+    const w = GSET.navw || 186;
+    nav.style.width = w + 'px'; nav.style.flex = '0 0 ' + w + 'px';
+    if(!GSET.navhide){
+      const h = document.createElement('div');
+      h.className = 'vrsz'; h.title = '拖动调整项目栏宽度';
+      h.onmousedown = e => startVResize(e, nav, 'navw', 120, 520);
+      nav.appendChild(h);
+    }
+  }
+  if(tree){
+    tree.classList.toggle('hid', !!GSET.treehide);
+    const w = GSET.treew || 210;
+    tree.style.width = w + 'px'; tree.style.flex = '0 0 ' + w + 'px';
+    if(!GSET.treehide){
+      const h = document.createElement('div');
+      h.className = 'vrsz'; h.title = '拖动调整目录宽度';
+      h.onmousedown = e => startVResize(e, tree, 'treew', 120, 620);
+      tree.appendChild(h);
+    }
+  }
+  const bn = $('#bNav'), bt = $('#bTree');
+  if(bn) bn.classList.toggle('off', !!GSET.navhide);
+  if(bt) bt.classList.toggle('off', !!GSET.treehide);
+}
+function togglePanel(which){
+  const k = which === 'nav' ? 'navhide' : 'treehide';
+  GSET[k] = GSET[k] ? 0 : 1; saveGS(); render();
+}
+$('#bNav').onclick = () => togglePanel('nav');
+$('#bTree').onclick = () => togglePanel('tree');
 /* 列宽拖动 */
 function startResize(e, rz){
   e.preventDefault(); e.stopPropagation();
@@ -1677,6 +2096,7 @@ function startResize(e, rz){
     col.style.width = w + 'px';
     const t = total();
     tb.style.minWidth = t + 'px';
+    tb.style.width = t + 'px';          /* 表格宽度跟着列宽走，其余列不伸缩 */
     if(card) card.style.minWidth = t + 'px';
   };
   const up = ev => {
@@ -1758,6 +2178,40 @@ function openPartLv(idx){
     toast("分部层级已更新");
   };
 }
+/* 目录节点 / 清单分部行右键菜单：按鼠标位置设这一个分部的层级，或进入批量设置 */
+function partNodeMenu(x, y, idx){
+  const m = $('#menu');
+  const r = DB.bill[idx];
+  if(!r) return;
+  const isGrp = r._cls === 'grp';
+  const nm = String(r.c.name || '').trim();
+  const cur = isGrp && DB.plv && DB.plv[nm] ? +DB.plv[nm] : 0;
+  const auto = isGrp ? partLevel(r) : 0;
+  let h = '<div class="mi" style="color:var(--txt3);cursor:default;max-width:230px;overflow:hidden;text-overflow:ellipsis">' +
+    esc(nm || (r._cls === 'sum' ? '整个项目' : '分部目录')) + '</div>';
+  if(isGrp){
+    h += [0, 1, 2, 3, 4].map(n => '<div class="mi" data-n="' + n + '"><span>' +
+      (cur === n ? '●' : '○') + '</span>' +
+      (n ? n + ' 级' : '自动（' + auto + ' 级）') + '</div>').join('') + '<hr>';
+  }
+  h += '<div class="mi" data-b="1">批量设置层级…</div>';
+  m.innerHTML = h;
+  m.style.left = Math.min(x, innerWidth - 190) + 'px';
+  m.style.top = Math.min(y, innerHeight - 240) + 'px';
+  m.classList.add('on');
+  m.onclick = e => {
+    const it = e.target.closest ? e.target.closest('.mi') : null;
+    if(!it || !it.dataset) return;
+    m.classList.remove('on');
+    if(it.dataset.b){ openPartLv(-1); return; }
+    const n = it.dataset.n;
+    if(n == null || !isGrp || !nm) return;
+    if(!DB.plv) DB.plv = {};
+    if(+n) DB.plv[nm] = +n; else delete DB.plv[nm];
+    save(); render();
+    toast('「' + nm + '」已设为 ' + (+n ? n + ' 级' : '自动'));
+  };
+}
 /* ---------------- 项目列表：长按拖动排序 ---------------- */
 let DRAG = { on:false, from:-1, moved:false, el:null, sy:0, timer:null };
 function dropIndex(y){
@@ -1810,9 +2264,12 @@ function projMenu(x, y, i){
   const m = $('#menu');
   m.innerHTML =
     '<div class="mi" data-a="ren">重命名</div>' +
+    '<div class="mi" data-a="renall">批量修改名称</div>' +
     '<div class="mi" data-a="paste">向该项目粘贴数据</div>' +
+    '<div class="mi" data-a="import">导入工程（CSV）</div>' +
     '<div class="mi" data-a="clear">清空该项目数据</div>' +
-    '<hr><div class="mi dg" data-a="del">删除该项目</div>';
+    '<hr><div class="mi dg" data-a="delall">批量删除项目</div>' +
+    '<div class="mi dg" data-a="del">删除该项目</div>';
   m.style.left = Math.min(x, innerWidth - 190) + 'px';
   m.style.top = Math.min(y, innerHeight - 150) + 'px';
   m.classList.add('on');
@@ -1826,11 +2283,17 @@ function projMenu(x, y, i){
       if(nv != null && nv.trim()){ PROJ[i].name = nv.trim(); save(); render(); }
     } else if(a === 'paste'){
       openImport(i);
+    } else if(a === 'import'){
+      openImportCsv(i);
     } else if(a === 'clear'){
       if(confirm('确定清空「' + projName(PROJ[i], i) + '」的全部数据？')){
         PROJ[i].db = newDB(); DB = PROJ[i].db; TAB = 'analysis'; PART = ''; SEL = -1; LVL = ''; COLL.clear(); SORT = { k:'', dir:1 };
         save(); render();
       }
+    } else if(a === 'renall'){
+      openBatchRename();
+    } else if(a === 'delall'){
+      openBatchDel();
     } else if(a === 'del'){
       if(confirm('确定删除项目「' + projName(PROJ[i], i) + '」？此操作不可撤销。')){
         PROJ.splice(i, 1);
@@ -1841,9 +2304,80 @@ function projMenu(x, y, i){
     }
   };
 }
+/* ---------------- 批量修改项目名称 ---------------- */
+function openBatchRename(){
+  if(!PROJ.length){ toast('还没有项目'); return; }
+  const rows = PROJ.map((p, i) => {
+    const t = projTotal(p);
+    return '<tr><td class="ix">' + (i + 1) + '</td>' +
+      '<td><input class="rnip" data-i="' + i + '" value="' + esc(projName(p, i)) + '" spellcheck="false"></td>' +
+      '<td class="am">' + (t == null ? '' : money(t)) + '</td></tr>';
+  }).join('');
+  dlgBox('批量修改项目名称',
+    '<div class="note">直接在下面的框里改名字，改名只影响<b>列表显示和工作表名</b>，不动里面的数据。<br>' +
+      '留空表示<b>保持原名</b>；改完点「保存」。</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin:8px 0 6px">' +
+      '<span style="font-size:11px;color:var(--txt2);flex:0 0 auto">统一加前后缀：</span>' +
+      '<input id="rnPre" class="rnip" style="flex:1" placeholder="前缀（可留空）">' +
+      '<input id="rnSuf" class="rnip" style="flex:1" placeholder="后缀（可留空）">' +
+      '<button class="pbtn gh" id="rnApply" style="flex:0 0 auto;height:26px">套用到全部</button></div>' +
+    '<div style="max-height:330px;overflow:auto;border:1px solid var(--line2);border-radius:3px">' +
+      '<table class="lvtb"><thead><tr><th style="width:26px"></th><th>项目名称</th><th style="text-align:right;width:110px">总造价</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>',
+    '<button class="pbtn gh" id="rnCancel">取消</button><button class="pbtn" id="rnOk">保存</button>');
+  const ips = $$('#dlg input.rnip[data-i]');
+  $('#rnApply').onclick = () => {
+    const a = $('#rnPre').value || '', z = $('#rnSuf').value || '';
+    ips.forEach(ip => { const v = ip.value.trim(); if(v) ip.value = a + v + z; });
+  };
+  $('#rnCancel').onclick = () => $('#mask').classList.remove('on');
+  $('#rnOk').onclick = () => {
+    let n = 0;
+    ips.forEach(ip => {
+      const i = +ip.dataset.i, v = (ip.value || '').trim();
+      if(i >= 0 && PROJ[i] && v && v !== projName(PROJ[i], i)){ PROJ[i].name = v; n++; }
+    });
+    save(); $('#mask').classList.remove('on'); render();
+    toast(n ? '已修改 ' + n + ' 个项目名称' : '名称没有变化');
+  };
+  setTimeout(() => { if(ips[0]) ips[0].focus(); }, 30);
+}
+/* ---------------- 批量删除项目 ---------------- */
+function openBatchDel(){
+  if(!PROJ.length){ toast('还没有项目'); return; }
+  const items = PROJ.map((p, i) =>
+    '<label class="ckb"><input type="checkbox" data-p="1" value="' + i + '"' + (i === PIDX ? ' checked' : '') + '>' +
+    '<span>' + esc(projName(p, i)) + '</span><span class="c">' + projRowCount(p.db) + ' 行</span></label>').join('');
+  dlgBox('批量删除项目',
+    '<div class="note">勾选要删掉的项目，点「删除选中」。<b style="color:var(--red)">删了就找不回来了</b>，' +
+      '要留底的话先点工具栏「导出」打开导出预览，再点「导出 Excel」或「导出 CSV」备份一份。</div>' +
+    '<div class="cklist" style="margin-top:8px">' + items + '</div>',
+    '<button class="pbtn gh" id="bdAll">全选</button><button class="pbtn gh" id="bdNone">全不选</button>' +
+    '<button class="pbtn gh" id="bdCancel">取消</button><button class="pbtn dg" id="bdOk">删除选中</button>');
+  const box = () => $$('#dlg input[data-p]');
+  const sel = () => box().filter(x => x.checked).map(x => +x.value);
+  $('#bdAll').onclick = () => box().forEach(x => { x.checked = true; });
+  $('#bdNone').onclick = () => box().forEach(x => { x.checked = false; });
+  $('#bdCancel').onclick = () => $('#mask').classList.remove('on');
+  $('#bdOk').onclick = () => {
+    const ps = sel();
+    if(!ps.length){ toast('请至少勾选一个项目'); return; }
+    if(!confirm('确定删除选中的 ' + ps.length + ' 个项目？此操作不可撤销。')) return;
+    const set = {};
+    ps.forEach(i => { set[i] = 1; });
+    const keep = [];
+    PROJ.forEach((p, i) => { if(!set[i]) keep.push(p); });
+    PROJ.length = 0;
+    keep.forEach(p => PROJ.push(p));
+    PIDX = PROJ.length ? Math.min(PIDX, PROJ.length - 1) : -1;
+    DB = PIDX >= 0 ? PROJ[PIDX].db : newDB();
+    save(); $('#mask').classList.remove('on'); render();
+    toast('已删除 ' + ps.length + ' 个项目，还剩 ' + PROJ.length + ' 个');
+  };
+}
 document.addEventListener('click', () => $('#menu').classList.remove('on'));
 document.addEventListener('contextmenu', e => {
-  if(!e.target.closest('.pnode, thead th, .blk[data-top] h3, .blk[data-plv] h3, .card[data-act], .tn[data-t], .billtree .tl')) $('#menu').classList.remove('on');
+  if(!e.target.closest('.pnode, thead th, .blk[data-top] h3, .blk[data-plv] h3, .card[data-act], .tn[data-t], .billtree .tl, tbody tr.grp')) $('#menu').classList.remove('on');
 });
 
 /* =========================================================
@@ -1872,12 +2406,41 @@ function openImport(target){
     '<div class="side">' + fmtSide() + '</div>' +
     '<div class="main"><div class="tip">在广联达里选中表格（含表头）<code>Ctrl+C</code>，再到下面 <code>Ctrl+V</code> —— <b>会自动解析并导入</b>，输入框自动清空，可继续贴下一张，全部导完点「完成」。</div>' +
     '<textarea id="ta" spellcheck="false" placeholder="名称\t内容\n工程总造价(小写)\t42,797.56\n…"></textarea>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+    '<label class="ckb" style="padding:2px 4px"><input type="checkbox" id="impMulti">' +
+    '<span style="font-size:11px">分多次粘贴合并（数据太大剪贴板失灵时勾上）</span></label>' +
+    '<button class="pbtn sm" id="impMerge" style="display:none">完成合并导入</button>' +
+    '<span id="impStat" style="font-size:11px;color:var(--txt3)"></span></div>' +
     '<div class="res" id="impres"></div></div></div></div>' +
     '<div class="ft"><span style="flex:1;font-size:11px;color:var(--txt2);align-self:center" id="impHint">等待粘贴…</span>' +
     '<button class="pbtn gh" id="impClear">清空本项目</button>' +
     '<button class="pbtn" id="impDone">完成</button></div>';
   $('#mask').classList.add('on');
   const ta = $('#ta');
+  const mcb = $('#impMulti'), mgB = $('#impMerge'), impStat = $('#impStat');
+  const isMulti = () => !!(mcb && mcb.checked);
+  const showStat = () => {
+    if(impStat) impStat.textContent = '已贴 ' + ta.value.split(/\r?\n/).filter(l => l.trim() !== '').length + ' 行，可继续贴';
+  };
+  if(mcb) mcb.onchange = () => {
+    if(mgB) mgB.style.display = mcb.checked ? '' : 'none';
+    if(!mcb.checked && impStat) impStat.textContent = '';
+  };
+  /* 分次模式：粘贴只续到框里不解析；全部贴完点「完成合并导入」一次性识别 */
+  ta.onpaste = e => {
+    if(!isMulti()) return;    /* 正常模式不拦，走 oninput 自动导入 */
+    e.preventDefault();
+    const cd = e.clipboardData || window.clipboardData;
+    const t = cd ? cd.getData('text') : '';
+    if(!t || !t.trim()){ toast('剪贴板里没有文本'); return; }
+    zoneAppend(ta, t); showStat();
+    toast('已追加一段，继续贴下一段或点「完成合并导入」');
+  };
+  if(mgB) mgB.onclick = () => {
+    if(!ta.value.trim()){ toast('框里还没有内容'); return; }
+    doAuto();
+    if(impStat) impStat.textContent = '';
+  };
   setTimeout(() => ta.focus(), 30);
   let timer = null;
   const doAuto = () => {
@@ -1913,10 +2476,12 @@ function openImport(target){
     const m = {}; tabs.forEach(t => m[t.kind] = (m[t.kind] || 0) + t.rows.length);
     const s = Object.keys(m).map(k => KIND_LABEL[k] + ' ' + m[k] + ' 行').join(' · ');
     ta.value = '';
+    if(impStat) impStat.textContent = '';
     $('#impres').innerHTML = '<span style="color:#3d8b5f">✓ 已导入 ' + n + ' 张表（' + esc(s) + '）— 可继续粘贴下一张，全部导完点「完成」</span>';
     ta.focus();
   };
   ta.oninput = () => {
+    if(isMulti()) return;          /* 分次模式：只等「完成合并导入」，不边贴边解析 */
     $('#impres').textContent = '正在解析…';
     clearTimeout(timer);
     timer = setTimeout(doAuto, 420);
@@ -1961,8 +2526,47 @@ document.addEventListener('paste', e => {
   if(!txt || !txt.trim()) return;
   e.preventDefault();
   /* 当前页面正空着（有粘贴框）→ 直接按这一页的表头校验导入 */
+  /* 弹窗开着（粘贴数据窗口 / 大窗口）→ 交给弹窗处理，分次模式只追加不解析 */
+  const maskOn = $('#mask').classList.contains('on');
+  const taImp = $('#ta');
+  if(maskOn && taImp){
+    const m = $('#impMulti');
+    if(m && m.checked){
+      const n = zoneAppend(taImp, txt);
+      const st = $('#impStat');
+      if(st) st.textContent = '已贴 ' + n + ' 行，可继续贴';
+      toast('已追加一段，继续贴下一段或点「完成合并导入」');
+      return;
+    }
+    taImp.value = txt;
+    taImp.dispatchEvent(new Event('input'));
+    return;
+  }
+  const taBig = $('#pta');
+  if(maskOn && taBig && taBig.dataset.k){
+    const m = $('#ptMulti');
+    if(m && m.checked){
+      const n = zoneAppend(taBig, txt);
+      const st = $('#ptStat');
+      if(st) st.textContent = '已贴 ' + n + ' 行，可继续贴';
+      toast('已追加一段，继续贴下一段或点「完成合并导入」');
+      return;
+    }
+    handlePasteText(taBig.dataset.k, txt);
+    return;
+  }
   const pz = $('#pane .pzone');
-  if(pz && pz.dataset.k){ handlePasteText(pz.dataset.k, txt); return; }
+  if(pz && pz.dataset.k){
+    const m = pz.querySelector('#pzMulti'), ta = pz.querySelector('textarea');
+    if(m && m.checked && ta){
+      const n = zoneAppend(ta, txt);
+      const st = pz.querySelector('#pzStat');
+      if(st) st.textContent = '已贴 ' + n + ' 行，可继续贴';
+      toast('已追加一段，继续贴下一段或点「完成合并导入」');
+      return;
+    }
+    handlePasteText(pz.dataset.k, txt); return;
+  }
   openImport(PIDX);
   setTimeout(() => {
     const ta = $('#ta');
@@ -1975,12 +2579,14 @@ document.addEventListener('paste', e => {
 $('#bImp').onclick = () => openImport(PIDX);
 /* ---------------- CSV 导出 ---------------- */
 const csvEsc = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-function csvBlock(cols, rows, title, text1){
+function csvBlock(cols, rows, title, text1, treeCols){
   if(!rows || !rows.length) return '';
-  let s = '[' + title + ']\n' + cols.map(c => csvEsc(c.l)).join(',') + '\n';
+  let s = '[' + title + ']\n' + cols.map(c => csvEsc(c.l)).join(',');
+  if(treeCols) s += ',行类型,层级';
+  s += '\n';
   /* 数值列导出纯数字（不带千分位），避免 Excel 里变成文本 */
   rows.forEach(r => {
-    s += cols.map((c, ci) => {
+    const cells = cols.map((c, ci) => {
       const v = r.c[c.k];
       if(c.t === 'n'){ const n = num(v); return n == null ? '' : String(n); }
       const t = cellTxt(c, v, r);
@@ -1988,7 +2594,9 @@ function csvBlock(cols, rows, title, text1){
       if(text1 && ci === 0 && t !== '' && /^0\d|^\d{6,}$/.test(String(t).trim()))
         return '"=""' + String(t).replace(/"/g, '""') + '"""';
       return csvEsc(t);
-    }).join(',') + '\n';
+    });
+    if(treeCols){ cells.push(csvEsc(r._cls || '')); cells.push(csvEsc(r._dep != null ? r._dep : '')); }
+    s += cells.join(',') + '\n';
   });
   return s + '\n';
 }
@@ -2006,14 +2614,14 @@ function buildCsv(db, tables, text1){
   let s = '';
   if(T.indexOf('analysis') >= 0) s += kvBlock(db.analysis, KIND_LABEL.analysis);
   if(T.indexOf('overview') >= 0) s += kvBlock(db.overview, KIND_LABEL.overview);
-  if(T.indexOf('bill') >= 0)     s += csvBlock(BILL_COLS, db.bill, KIND_LABEL.bill, text1);
-  if(T.indexOf('measure') >= 0)  s += csvBlock(MEASURE_COLS, db.measure, KIND_LABEL.measure, text1);
-  if(T.indexOf('other') >= 0)    s += csvBlock(OTHER_COLS, db.other, KIND_LABEL.other, text1);
+  if(T.indexOf('bill') >= 0){ const rows = billExportRows() || db.bill; s += csvBlock(BILL_COLS, rows, KIND_LABEL.bill, text1, true); }
+  if(T.indexOf('measure') >= 0)  s += csvBlock(MEASURE_COLS, db.measure, KIND_LABEL.measure, text1, true);
+  if(T.indexOf('other') >= 0)    s += csvBlock(OTHER_COLS, db.other, KIND_LABEL.other, text1, true);
   if(T.indexOf('res') >= 0){
-    const rr = (db.res || []).map(r => ({ c: Object.assign({}, r.c, { rk:(RES_CATS.find(g => g.k === r._rk) || {}).l || '' }) }));
-    s += csvBlock(RES_COLS.concat([C('rk', '资源分类', 70, 't')]), rr, KIND_LABEL.res, text1);
+    const rr = (db.res || []).map(r => ({ c: Object.assign({}, r.c, { rk:(RES_CATS.find(g => g.k === r._rk) || {}).l || '' }), _dep:r._dep, _cls:r._cls }));
+    s += csvBlock(RES_COLS.concat([C('rk', '资源分类', 70, 't')]), rr, KIND_LABEL.res, text1, true);
   }
-  if(T.indexOf('fee') >= 0)      s += csvBlock(FEE_COLS, db.fee, KIND_LABEL.fee, text1);
+  if(T.indexOf('fee') >= 0)      s += csvBlock(FEE_COLS, db.fee, KIND_LABEL.fee, text1, true);
   return s;
 }
 function allCsv(db){ return buildCsv(db, KIND_ORDER.slice(), true); }
@@ -2023,6 +2631,136 @@ function download(name, text){
   a.href = URL.createObjectURL(blob);
   a.download = name;
   a.click(); URL.revokeObjectURL(a.href);
+}
+/* ---------------- CSV 解析 / 导入（与导出格式互为逆操作） ---------------- */
+/* 还原导出时为保留前导 0 加的 ="..." 文本前缀 */
+function untextCell(v){
+  v = String(v == null ? '' : v).trim();
+  v = v.replace(/^"*="?/, '').replace(/"*"?$/, '');
+  return v;
+}
+/* 把整段 CSV 解析成「逻辑记录」数组（每条记录 = 一个字段数组）。
+   正确处理引号内的换行 / CRLF，避免分部分项「项目特征」等多行单元格被拆断，
+   从而让「导出 CSV → 导入工程」能完整还原。 */
+function parseCsvRecords(text){
+  const recs = [], n = text.length;
+  let row = [], field = '', q = false, i = 0;
+  while(i < n){
+    const ch = text[i];
+    if(q){
+      if(ch === '"'){
+        if(text[i + 1] === '"'){ field += '"'; i += 2; continue; }
+        q = false; i++; continue;
+      }
+      if(ch === '\r'){ i++; continue; }            /* 引号内 CRLF 原样保留到字段 */
+      field += ch; i++; continue;
+    }
+    if(ch === '"'){ q = true; i++; continue; }
+    if(ch === ','){ row.push(field); field = ''; i++; continue; }
+    if(ch === '\n'){ row.push(field); recs.push(row); row = []; field = ''; i++; continue; }
+    if(ch === '\r'){ i++; continue; }
+    field += ch; i++;
+  }
+  if(field !== '' || row.length){ row.push(field); recs.push(row); }
+  return recs;
+}
+/* 把导出的 CSV 文本解析回一个 db 对象（七张表） */
+function importCsvText(text){
+  text = String(text).replace(/^﻿/, '');   /* 去掉 UTF-8 BOM，否则首段标题匹配不上 */
+  const recs = parseCsvRecords(text);
+  const db = newDB();
+  const blocks = []; let cur = null;
+  for(let ri = 0; ri < recs.length; ri++){
+    const rec = recs[ri];
+    /* 段标记：[表名] 单独成行（引号外、仅一个字段） */
+    if(rec.length === 1){
+      const m = /^\[(.+?)\]\s*$/.exec(rec[0].trim());
+      if(m){ cur = { title:m[1], recs:[] }; blocks.push(cur); continue; }
+    }
+    if(!cur) continue;
+    /* 跳过整段之间的空行（导出时每块尾部追加的空白行） */
+    if(rec.length === 1 && rec[0].trim() === '') continue;
+    if(rec.every(f => String(f).trim() === '')) continue;
+    cur.recs.push(rec);
+  }
+  const labelToKind = {};
+  Object.keys(KIND_LABEL).forEach(k => { labelToKind[KIND_LABEL[k]] = k; });
+  const COLDEFS = {
+    bill: BILL_COLS, measure: MEASURE_COLS, other: OTHER_COLS, fee: FEE_COLS,
+    res: RES_COLS.concat([C('rk', '资源分类', 70, 't')])
+  };
+  blocks.forEach(b => {
+    const kind = labelToKind[b.title];
+    if(!kind || !b.recs.length) return;
+    const header = b.recs[0] || [];            /* 第一行是列头 */
+    const dataRecs = b.recs.slice(1);
+    if(kind === 'analysis' || kind === 'overview'){
+      const arr = dataRecs.filter(r => (r[0] || '').trim() !== '').map(r => ({
+        k: untextCell(r[0] || ''), v: untextCell(r[1] || '')
+      })).filter(x => x.k !== '');
+      db[kind] = arr;
+      return;
+    }
+    const defs = COLDEFS[kind];
+    if(!defs) return;
+    let idxCls = -1, idxDep = -1;
+    header.forEach((h, i) => { if(h === '行类型') idxCls = i; else if(h === '层级') idxDep = i; });
+    const rows = [];
+    for(let r = 0; r < dataRecs.length; r++){
+      const cells = dataRecs[r];
+      const row = { c:{}, _cls:'', _dep:0 };
+      header.forEach((h, ci) => {
+        const def = defs.find(cc => cc.l === h);
+        if(def) row.c[def.k] = untextCell(cells[ci] || '');
+      });
+      if(idxCls >= 0) row._cls = (cells[idxCls] || '').trim();
+      if(idxDep >= 0) row._dep = parseInt(cells[idxDep] || '', 10) || 0;
+      if(kind === 'res'){
+        const rk = (RES_CATS.find(g => g.l === (row.c.rk || '')) || {}).k;
+        row._rk = rk || (row.c.rk || '');
+      }
+      rows.push(row);
+    }
+    /* 按父子关系补全 _kids（与原始导入一致） */
+    for(let r = 0; r < rows.length; r++)
+      if(r + 1 < rows.length && (rows[r + 1]._dep || 0) > (rows[r]._dep || 0)) rows[r]._kids = 1;
+    db[kind] = rows;
+  });
+  return db;
+}
+/* 工程项目右键「导入工程」：选 CSV → 新建一个工程（不覆盖原工程） */
+function openImportCsv(i){
+  if(i == null || !PROJ[i]) return;
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.csv,text/csv,application/vnd.ms-excel';
+  inp.style.display = 'none';
+  inp.onchange = e => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const db = importCsvText(String(rd.result || ''));
+        const has = db.analysis.length || db.overview.length || db.bill.length || db.measure.length ||
+          db.other.length || db.res.length || db.fee.length;
+        if(!has){ toast('CSV 里没有可识别的表（需含【造价分析】【分部分项】等标记）'); return; }
+        /* 工程名：优先取工程概况「工程名称」；为空则用 CSV 文件名（去扩展名）；再为空用「导入工程 N」 */
+        const ov = (db.overview || []).find(x => x.k === '工程名称');
+        let nm = (ov && ov.v && String(ov.v).trim()) ? String(ov.v).trim() : '';
+        if(!nm) nm = (f.name || '').replace(/\.csv$/i, '') || '';
+        if(!nm) nm = '导入工程 ' + (PROJ.length + 1);
+        const ni = addProject(nm, db);
+        DB = db; PIDX = ni; TAB = 'analysis'; PART = ''; SEL = -1; LVL = ''; COLL.clear(); SORT = { k:'', dir:1 };
+        save(); render();
+        toast('已新建工程「' + projName(PROJ[ni], ni) + '」');
+      }catch(err){ toast('导入失败：' + (err && err.message ? err.message : err)); }
+    };
+    rd.onerror = () => toast('读取文件失败');
+    rd.readAsText(f, 'UTF-8');
+  };
+  document.body.appendChild(inp);
+  inp.click();
+  setTimeout(() => inp.remove(), 1000);
 }
 /* ---------------- Excel 导出（零依赖：自己拼 XLSX） ----------------
    ZIP 用「不压缩(store)」方式打包，只需要 CRC32；内容是最精简的 SpreadsheetML。
@@ -2074,16 +2812,30 @@ function zipStore(files){
   return new Blob(chunks.concat(cd, [eo]),
     { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
+/* 样式：0=常规 1=加粗 2=文本(@) 3=文本+加粗
+   所有文本单元格（含首列编码）都套「文本」格式，Excel 里不会再当成数字、前导 0 也保得住 */
 const XLSX_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-  '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
-  '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
-  '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
-  '<fill><patternFill patternType="gray125"/></fill></fills>' +
-  '<borders count="1"><border/></borders>' +
+  '<numFmts count="1"><numFmt numFmtId="49" formatCode="@"/></numFmts>' +
+  '<fonts count="2"><font><sz val="10"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="10"/><name val="Calibri"/></font></fonts>' +
+  '<fills count="3"><fill><patternFill patternType="none"/></fill>' +
+  '<fill><patternFill patternType="gray125"/></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFE8EDF3"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+  '<borders count="2"><border/>' +
+  '<border><left style="thin"><color rgb="FFB9C2CC"/></left><right style="thin"><color rgb="FFB9C2CC"/></right>' +
+  '<top style="thin"><color rgb="FFB9C2CC"/></top><bottom style="thin"><color rgb="FFB9C2CC"/></bottom></border></borders>' +
   '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-  '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-  '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+  '<cellXfs count="8">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+  '<xf numFmtId="49" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+  '<xf numFmtId="49" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+  '<xf numFmtId="49" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+  '</cellXfs>' +
   '</styleSheet>';
 function xenc(v){
   return String(v == null ? '' : v)
@@ -2096,19 +2848,29 @@ function colRef(i){
   while(i > 0){ const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; }
   return s;
 }
-/* rows: 二维数组，元素 {v:值, t:'n' 表示数字, s:1 表示加粗} */
-function sheetXml(rows){
+/* rows: 二维数组，元素 {v:值, t:'n' 表示数字, s:1 表示加粗, h:1 表示表头} */
+function sheetXml(rows, widths){
   let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  if(widths && widths.length){
+    x += '<cols>';
+    widths.forEach((w, i) => { x += '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + (+w).toFixed(2) + '" customWidth="1"/>'; });
+    x += '</cols>';
+  }
+  x += '<sheetData>';
   rows.forEach((r, ri) => {
     x += '<row r="' + (ri + 1) + '">';
     r.forEach((c, ci) => {
       if(!c) return;
-      const ref = colRef(ci) + (ri + 1), st = c.s ? ' s="1"' : '';
-      if(c.t === 'n' && c.v !== '' && isFinite(c.v))
-        x += '<c r="' + ref + '"' + st + '><v>' + c.v + '</v></c>';
+      const ref = colRef(ci) + (ri + 1);
+      const isNum = (c.t === 'n' && c.v !== '' && c.v != null && isFinite(c.v));
+      /* 表头(h)→加粗+底色+居中；加粗(s)→加粗+居中；其余→普通。
+         数字用常规格式、文字用文本格式(@，保住编码前导 0)；都带边框+上下居中+自动换行 */
+      const st = c.h ? (isNum ? 4 : 5) : (c.s ? (isNum ? 6 : 7) : (isNum ? 2 : 3));
+      if(isNum)
+        x += '<c r="' + ref + '" s="' + st + '"><v>' + c.v + '</v></c>';
       else if(c.v === '' || c.v == null) return;
-      else x += '<c r="' + ref + '" t="inlineStr"' + st + '><is><t xml:space="preserve">' + xenc(c.v) + '</t></is></c>';
+      else x += '<c r="' + ref + '" t="inlineStr" s="' + st + '"><is><t xml:space="preserve">' + xenc(c.v) + '</t></is></c>';
     });
     x += '</row>';
   });
@@ -2141,7 +2903,7 @@ function buildXlsx(sheets){
   rel += '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + NS + '/styles" Target="styles.xml"/></Relationships>';
   push('xl/_rels/workbook.xml.rels', rel);
   push('xl/styles.xml', XLSX_STYLES);
-  sheets.forEach((s, i) => push('xl/worksheets/sheet' + (i + 1) + '.xml', sheetXml(s.rows)));
+  sheets.forEach((s, i) => push('xl/worksheets/sheet' + (i + 1) + '.xml', sheetXml(s.rows, s.widths)));
   return zipStore(F);
 }
 /* 工作表名：去掉非法字符、最多 31 字 */
@@ -2166,7 +2928,7 @@ function dbSheetRows(db){
   const rows = [];
   const put = r => rows.push(r);
   const sec = t => put([{ v:t, s:1 }]);
-  const head = cols => put(cols.map(c => ({ v:c.l, s:1 })));
+  const head = cols => put(cols.map(c => ({ v:c.l, s:1, h:1 })));
   const body = (cols, list) => list.forEach(r => put(cols.map((c, ci) => {
     if(c.t === 'n'){
       const n = num(r.c[c.k]);
@@ -2179,11 +2941,11 @@ function dbSheetRows(db){
   const oname = ((db.overview || []).find(x => x.k === '工程名称') || {}).v || (db.meta || {}).name || '';
   sec('工程名称：' + oname);
   sec('【' + KIND_LABEL.analysis + '】');
-  put([{ v:'名称', s:1 }, { v:'内容', s:1 }]);
+  put([{ v:'名称', s:1, h:1 }, { v:'内容', s:1, h:1 }]);
   (db.analysis || []).forEach(x => put([{ v:String(x.k) }, numCell(x.v)]));
   put([]);
   sec('【' + KIND_LABEL.overview + '】');
-  put([{ v:'名称', s:1 }, { v:'内容', s:1 }]);
+  put([{ v:'名称', s:1, h:1 }, { v:'内容', s:1, h:1 }]);
   (db.overview || []).forEach(x => put([{ v:String(x.k) }, numCell(x.v)]));
   put([]);
   if((db.bill || []).length){ sec('【' + KIND_LABEL.bill + '】'); head(BILL_COLS); body(BILL_COLS, db.bill); put([]); }
@@ -2203,6 +2965,697 @@ function projRowCount(db){
   ['bill', 'measure', 'other', 'res', 'fee'].forEach(k => { n += (db[k] || []).length; });
   return n;
 }
+/* ---------------- 打印预览：点「打印」先出网页预览，再选导出 Excel / PDF ---------------- */
+function viewTitle(){
+  const t = (TABS.find(x => x.k === TAB) || {}).l || '';
+  if(TAB === 'bill') return '分部分项工程清单';
+  return t;
+}
+function viewScope(){
+  if(TAB !== 'bill') return (TABS.find(x => x.k === TAB) || {}).l || '';
+  return '分部分项 · ' + lvlName(curLvl()) + (leafOpen() ? '（已展开定额）' : '');
+}
+/* 当前视图 → 工作表行（首行标题、次行信息、表头、数据） */
+function viewSheetRows(cols, rows, title, scope, pname, ds){
+  const out = [];
+  out.push([{ v:title, s:1 }]);
+  out.push([{ v:'工程：' + pname + '　表：' + scope + '　共 ' + rows.length + ' 行　' + ds }]);
+  out.push(cols.map(c => ({ v:c.l, s:1 })));
+  rows.forEach(r => out.push(cols.map((c, ci) => {
+    if(c.t === 'n'){
+      const n = num(r.c[c.k]);
+      return n == null ? { v:'' } : { v:String(n), t:'n' };
+    }
+    const t = cellTxt(c, r.c[c.k], r);
+    return ci === 0 ? { v:String(t == null ? '' : t) } : numCell(t);   /* 首列一律文本，保住编码前的 0 */
+  })));
+  return out;
+}
+function pvRows(){ return (CUR_ROWS || []).filter(r => !r._hid); }
+function pvDate(){
+  const d = new Date(), p = n => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+/* ---------- 七个表统一取数：预览与导出共用，保证 Excel 与 PDF 内容一致 ---------- */
+function buildSectionSheet(key, db){
+  db = db || PVDB;
+  const cols = sectionCols(key);
+  const rows = sectionRows(key, db);
+  return { key, name: sheetNameOk(KIND_LABEL[key]), title: KIND_LABEL[key], cols, rows };
+}
+function sectionCols(key){
+  if(key === 'analysis' || key === 'overview') return [{ l:'名称', k:'k', t:'t' }, { l:'内容', k:'v', t:'t' }];
+  if(key === 'bill') return BILL_COLS;
+  if(key === 'measure') return MEASURE_COLS;
+  if(key === 'other') return OTHER_COLS;
+  if(key === 'res') return RES_COLS.concat([C('rk', '资源分类', 70, 't')]);
+  if(key === 'fee') return FEE_COLS;
+  return [];
+}
+/* 分部分项导出/预览取数：按网页当前「层级选择」过滤（与网页显示一致）。
+   未选层级（全部）时返回 null，调用方回落到全部数据，保证「全部」层级下 CSV 仍能完整往返。 */
+function billExportRows(){
+  if(!(LVL || SEL >= 0)) return null;
+  return visible(billRows(), BILL_COLS).filter(r => !r._hid);
+}
+function sectionRows(key, db){
+  if(key === 'analysis') return (db.analysis || []).map(x => ({ c:{ k:x.k, v:x.v } }));
+  if(key === 'overview') return (db.overview || []).map(x => ({ c:{ k:x.k, v:x.v } }));
+  if(key === 'bill'){ const fr = billExportRows(); return fr ? fr : (db.bill || []); }
+  if(key === 'measure') return db.measure || [];
+  if(key === 'other') return db.other || [];
+  if(key === 'res') return (db.res || []).map(r => ({ c: Object.assign({}, r.c, { rk: (RES_CATS.find(g => g.k === r._rk) || {}).l || '' }), _dep:r._dep, _cls:r._cls }));
+  if(key === 'fee') return db.fee || [];
+  return [];
+}
+/* 某一节 → 工作表行（仅表头 + 数据；不再带标题与「横线上方」的工程信息行，保持表格干净） */
+function sectionSheetRows(cols, rows, title, scope, pname, ds){
+  const out = [];
+  out.push(cols.map(c => ({ v:c.l, s:1, h:1 })));
+  rows.forEach(r => out.push(cols.map((c, ci) => {
+    if(c.t === 'n'){
+      const n = num(r.c[c.k]);
+      return n == null ? { v:'' } : { v:String(n), t:'n' };
+    }
+    const t = cellTxt(c, r.c[c.k], r);
+    return ci === 0 ? { v:String(t == null ? '' : t) } : numCell(t);
+  })));
+  return out;
+}
+/* Excel 列宽（字符宽估算，自动撑开防挤） */
+function sheetWidths(cols, rows){
+  if(!cols || !cols.length) return null;
+  const CJ = /[㐀-鿿豈-﫿＀-￯]/;
+  const w = t => { t = String(t == null ? '' : t); let n = 0; for(const ch of t){ n += CJ.test(ch) ? 1.9 : (ch === ' ' ? 0.4 : 1); } return n; };
+  const out = cols.map(c => Math.max(w(c.l || c.k || ''), 3));
+  (rows || []).forEach(r => { cols.forEach((c, i) => { const v = r.c ? r.c[c.k] : ''; out[i] = Math.max(out[i], w(v)); }); });
+  return out.map(x => Math.min(60, Math.max(8, x + 2)));
+}
+/* ---------- 打印预览：网页预览 + 七表切换 + 一键导出全部 ---------- */
+let PVKEY = 'analysis', PVDB = null, PVPROJ = -1;
+function openPreview(){
+  PVPROJ = PIDX;
+  PVDB = PIDX >= 0 ? PROJ[PIDX].db : (PROJ[0] ? PROJ[0].db : newDB());
+  if(!PVDB || projRowCount(PVDB) === 0){ toast('当前项目还没有数据'); return; }
+  PVKEY = (TAB && sectionRows(TAB, PVDB).length) ? TAB : 'analysis';
+  $('#pvTabs').innerHTML = TABS.map(t => {
+    const has = sectionRows(t.k, PVDB).length > 0;
+    return '<button class="pv-tab' + (t.k === PVKEY ? ' on' : '') + (has ? '' : ' empty') + '" data-k="' + t.k + '">' + KIND_LABEL[t.k] + '</button>';
+  }).join('');
+  $$('#pvTabs .pv-tab').forEach(b => b.onclick = () => {
+    PVKEY = b.dataset.k;
+    $$('#pvTabs .pv-tab').forEach(x => x.classList.toggle('on', x.dataset.k === PVKEY));
+    renderPvBody();
+  });
+  renderPvBody();
+  $('#pv').classList.add('on');
+  document.body.classList.add('pv-on');
+}
+function renderPvBody(){
+  if(PVKEY === 'analysis'){
+    const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '';
+    const body = (DB.analysis.length || DB.fee.length || DB.bill.length) ? vAnalysis() : emptyPaste('analysis');
+    $('#pvBody').innerHTML = '<div class="pv-sheet"><div class="ph"><h3>造价分析</h3><div class="m">' +
+      '<span>工程：' + esc(pname) + '</span></div></div>' +
+      '<div class="pv-analysis">' + body + '</div></div>';
+    $('#pvInfo').textContent = '造价分析 · 带图表';
+    return;
+  }
+  if(PVKEY === 'overview'){
+    const s = buildSectionSheet('overview');
+    $('#pvBody').innerHTML = pvOverviewHtml(s);
+    $('#pvInfo').textContent = '工程概况 · ' + s.rows.length + ' 项';
+    return;
+  }
+  const s = buildSectionSheet(PVKEY);
+  $('#pvBody').innerHTML = pvSectionHtml(s);
+  $('#pvInfo').textContent = KIND_LABEL[PVKEY] + ' · ' + s.rows.length + ' 行';
+}
+function pvSectionHtml(s){
+  const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '';
+  let h = '<div class="pv-sheet"><div class="ph"><h3>' + esc(s.title) + '</h3><div class="m">' +
+    '<span>工程：' + esc(pname) + '</span></div></div>';
+  if(!s.rows.length){ h += '<div style="padding:14px 2px;color:#8a93a0">（暂无数据）</div></div>'; return h; }
+  const isRes = s.key === 'res';
+  /* 列宽用列默认 w；人材机汇总的名称/规格型号封顶，防止过宽（配合 table-layout:fixed 自动换行 + max-width:100% 不溢出页面） */
+  const widths = s.cols.map(c => {
+    let w = c.w || 90;
+    if(isRes && c.k === 'name') w = Math.min(w, 200);
+    if(isRes && c.k === 'spec') w = Math.min(w, 150);
+    return Math.max(w, 36);
+  });
+  const sum = widths.reduce((a, b) => a + b, 0) || 1;
+  const colg = '<colgroup>' + widths.map(w => '<col style="width:' + w + 'px">').join('') + '</colgroup>';
+  h += '<table class="pvt" style="table-layout:fixed;width:' + sum + 'px;max-width:100%">' + colg +
+    '<thead><tr>' + s.cols.map(c => '<th>' + esc(c.l) + '</th>').join('') + '</tr></thead><tbody>';
+    s.rows.forEach(r => {
+      h += '<tr class="' + esc(r._cls || '') + '">';
+      s.cols.forEach(c => {
+        const raw = cellTxt(c, r.c[c.k], r);
+        const ml = /\n/.test(String(raw == null ? '' : raw));
+        const cls = (c.t === 'n' ? 't-r' : (c.c ? 't-c' : '')) + (ml ? ' wl' : '');
+        const ind = 0;
+        h += '<td class="' + cls + '">' +
+        esc(ml ? raw : nlMark(raw)) + '</td>';
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+/* 工程概况：与网页一致的「卡片」预览（标题带 + 标签/值双列 + 斑马纹），PDF 同款 */
+function pvOverviewHtml(s){
+  const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '';
+  let h = '<div class="pv-sheet"><div class="ph"><h3>工程概况</h3><div class="m">' +
+    '<span>工程：' + esc(pname) + '</span></div></div>';
+  if(!s.rows.length){ h += '<div style="padding:14px 2px;color:#8a93a0">（暂无数据）</div></div>'; return h; }
+  h += '<div class="pv-ov"><div class="ov-head">项目基本信息<span class="ov-c">' + s.rows.length + ' 项</span></div><div class="ov-list">';
+  s.rows.forEach((r, i) => {
+    h += '<div class="ov-row' + (i % 2 ? ' ze' : '') + '"><div class="ov-k">' + esc(r.c.k) + '</div>' +
+      '<div class="ov-v">' + esc(r.c.v == null ? '' : r.c.v) + '</div></div>';
+  });
+  h += '</div></div></div>';
+  return h;
+}
+function closePreview(){
+  $('#pv').classList.remove('on');
+  document.body.classList.remove('pv-on');
+}
+function exportAllXlsx(){
+  if(!PVDB){ toast('没有可导出数据'); return; }
+  const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '计价数据';
+  const ds = pvDate();
+  const sheets = [];
+  TABS.forEach(t => {
+    const s = buildSectionSheet(t.k, PVDB);
+    const rows = sectionSheetRows(s.cols, s.rows, s.title, KIND_LABEL[t.k], pname, ds);
+    const sh = { name:s.name, rows };
+    const w = sheetWidths(s.cols, s.rows);
+    if(w) sh.widths = w;
+    sheets.push(sh);
+  });
+  try{ dlBlob(pname + '.xlsx', buildXlsx(sheets)); toast('已导出 Excel（7 个表）'); }
+  catch(e){ toast('生成 Excel 失败：' + (e && e.message ? e.message : e)); }
+}
+function exportAllCsv(){
+  if(!PVDB){ toast('没有可导出数据'); return; }
+  const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '计价数据';
+  const out = allCsv(PVDB);
+  download(pname + '.csv', out);
+  toast('已导出 CSV（7 个表，可再次导入）');
+}
+function exportAllPdf(){
+  if(!PVDB){ toast('没有可导出数据'); return; }
+  const pname = PVPROJ >= 0 ? projName(PROJ[PVPROJ], PVPROJ) : '计价数据';
+  (async () => {
+    try{
+      const sections = TABS.map(t => buildSectionSheet(t.k, PVDB));
+      const bytes = await buildPdf(sections, { pname, date: pvDate() });
+      dlBlob(pname + '.pdf', new Blob([bytes], { type:'application/pdf' }));
+      toast('已导出 PDF（7 个表，含造价分析图表）');
+    }catch(e){ toast('生成 PDF 失败：' + (e && e.message ? e.message : e)); }
+  })();
+}
+/* 纯前端组装 PDF（零依赖、离线、直接下载，不调打印页）：每页画成 JPEG 嵌入 */
+async function buildPdf(sections, meta){
+  const dpr = 2;
+  const PW = 595.28, PH = 841.89, M = 30, FOOT = 16;
+  const CW = PW - M * 2;
+  const CJ = /[㐀-鿿豈-﫿＀-￯]/;
+  const wlen = t => { t = String(t == null ? '' : t); let n = 0; for(const ch of t){ n += CJ.test(ch) ? 1.9 : (ch === ' ' ? 0.4 : 1); } return n; };
+  const SIZE = 9, HSIZE = 9.5, LH = SIZE * 1.34, HLH = HSIZE * 1.34, PAD = 4;
+  const pages = [];
+  let cv, cx, y, PWD = PW, PHD = PH;
+  function newPage(pw, ph){
+    pw = pw || PW; ph = ph || PH;
+    PWD = pw; PHD = ph;
+    cv = document.createElement('canvas');
+    cv.width = Math.round(pw * dpr); cv.height = Math.round(ph * dpr);
+    cx = cv.getContext('2d'); cx.scale(dpr, dpr);
+    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, pw, ph);
+    cx.textBaseline = 'top'; y = M; pages.push({ cv, pw, ph });
+  }
+  function wrap(text, maxW){
+    const out = []; text = String(text == null ? '' : text);
+    text.split('\n').forEach(par => {
+      if(par === ''){ out.push(''); return; }
+      let line = '';
+      for(const ch of par){
+        const test = line + ch;
+        if(cx.measureText(test).width > maxW && line){ out.push(line); line = ch; }
+        else line = test;
+      }
+      out.push(line);
+    });
+    return out;
+  }
+  function colWidths(cols, rows){
+    let pref = cols.map(c => Math.max(wlen(c.l || c.k || ''), 3));
+    rows.forEach(r => cols.forEach((c, i) => { pref[i] = Math.max(pref[i], wlen(r.c ? r.c[c.k] : '')); }));
+    const total = pref.reduce((a, b) => a + b, 0) || 1;
+    let w = pref.map(p => Math.max(16, Math.min(150, p * (CW / total))));
+    const s = w.reduce((a, b) => a + b, 0);
+    const k = s > CW ? CW / s : (s < CW ? CW / s : 1);
+    if(k !== 1) w = w.map(x => x * k);
+    return w;
+  }
+  function gridLine(ry, rh, w, xs){
+    cx.strokeStyle = '#B9C2CC'; cx.lineWidth = 0.5; cx.beginPath();
+    for(let i = 0; i <= w.length; i++){ const xx = i < w.length ? xs[i] : M + CW; cx.moveTo(xx, ry); cx.lineTo(xx, ry + rh); }
+    cx.moveTo(M, ry); cx.lineTo(M + CW, ry);
+    cx.moveTo(M, ry + rh); cx.lineTo(M + CW, ry + rh);
+    cx.stroke();
+  }
+  const SPLIT = 4800; // 单页最大高度(css px)，超出则分页（仍按内容自适应，非 A4）
+  const meas = document.createElement('canvas').getContext('2d');
+  function wrapAt(text, maxW, font){
+    meas.font = font;
+    const out = []; text = String(text == null ? '' : text);
+    text.split('\n').forEach(par => {
+      if(par === ''){ out.push(''); return; }
+      let line = '';
+      for(const ch of par){
+        const test = line + ch;
+        if(meas.measureText(test).width > maxW && line){ out.push(line); line = ch; }
+        else line = test;
+      }
+      out.push(line);
+    });
+    return out;
+  }
+  /* 估算行高：按 cellTxt 格式化后的文本与列宽，估算每行实际渲染高度 */
+  function estRowH(r, cols, colW){
+    let n = 1;
+    cols.forEach((c, i) => {
+      const txt = String(cellTxt(c, r.c[c.k], r) == null ? '' : cellTxt(c, r.c[c.k], r));
+      const ind = (c.tree && c.k === 'name') ? Math.min(r._dep || 0, 6) * 12 : 0;
+      const cw = Math.max(20, colW[i] - ind - 12);
+      const lines = wrapAt(txt, cw, '11px sans-serif');
+      n = Math.max(n, lines.length);
+    });
+    return Math.max(22, n * 15 + 8);
+  }
+  /* 列宽：完全复用 pvSectionHtml 的算法，避免 DOM 测量时机/精度问题 */
+  function sectionColW(sec){
+    const isRes = sec.key === 'res';
+    return sec.cols.map(c => {
+      let w = c.w || 90;
+      if(isRes && c.k === 'name') w = Math.min(w, 200);
+      if(isRes && c.k === 'spec') w = Math.min(w, 150);
+      return Math.max(w, 36);
+    });
+  }
+  /* 取预览中某分节的页宽。表格类页宽 = 列宽总和 + 36；分析/概况固定 760。 */
+  function measureSheet(sec){
+    if(sec.key === 'analysis' || sec.key === 'overview') return { sw: 760, sh: 1000, empty: false };
+    const colW = sectionColW(sec);
+    return { sw: Math.max(360, colW.reduce((a, b) => a + b, 0) + 36), sh: 1000, empty: !sec.rows.length, colW, rowH: sec.rows.map(r => estRowH(r, sec.cols, colW)) };
+  }
+  function sheetChrome(sw, ph){
+    cx.strokeStyle = '#d5dbe2'; cx.lineWidth = 1;
+    cx.strokeRect(0.5, 0.5, sw - 1, ph - 1);
+  }
+  function drawPh(title, metaLine, ulW){
+    try{ cx.letterSpacing = '1px'; }catch(e){}
+    cx.fillStyle = '#1b2430'; cx.font = 'bold 15px sans-serif';
+    cx.fillText(title, 19, 17);
+    try{ cx.letterSpacing = '0px'; }catch(e){}
+    cx.fillStyle = '#5a6675'; cx.font = '11px sans-serif';
+    cx.fillText(metaLine, 19, 42);
+    cx.strokeStyle = '#1b2430'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(19, 63); cx.lineTo(19 + ulW, 63); cx.stroke();
+  }
+  function gridLines(ox, top, tableW, rh, colW){
+    cx.strokeStyle = '#b9c2cc'; cx.lineWidth = 0.75;
+    cx.beginPath();
+    let x = ox;
+    cx.moveTo(ox, top); cx.lineTo(ox, top + rh);
+    colW.forEach(w => { x += w; cx.moveTo(x, top); cx.lineTo(x, top + rh); });
+    cx.moveTo(ox, top); cx.lineTo(ox + tableW, top);
+    cx.moveTo(ox, top + rh); cx.lineTo(ox + tableW, top + rh);
+    cx.stroke();
+  }
+  /* 表格类分节：严格复刻预览 .pv-sheet / .pvt 样式，按内容自适应页高（非 A4），超高则分页并重复标题 */
+  function drawTableSection(sec, m){
+    const sw = Math.max(Math.round(m.sw || 640), 360);
+    if(m.empty || !m.colW || !m.colW.length){
+      newPage(sw, 130); sheetChrome(sw, 130);
+      drawPh(sec.title, '工程：' + (meta.pname || '') + '　共 ' + sec.rows.length + ' 行　' + meta.date, sw - 36);
+      cx.fillStyle = '#8a93a0'; cx.font = '10px sans-serif'; cx.fillText('（暂无数据）', 19, 84);
+      return;
+    }
+    const colW = m.colW, rowH = m.rowH;
+    const tableW = colW.reduce((a, b) => a + b, 0);
+    const ox = 19;
+    const titleH = 21, metaH = 15, phH = 17 + titleH + 4 + metaH + 6 + 8; // .ph 区到表格顶的距离
+    const theadH = (() => {
+      let mx = 1;
+      sec.cols.forEach((c, i) => { mx = Math.max(mx, wrapAt(c.l || c.k || '', colW[i] - 12, 'bold 11px sans-serif').length); });
+      return mx * 15 + 6;
+    })();
+    const perPage = []; let start = 0, acc = 0;
+    for(let i = 0; i < rowH.length; i++){
+      if(acc + rowH[i] > SPLIT - (phH + theadH + 24) && i > start){ perPage.push([start, i]); start = i; acc = rowH[i]; }
+      else acc += rowH[i];
+    }
+    if(start < rowH.length) perPage.push([start, rowH.length]);
+    const total = perPage.length;
+    perPage.forEach((rg, pi) => {
+      const sliceH = rowH.slice(rg[0], rg[1]).reduce((a, b) => a + b, 0);
+      const ph = phH + theadH + sliceH + 20;
+      newPage(sw, ph); sheetChrome(sw, ph);
+      drawPh(sec.title + (total > 1 ? '（' + (pi + 1) + '/' + total + '）' : ''),
+        '工程：' + (meta.pname || '') + '　共 ' + sec.rows.length + ' 行　' + meta.date, tableW);
+      let yy = phH;
+      cx.fillStyle = '#eef2f6'; cx.fillRect(ox, yy, tableW, theadH);
+      sec.cols.forEach((c, i) => {
+        const lines = wrapAt(c.l || c.k || '', colW[i] - 12, 'bold 11px sans-serif');
+        cx.fillStyle = '#1b2430'; cx.font = 'bold 11px sans-serif'; cx.textAlign = 'center';
+        const th = lines.length * 15, ty = yy + Math.max(3, (theadH - th) / 2);
+        lines.forEach((ln, ii) => cx.fillText(ln, ox + colW[i] / 2, ty + ii * 15));
+      });
+      cx.textAlign = 'left';
+      gridLines(ox, yy, tableW, theadH, colW);
+      yy += theadH;
+      for(let i = rg[0]; i < rg[1]; i++){
+        const r = sec.rows[i], rh = rowH[i], cls = r._cls;
+        const bg = cls === 'grp' ? '#f2f5f8' : cls === 'sum' ? '#eef2f6' : cls === 'leaf' ? '#fbfcfd' : cls === 'mat' ? '#fafbfc' : '#ffffff';
+        cx.fillStyle = bg; cx.fillRect(ox, yy, tableW, rh);
+        sec.cols.forEach((c, j) => {
+          const v = String(cellTxt(c, r.c[c.k], r) == null ? '' : cellTxt(c, r.c[c.k], r));
+          const ind = 0;
+          const cw = colW[j] - ind;
+          const align = c.t === 'n' ? 'right' : (c.c ? 'center' : 'left');
+          let color = '#222a33';
+          if(cls === 'sub') color = '#4a5563'; else if(cls === 'mat') color = '#6b7280'; else if(cls === 'grp' || cls === 'sum') color = '#1b2430';
+          const bold = (cls === 'grp' || cls === 'sum');
+          cx.fillStyle = color; cx.font = (bold ? 'bold ' : '') + '11px sans-serif'; cx.textAlign = align;
+          const tx = align === 'center' ? ox + colW[j] / 2 : align === 'right' ? ox + colW[j] - 6 : ox + 6 + ind;
+          const lines = wrapAt(v, cw - 12, (bold ? 'bold ' : '') + '11px sans-serif');
+          const th = lines.length * 15, ty = yy + Math.max(3, (rh - th) / 2);
+          lines.forEach((ln, ii) => cx.fillText(ln, tx, ty + ii * 15));
+        });
+        cx.textAlign = 'left';
+        gridLines(ox, yy, tableW, rh, colW);
+        yy += rh;
+      }
+    });
+  }
+  /* SVG 数据 URL → Image（用于把环形图绘进 PDF；无外部资源，不会污染 canvas） */
+  function loadSvgImg(svg){
+    return new Promise(res => {
+      try{
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = () => res(null);
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      }catch(e){ res(null); }
+    });
+  }
+  /* 造价分析：用 canvas 画卡片 + 环形图 + 图例 + 条形，与网页 vAnalysis / 预览一致 */
+  function drawCards(cards, AX, ACW){
+    const n = cards.length, gap = 8, cw = (ACW - gap * (n - 1)) / n, ch = 46;
+    cards.forEach((c, i) => {
+      const x = AX + i * (cw + gap);
+      cx.fillStyle = '#f5f7fa'; cx.fillRect(x, y, cw, ch);
+      cx.strokeStyle = '#e1e7ef'; cx.lineWidth = 1; cx.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1);
+      cx.textAlign = 'left';
+      cx.fillStyle = '#5a6675'; cx.font = '10px sans-serif'; cx.fillText(c.k, x + 8, y + 13);
+      cx.fillStyle = c.dim ? '#8a93a0' : '#1f3a5f'; cx.font = 'bold 15px sans-serif';
+      cx.fillText(trunc(c.v, Math.floor((cw - 16) / 8)), x + 8, y + 31);
+      cx.fillStyle = '#8a93a0'; cx.font = '9px sans-serif'; cx.fillText(trunc(c.s, Math.floor((cw - 16) / 6)), x + 8, y + ch - 4);
+    });
+    y += ch + 10;
+  }
+  async function drawDonutBlock(title, items, sub, AX, ACW){
+    if(!items || !items.length) return;
+    cx.textAlign = 'left';
+    cx.fillStyle = '#1f3a5f'; cx.font = 'bold 12px sans-serif'; cx.fillText(title, AX, y); y += 18;
+    const img = await loadSvgImg(svgDonut(items, 132));
+    const lx = AX + 150, lw = ACW - 150;
+    cx.font = '11px sans-serif';
+    let ly = y;
+    items.forEach((x, i) => {
+      cx.fillStyle = PAL[i % PAL.length]; cx.fillRect(AX + 4, ly + 2, 9, 9);
+      cx.fillStyle = '#3a4655'; cx.textAlign = 'left';
+      cx.fillText(trunc(x.n, 14), AX + 18, ly + 1);
+      cx.fillStyle = '#5a6675'; cx.textAlign = 'right';
+      cx.fillText(money(x.v) + '  ' + fmt(x.p, 1) + '%', lx + lw - 6, ly + 1);
+      ly += 16;
+    });
+    cx.textAlign = 'left';
+    if(img && img.width) cx.drawImage(img, AX, y, 132, 132);
+    y = Math.max(y + 132, ly) + 12;
+    if(sub){ cx.fillStyle = '#5a6675'; cx.font = '10px sans-serif'; cx.fillText(sub, AX, y); y += 14; }
+  }
+  function drawBarsBlock(title, items, AX, ACW){
+    if(!items || !items.length) return;
+    cx.textAlign = 'left';
+    cx.fillStyle = '#1f3a5f'; cx.font = 'bold 12px sans-serif'; cx.fillText(title, AX, y); y += 16;
+    const labelW = ACW > 500 ? 200 : 140;
+    const numW = ACW > 500 ? 100 : 80;
+    const bx = AX + labelW, bw = Math.max(60, ACW - labelW - numW);
+    items.forEach(x => {
+      const ny = y;
+      cx.fillStyle = '#3a4655'; cx.font = '11px sans-serif'; cx.textAlign = 'left';
+      cx.fillText(trunc(x.n, Math.floor(labelW / 11)), AX, ny);
+      const by = ny + 1, bh = 11;
+      cx.fillStyle = '#e6ebf1'; cx.fillRect(bx, by, bw, bh);
+      cx.fillStyle = PAL[0]; cx.fillRect(bx, by, bw * Math.min(x.p, 100) / 100, bh);
+      cx.fillStyle = '#1b2430'; cx.textAlign = 'right'; cx.fillText(money(x.v), AX + ACW - numW + 46, ny);
+      cx.fillStyle = '#8a93a0'; cx.fillText(fmt(x.p, 1) + '%', AX + ACW - 4, ny);
+      y += 16;
+    });
+    cx.textAlign = 'left';
+    y += 6;
+  }
+  /* 造价分析：与预览一致（卡片 + 环形图 + 图例 + 条形），按预览页宽自适应，非 A4，超高分页 */
+  async function drawAnalysis(sec, m){
+    const pageW = m.sw || 760;
+    const AX = 18, AY = 16, ACW = pageW - 36;
+    const md = analysisModel();
+    const has = md.comp.length || md.nat.length || md.pItems.length || md.qdTop.length || md.resGroups.length;
+    const blocks = [];
+    if(has){
+      if(md.cards.length) blocks.push({ h: 56, fn: () => drawCards(md.cards, AX, ACW) });
+      if(md.comp.length) blocks.push({ h: 18 + Math.max(132, md.comp.length * 16) + 12, fn: () => drawDonutBlock('工程造价构成', md.comp, null, AX, ACW) });
+      if(md.nat.length) blocks.push({ h: 18 + Math.max(132, md.nat.length * 16) + 12 + 14, fn: () => drawDonutBlock('分部分项费用性质构成（人工/材料/机械/主材/管理费/利润）', md.nat, '合计 ' + money(md.natSum) + ' 元' + (md.A ? '（分部分项工程费 ' + money(md.A) + ' 元）' : ''), AX, ACW) });
+      if(md.pItems.length) blocks.push({ h: 16 + md.pItems.length * 16 + 8, fn: () => drawBarsBlock('分部分项构成（按' + ['', '一级', '二级', '三级', '四级'][md.plv] + '分部 · 共 ' + md.partCount + ' 个，合计 ' + money(md.partSum) + ' 元）', md.pItems, AX, ACW) });
+      if(md.qdTop.length) blocks.push({ h: 16 + md.qdTop.length * 16 + 8, fn: () => drawBarsBlock('清单综合合价 TOP' + md.tn + '（共 ' + md.qdCount + ' 条清单，合计 ' + money(md.qdSum) + ' 元）', md.qdTop, AX, ACW) });
+      md.resGroups.forEach(g => blocks.push({ h: 16 + g.top.length * 16 + 8, fn: () => drawBarsBlock(g.label + '费金额 TOP' + g.n + '（共 ' + g.count + ' 项，合计 ' + money(g.sum) + ' 元）', g.top, AX, ACW) }));
+    }
+    if(!has){
+      newPage(pageW, 130); sheetChrome(pageW, 130);
+      drawPh('造价分析', '工程：' + (meta.pname || '') + '　' + meta.date, ACW);
+      cx.fillStyle = '#8a93a0'; cx.font = '10px sans-serif'; cx.fillText('（暂无数据）', AX, AY + 56);
+      return;
+    }
+    const pagesIdx = []; let cur = [], acc = 0;
+    for(const b of blocks){
+      if(acc + b.h > SPLIT - 60 && cur.length){ pagesIdx.push(cur); cur = []; acc = 0; }
+      cur.push(b); acc += b.h;
+    }
+    if(cur.length) pagesIdx.push(cur);
+    const total = pagesIdx.length; let pi = 0;
+    for(const pg of pagesIdx){
+      const ph = AY + pg.reduce((a, b) => a + b.h, 0) + 20;
+      newPage(pageW, ph); sheetChrome(pageW, ph);
+      drawPh('造价分析' + (total > 1 ? '（' + (++pi) + '/' + total + '）' : ''), '工程：' + (meta.pname || '') + '　' + meta.date, ACW);
+      y = AY + 56;
+      for(const b of pg) await b.fn();
+    }
+  }
+  /* 工程概况：画与预览「pv-ov」卡片一致的页面（标题带 + 标签/值双列 + 斑马纹），按内容自适应页高（非 A4） */
+  async function drawOverview(sec, m){
+    const items = sec.rows.map(r => ({ k:String(r.c.k == null ? '' : r.c.k), v:String(r.c.v == null ? '' : r.c.v) }));
+    const OW = 760, M2 = 18, LW = 132, RP = 10, BAND = 28, topH = 30;
+    const valW = OW - M2 * 2 - LW;
+    /* 用独立度量上下文估算行高（不依赖当前页 cx，避免 newPage 之前 cx 未初始化） */
+    const meas2 = document.createElement('canvas').getContext('2d');
+    const wrap2 = (text, maxW) => {
+      meas2.font = SIZE + 'px sans-serif';
+      const out = []; text = String(text == null ? '' : text);
+      text.split('\n').forEach(par => {
+        if(par === ''){ out.push(''); return; }
+        let line = '';
+        for(const ch of par){
+          const test = line + ch;
+          if(meas2.measureText(test).width > maxW && line){ out.push(line); line = ch; }
+          else line = test;
+        }
+        out.push(line);
+      });
+      return out;
+    };
+    const rhFor = v => Math.max(wrap2(v, valW - RP * 2).length * LH + 10, 26);
+    const maxPage = 1500;
+    let groups = [], cur = [], ch = topH + BAND;
+    items.forEach(it => {
+      const rh = rhFor(it.v);
+      if(ch + rh > maxPage && cur.length){ groups.push(cur); cur = []; ch = BAND; }
+      cur.push({ it, rh }); ch += rh;
+    });
+    if(cur.length) groups.push(cur);
+    groups.forEach((g, gi) => {
+      let total = BAND; g.forEach(o => total += o.rh);
+      const OVH = topH + total + M2 + 6;
+      newPage(OW, OVH); y = M2;
+      cx.fillStyle = '#1b2430'; cx.font = 'bold 13px sans-serif';
+      cx.fillText('工程概况' + (groups.length > 1 ? '（' + (gi + 1) + '/' + groups.length + '）' : ''), M2, y);
+      cx.font = '9px sans-serif'; cx.fillStyle = '#5a6675';
+      cx.fillText('工程：' + (meta.pname || '') + '　' + meta.date + '　共 ' + items.length + ' 项', M2, y + 16);
+      y += topH;
+      const cardY0 = y;
+      cx.fillStyle = '#1f3a5f'; cx.fillRect(M2, y, OW - M2 * 2, BAND);
+      cx.fillStyle = '#fff'; cx.textBaseline = 'middle';
+      cx.font = 'bold 12px sans-serif'; cx.fillText('项目基本信息', M2 + 12, y + BAND / 2);
+      cx.font = '9px sans-serif'; cx.textAlign = 'right';
+      cx.fillText(items.length + ' 项', OW - M2 - 12, y + BAND / 2); cx.textAlign = 'left';
+      cx.textBaseline = 'top';
+      y += BAND;
+      g.forEach((o, i) => {
+        const rh = o.rh, ze = (i % 2 === 1);
+        cx.fillStyle = ze ? '#eef2f7' : '#f3f6fa'; cx.fillRect(M2, y, LW, rh);
+        cx.fillStyle = '#5a6675'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle';
+        cx.fillText(o.it.k, M2 + 10, y + rh / 2);
+        cx.fillStyle = ze ? '#fbfcfe' : '#ffffff'; cx.fillRect(M2 + LW, y, valW, rh);
+        cx.fillStyle = '#222a33'; cx.font = SIZE + 'px sans-serif';
+        const ls = wrap(o.it.v, valW - RP * 2), th = ls.length * LH, ty = y + Math.max(5, (rh - th) / 2);
+        ls.forEach((ln, ii) => cx.fillText(ln, M2 + LW + RP, ty + ii * LH));
+        cx.strokeStyle = '#e6ebf1'; cx.lineWidth = 0.5;
+        cx.beginPath();
+        cx.moveTo(M2, y + rh); cx.lineTo(M2 + LW + valW, y + rh);
+        cx.moveTo(M2 + LW, y); cx.lineTo(M2 + LW, y + rh);
+        cx.stroke();
+        cx.textBaseline = 'top';
+        y += rh;
+      });
+      cx.strokeStyle = '#cdd5df'; cx.lineWidth = 1;
+      cx.strokeRect(M2 + 0.5, cardY0 + 0.5, OW - M2 * 2 - 1, (y - cardY0) - 1);
+    });
+  }
+  /* 优先：把「打印预览」里实际渲染的 DOM 逐节栅格化成图片，做到 PDF 与预览一模一样（自适应页宽/页高，非 A4）。
+     若浏览器对 foreignObject 做了安全限制（toDataURL 抛异常），则回退到下面的纯 canvas 手绘。 */
+  const styleText = (() => { const st = document.querySelector('style'); return st ? st.textContent : ''; })();
+  const themeAttr = document.documentElement.getAttribute('data-theme') || '';
+  const _origPV = PVKEY;
+  const outline = [];
+  for(let si = 0; si < sections.length; si++){
+    const sec = sections[si];
+    const startPage = pages.length;
+    let ok = false;
+    try{
+      PVKEY = sec.key; renderPvBody();
+      const el = document.querySelector('#pvBody').firstElementChild;
+      if(el){
+        let W = Math.ceil(el.getBoundingClientRect().width);
+        let H = Math.ceil(el.getBoundingClientRect().height);
+        if(W >= 40 && H >= 40){
+          const xml = new XMLSerializer().serializeToString(el);
+          const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '">' +
+            '<foreignObject x="0" y="0" width="' + W + '" height="' + H + '">' +
+            '<div xmlns="http://www.w3.org/1999/xhtml" data-theme="' + themeAttr + '" style="width:' + W + 'px;background:#fff;box-sizing:border-box">' +
+            '<style><![CDATA[' + styleText + ']]></style>' + xml + '</div></foreignObject></svg>';
+          const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+          const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('svg')); im.src = url; });
+          const rcv = document.createElement('canvas');
+          rcv.width = W * dpr; rcv.height = H * dpr;
+          const rcx = rcv.getContext('2d');
+          rcx.fillStyle = '#fff'; rcx.fillRect(0, 0, rcv.width, rcv.height);
+          rcx.drawImage(img, 0, 0, rcv.width, rcv.height);
+          rcv.toDataURL('image/jpeg', 0.92); // 预检：若被安全策略标记，这里会抛异常 → 走兜底
+          pages.push({ cv: rcv, pw: W, ph: H });
+          ok = true;
+        }
+      }
+    }catch(e){ /* 落到 canvas 兜底绘制 */ }
+    if(!ok){
+      const m = measureSheet(sec);
+      if(sec.key === 'analysis') await drawAnalysis(sec, m);
+      else if(sec.key === 'overview') await drawOverview(sec, m);
+      else drawTableSection(sec, m);
+    }
+    outline.push({ title: KIND_LABEL[sec.key] || sec.title, page: startPage });
+  }
+  PVKEY = _origPV; renderPvBody();
+  const imgs = pages.map(p => {
+    const d = p.cv.toDataURL('image/jpeg', 0.92);
+    const b64 = d.slice(d.indexOf(',') + 1);
+    const bin = atob(b64);
+    const u = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return { bytes:u, w:p.cv.width, h:p.cv.height, pw:p.pw, ph:p.ph };
+  });
+  return pdfFromImages(imgs, outline);
+}
+/* PDF 字符串：UTF-16BE（带 BOM）十六进制，支持中文书签标题 */
+function pdfText(s){
+  let u = '﻿';
+  for(const ch of String(s)){
+    const cp = ch.codePointAt(0);
+    if(cp <= 0xFFFF) u += String.fromCharCode(cp);
+    else { u += String.fromCharCode(0xD800 + ((cp - 0x10000) >> 10)); u += String.fromCharCode(0xDC00 + ((cp - 0x10000) & 0x3FF)); }
+  }
+  let hex = '';
+  for(let i = 0; i < u.length; i++) hex += ('00' + u.charCodeAt(i).toString(16)).slice(-2);
+  return '<' + hex + '>';
+}
+function pdfFromImages(imgs, outline){
+  outline = outline || [];
+  const enc = new TextEncoder();
+  const N = imgs.length;
+  const M = outline.length;
+  const O = 2 + 3 * N;               /* 现有最大对象号 */
+  const OL_ROOT = O + 1;
+  const olItems = []; for(let i = 0; i < M; i++) olItems.push(O + 2 + i);
+  const objCount = O + 1 + M;        /* 含目录根 + 条目 */
+  const parts = []; let len = 0; const off = {};
+  const emit = s => {
+    const u = (s instanceof Uint8Array) ? s : enc.encode(s);
+    off[parts.length] = len; len += u.length; parts.push(u); return len - u.length;
+  };
+  emit(new Uint8Array([0x25,0x50,0x44,0x46,0x2D,0x31,0x2E,0x34,0x0A,0x25,0xE2,0xE3,0xCF,0xD3,0x0A]));
+  off[1] = emit('1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Outlines ' + OL_ROOT + ' 0 R >>\nendobj\n');
+  let kids = [];
+  for(let i = 0; i < N; i++) kids.push((5 + i * 3) + ' 0 R');
+  off[2] = emit('2 0 obj\n<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + N + ' >>\nendobj\n');
+  for(let i = 0; i < N; i++){
+    const cObj = 3 + i * 3, iObj = 4 + i * 3, pObj = 5 + i * 3;
+    const pw = imgs[i].pw, ph = imgs[i].ph;
+    const content = 'q\n' + pw.toFixed(2) + ' 0 0 ' + ph.toFixed(2) + ' 0 0 cm\n/Im0 Do\nQ\n';
+    off[cObj] = emit(cObj + ' 0 obj\n<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream\nendobj\n');
+    const dict = iObj + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + imgs[i].w + ' /Height ' + imgs[i].h +
+      ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + imgs[i].bytes.length + ' >>\nstream\n';
+    off[iObj] = emit(dict);
+    emit(imgs[i].bytes);
+    emit('\nendstream\nendobj\n');
+    off[pObj] = emit(pObj + ' 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw.toFixed(2) + ' ' + ph.toFixed(2) + '] /Resources << /XObject << /Im0 ' + iObj + ' 0 R >> >> /Contents ' + cObj + ' 0 R >>\nendobj\n');
+  }
+  /* 书签（大纲）：7 张表各一条，指向对应起始页 */
+  if(M){
+    off[OL_ROOT] = emit(OL_ROOT + ' 0 obj\n<< /Type /Outlines /First ' + olItems[0] + ' 0 R /Last ' + olItems[M - 1] + ' 0 R /Count ' + M + ' >>\nendobj\n');
+    olItems.forEach((obj, i) => {
+      let d = obj + ' 0 obj\n<< /Title ' + pdfText(outline[i].title) + ' /Parent ' + OL_ROOT + ' 0 R';
+      if(i > 0) d += ' /Prev ' + olItems[i - 1] + ' 0 R';
+      if(i < M - 1) d += ' /Next ' + olItems[i + 1] + ' 0 R';
+      const pobj = 5 + (outline[i].page | 0) * 3;
+      d += ' /Dest [ ' + pobj + ' 0 R /XYZ null null null ]';
+      d += ' >>\nendobj\n';
+      off[obj] = emit(d);
+    });
+  }
+  const xrefStart = len;
+  let xref = 'xref\n0 ' + (objCount + 1) + '\n0000000000 65535 f \n';
+  for(let n = 1; n <= objCount; n++){ const o = off[n] != null ? off[n] : 0; xref += ('0000000000' + o).slice(-10) + ' 00000 n \n'; }
+  const trailer = 'trailer\n<< /Size ' + (objCount + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefStart + '\n%%EOF';
+  const all = new Uint8Array(len + enc.encode(xref).length + enc.encode(trailer).length);
+  let p = 0;
+  parts.forEach(u => { all.set(u, p); p += u.length; });
+  const xe = enc.encode(xref); all.set(xe, p); p += xe.length;
+  const te = enc.encode(trailer); all.set(te, p);
+  return all;
+}
 /* 导出弹窗：只选项目，每个项目导出为一个工作表 */
 function openExport(){
   if(!PROJ.length){ toast('还没有项目可导出'); return; }
@@ -2211,9 +3664,7 @@ function openExport(){
     '<span>' + esc(projName(p, i)) + '</span><span class="c">' + projRowCount(p.db) + ' 行</span></label>').join('');
   $('#dlg').innerHTML =
     '<h4>导出 Excel</h4><div class="bd">' +
-    '<div class="note">导出的就是<b>选中项目的全部数据</b>：造价分析 / 工程概况 / 分部分项 / 措施项目 / 其他项目 / 人材机汇总 / 费用汇总，不用一张张挑。<br>' +
-    '<b>一个项目 = 一个工作表</b>，工作表名称就是项目名称；编码这类第一列一律按<b>文本</b>写入，前面的 0 不会被吃掉。</div>' +
-    '<div style="font-size:11px;color:var(--txt2);margin:10px 0 4px">选择项目（可多选，默认当前项目）</div>' +
+    '<div style="font-size:11px;color:var(--txt2);margin:2px 0 4px">选择项目（可多选，默认当前项目）</div>' +
     '<div class="cklist">' + ph + '</div></div>' +
     '<div class="ft"><button class="pbtn gh" id="exAll">全选项目</button>' +
     '<button class="pbtn gh" id="exCsv">改成导出 CSV</button>' +
@@ -2256,8 +3707,11 @@ function openExport(){
     toast('已导出 ' + sheets.length + ' 个项目（每个项目一个工作表）');
   };
 }
-$('#bCsv').onclick = e => { e.stopPropagation(); openExport(); };
-$('#bPrint').onclick = () => window.print();
+$('#bPrint').onclick = () => openPreview();
+$('#pvClose').onclick = closePreview;
+$('#pvCsv').onclick = exportAllCsv;
+$('#pvXlsx').onclick = exportAllXlsx;
+$('#pvPdf').onclick = exportAllPdf;
 $('#bTheme').onclick = () => {
   const d = document.documentElement.dataset.theme === 'dark';
   document.documentElement.dataset.theme = d ? '' : 'dark';
@@ -2270,24 +3724,49 @@ $('#bHelp').onclick = () => {
     '<p><b>1. 在广联达里复制</b>：打开报表/界面，鼠标拖选整张表（含表头），<code>Ctrl+C</code>。</p>' +
     '<p><b>2. 回这里粘贴（两种方式）</b></p>' +
     '<ul style="margin:6px 0 6px 18px">' +
+    '<li><b>「粘贴数据」窗口也可以分次贴</b>：左边选好表类型，勾选<b>「分多次粘贴合并」</b>，一段一段贴（' +
+    '<b>勾选后每贴一段都不会提前解析</b>），全部贴完点<b>「完成合并导入」</b>一次性识别导入。</li>' +
+    '<li><b>工具栏「项目栏」「分部栏」按钮</b>：显示 / 隐藏左侧「工程项目」栏和「分部目录」栏；' +
+    '两个面板<b>右侧边都能拖动调宽度</b>，宽度和显隐会记下来，下次打开还是这样</li>' +
+    '<li><b>类别识别</b>：<code>部</code>=分部；<code>项</code>、<code>补项</code>=清单行；' +
+    '<code>定</code>、<code>借</code>、<code>借换</code>、<code>补子目</code>=定额行；<code>主</code>、<code>设</code>=主材行</li>' +
+    '<li><b>列的多少跟着层级走</b>：点<b>一级 / 二级 / 三级 / 四级 / 清单</b>只显示' +
+    '<code>编码 类别 名称 项目特征 规格型号 单位 工程量 综合单价 综合合价</code>；' +
+    '点<b>全部 / 定额</b>会多出<code>工程量表达式 含量 单价 合价</code>；' +
+    '<b>在「清单」层级点某条清单行的箭头展开定额时，也会自动换成这套完整列</b></li>' +
+    '<li><b>折叠箭头</b>：分部、清单、定额三类行都带箭头，点一下收起 / 展开下一层（定额行的箭头管它下面的主材）</li>' +
+    '<li><b>导出</b>：点工具栏「导出」先出<b>导出预览</b>，再选<b>导出 CSV / Excel / PDF</b>（一次含全部七张表，PDF 带书签可直接跳转）</li>' +
+    '<li>「规格型号」默认都显示，想隐藏就在表头右键取消勾选</li>' +
     '<li><b>按页粘贴（推荐）</b>：先「新建空项目」，再点上面的 <b>造价分析 / 工程概况 / 分部分项 …</b> 任一页，' +
-    '页面里就直接有个粘贴框，<code>Ctrl+V</code>（或点「从剪贴板读取」）即可。<b>会先核对表头</b>：对上就导入，' +
-    '不对就提示你（可以改导入到识别出的那张表，或坚持放进当前页），不会把数据放错地方。</li>' +
+    '<b>还没有数据的那一页</b>里就直接有个粘贴框，<code>Ctrl+V</code>（或点「从剪贴板读取」）即可。<b>会先核对表头</b>：对上就导入，' +
+    '不对就提示你（可以改导入到识别出的那张表，或坚持放进当前页），不会把数据放错地方。<br>' +
+    '<li><b>数据太大、一次复制会失灵？</b>在粘贴框里勾选<b>「分多次粘贴合并」</b>，' +
+    '一段一段 <code>Ctrl+V</code>（每段都续在框里，不识别），全部贴完点<b>「完成合并导入」</b>一次性识别导入。' +
+    '大窗口里也有同样的勾选。</li>' +
+    '<span style="color:var(--txt2)">工具栏「粘贴数据」只在当前项目<b>还没有数据</b>时显示；' +
+    '项目有数据后想重新贴，在左侧项目上<b>右键「向该项目粘贴数据」</b>，或「清空该项目数据」后再按页贴。</span></li>' +
     '<li><b>一次贴七张表</b>：点工具栏「粘贴数据」，把七张表连着一起贴进去，会按表头自动拆开。</li>' +
     '</ul>' +
     '<div class="note">可以一次把 <b>造价分析 / 工程概况 / 分部分项 / 措施项目 / 其他项目 / 人材机汇总 / 费用汇总</b> 七张表全部贴进去，会自动按表头拆开，不需要一张一张来。项目特征里的换行也会保留。</div>' +
     '<p><b>3. 几个鼠标操作</b></p>' +
     '<ul style="margin:6px 0 6px 18px">' +
-    '<li>左侧项目名：<b>长按可拖动排序</b>，右键重命名 / 清空 / 删除</li>' +
+    '<li>左侧项目名：<b>长按可拖动排序</b>；右键可重命名 / 粘贴 / 清空 / 删除，' +
+    '还有<b>批量修改名称</b>（一次改多个项目名，可统一加前后缀）和<b>批量删除项目</b>（勾选多个一次删掉）</li>' +
     '<li>分部分项：左侧是分部目录树（自动判断几级，最多四级）；顶部「全部/一级/二级/三级/四级/清单/定额」切换层级。' +
     '<b>先点层级再点目录</b>，就以该层级看某个分部（层级优先）</li>' +
-    '<li>分部目录<b>右键</b>弹出层级设置：可逐个给每个分部指定一级~四级，也能一次「全部设为 N 级」；设置后目录按层级缩进，造价分析的「分部分项构成」也按这个层级统计</li>' +
+    '<li>分部层级：<b>目录节点右键</b>就地弹出菜单，直接选 自动/一级~四级；菜单里点<b>「批量设置层级…」</b>进入批量弹窗。' +
+    '在右边<b>清单里右键某一行分部</b>也可以单独设。设置后目录按层级缩进，造价分析的「分部分项构成」也按这个层级统计</li>' +
+    '<li>折叠/展开：清单里点名称前的箭头、<b>左侧目录里每个分部前也有箭头</b>——展开 <b>▼</b>、折叠 <b>▶</b>，目录和清单两边是联动的</li>' +
+    '<li><b>规格型号</b>列在「一级~四级 / 清单」视图里默认隐藏（定额/全部保留）；要显示的话在表头右键勾上「规格型号」</li>' +
+    '<li><b>项目特征</b>里的换行符会<b>真实分行显示</b>（按 1. 2. 3. 每条一行），不再是挤成一行的 ↵</li>' +
     '<li>表格<b>表头右键</b>可勾选要显示的列、设置行高；拖表头右侧可调整列宽。列宽/行高/显示列<b>对所有工程生效</b>，下次打开还在</li>' +
     '<li>人材机汇总：<b>点击表头排序</b>（再点一次反向）</li>' +
     '<li>造价分析：单方造价卡片 <b>右键输入建筑面积</b>；清单 TOP / 人工·材料·机械 TOP 标题 <b>右键改数量</b>；' +
     '「分部分项构成」标题 <b>右键</b>切换显示到一级~四级</li>' +
-    '<li><b>导出Excel</b>：只选项目就行，<b>每个项目 = 一个工作表</b>，工作表名就是项目名，' +
-    '表里包含该项目全部数据；编码这类第一列一律按文本写入，前面的 0 不会被吃掉。也可以在导出窗口里点「改成导出 CSV」</li>' +
+    '<li><b>导出</b>：点工具栏「导出」打开<b>导出预览</b>后，可一键<b>导出 CSV / Excel / PDF</b>。' +
+    '分部分项按网页当前<b>层级选择</b>导出（选了「清单」层级就只导出清单级数据，不显示全部）；导出预览不显示行数与日期。' +
+    'CSV 与导入互为逆操作：导出的 CSV 可再次通过「工程项目」右键「导入工程」<b>新建一个工程</b>（工程名取工程概况的「工程名称」，为空时用文件名）；' +
+    'Excel 里首列（编码/序号）按「文本」格式写入，前面的 0 不会被吃掉，金额仍是数字可直接计算。</li>' +
     '<li><b>搜索框</b>：右上角输入即筛选，点框里的 <b>✕</b> 清除</li>' +
     '</ul>' +
     '<p><b>3. 需要的表头</b>（复制时记得连表头一起选）：</p>' +
@@ -2305,7 +3784,11 @@ $('#bHelp').onclick = () => {
   $('#mask').classList.add('on');
 };
 $('#mask').onclick = e => { if(e.target.id === 'mask') $('#mask').classList.remove('on'); };
-document.addEventListener('keydown', e => { if(e.key === 'Escape') $('#mask').classList.remove('on'); });
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if($('#pv').classList.contains('on')){ closePreview(); return; }
+  $('#mask').classList.remove('on');
+});
 
 /* =========================================================
    9. 本地保存
