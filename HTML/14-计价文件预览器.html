@@ -331,7 +331,16 @@ table.kv .vv{font-weight:600}
 .pv-tab{padding:5px 13px;font-size:12px;border:1px solid var(--line);border-bottom:none;border-radius:7px 7px 0 0;cursor:pointer;color:var(--txt2);background:var(--bg2);line-height:1.5}
 .pv-tab.on{background:var(--bg);color:var(--pri-d);font-weight:600;border-color:var(--pri)}
 .pv-tab.empty{opacity:.45}
-.pv-sheet{background:#fff;color:#1b2430;padding:16px 18px;border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);width:max-content;max-width:100%;align-self:flex-start}
+/* 预览卡片：表格按列像素宽排（table-layout:fixed + colgroup 固定像素），
+   max-width:100% 压不住固定像素的 colgroup —— 让卡片自己兜底横向滚动，
+   绝不把整个页面撑宽（宽屏也会溢出，所以不能只在窄屏开）。
+   min-width:0 是关键：flex 子项默认 min-width:auto，会被内容撑开。
+   flex-shrink:0 同样是关键：父级是 display:flex，默认 flex-shrink:1，
+   主轴空间不够时会把这个盒子压窄 → 里面的固定像素表格被裁掉右侧
+   （PDF 栅格化正是按这个盒子的 getBoundingClientRect 宽度出图的，量到窄的就会缺列）。
+   不压窄、超出部分交给这里的 overflow-x 滚动，才是正确行为。 */
+.pv-sheet{background:#fff;color:#1b2430;padding:16px 18px;border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);width:max-content;max-width:100%;align-self:flex-start;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:0;flex:0 0 auto}
 .pv-sheet .ph{border-bottom:2px solid #1b2430;padding-bottom:6px;margin-bottom:8px}
 .pv-sheet .ph h3{margin:0;font-size:15px;letter-spacing:1px}
 .pv-sheet .ph .m{font-size:11px;color:#5a6675;margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
@@ -341,6 +350,39 @@ table.pvt th{background:#eef2f6;font-weight:600;white-space:normal;text-align:ce
 table.pvt td{white-space:normal}
 table.pvt td.wl{white-space:pre-line}
 table.pvt td.t-r{text-align:right;font-variant-numeric:tabular-nums}
+/* —— 窄屏（手机/平板竖屏）——
+   两个目的：
+   1) 主界面别撑破文档：顶栏/工具栏改成「自己横向滚动」，文档本身锁住不横向滚。
+      这个页面本来就是「内部滚动」的桌面式布局（html,body 已 overflow:hidden），
+      横向同理锁住最外层，才不会因为顶栏一排按钮就整页左右晃。
+   2) 导出预览的表格按列比例缩放到可用宽度（每列 --pw = 该列宽占总宽的百分比）。
+      宽屏仍用像素宽（与导出 PDF 完全一致）；窄屏改用百分比，各列等比缩窄、整表铺满。
+   断点取 1024px：本页刻意不写 viewport 元信息（按用户要求），
+   手机浏览器于是按默认 layout viewport ≈980px 排版、再整体缩放到物理屏宽 ——
+   也就是 CSS 里看到的宽度约 980，所以断点必须 ≥980（原来的 900 就永远命中不了）。
+   1024 既覆盖了手机的 980，又不影响 1280/1440 这些正常桌面宽度。 */
+@media (max-width:1024px){
+  html,body{overflow-x:hidden}
+  #top,#tools{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none}
+  #top::-webkit-scrollbar,#tools::-webkit-scrollbar{height:0}
+  #top .sp,#tools .sp{flex:0 0 6px}
+  #main{min-width:0}
+  #nav{width:150px;flex:0 0 150px}
+  #pv .pv-bar{padding:6px 8px;gap:5px;flex-wrap:wrap}
+  #pv .pv-bar .tt{font-size:12px}
+  #pv .pv-bar .mini{font-size:10px}
+  #pv .pv-tabs{padding:4px 6px 0;gap:3px}
+  #pv .pv-tab{padding:4px 9px;font-size:11px}
+  #pv .pv-body{padding:6px;justify-content:flex-start;display:block}
+  #pv .pv-sheet{width:100%!important;max-width:100%!important;min-width:0;
+    padding:10px 8px}
+  #pv table.pvt{width:100%!important;max-width:100%!important;min-width:0}
+  #pv table.pvt col{width:var(--pw)!important}
+  #pv table.pvt th,#pv table.pvt td{padding:2px 3px;font-size:10px;word-break:break-all;overflow-wrap:anywhere}
+  #pv table.pvt th{font-size:9.5px;line-height:1.25}
+  #pv .pv-sheet .ph h3{font-size:13px}
+  #pv .pv-sheet .ph .m{font-size:10px;gap:8px}
+}
 /* 预览里的造价分析：浅色卡片/图块，白底更干净，且与导出的 PDF 视觉一致 */
 #pv .pv-analysis{color:#1b2430}
 #pv .pv-analysis .cards{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
@@ -398,7 +440,7 @@ table.pvt tr.sum td{background:#eef2f6;font-weight:700}
   body.pv-on #pv{position:static;display:block;height:auto;overflow:visible;background:#fff}
   body.pv-on .pv-bar,body.pv-on .pv-tabs{display:none!important}
   body.pv-on .pv-body{display:block;overflow:visible;padding:0;height:auto}
-  body.pv-on .pv-sheet{border:none;box-shadow:none;width:auto;max-width:none;padding:0}
+  body.pv-on .pv-sheet{border:none;box-shadow:none;width:auto;max-width:none;padding:0;overflow:visible}
 }
 </style>
 </head>
@@ -3620,7 +3662,13 @@ function pvSectionHtml(s){
     return Math.max(w, 36);
   });
   const sum = widths.reduce((a, b) => a + b, 0) || 1;
-  const colg = '<colgroup>' + widths.map(w => '<col style="width:' + w + 'px">').join('') + '</colgroup>';
+  /* 每列写出像素宽，同时用 CSS 变量记下「本列宽 / 总宽」。
+     宽屏：按像素宽排（与 PDF 完全一致）；
+     窄屏（手机）：CSS 里把每列宽度换成 var(--pw) 的百分比 → 各列按原比例自动缩放到屏幕宽，
+     整表恰好铺满、不横向溢出（表格外面不用出现横向滚动条）。 */
+  const colg = '<colgroup>' + widths.map((w, i) =>
+    '<col data-k="' + esc(s.cols[i].k) + '" style="width:' + w + 'px;--pw:' + (w / sum * 100).toFixed(4) + '%">'
+  ).join('') + '</colgroup>';
   h += '<table class="pvt" style="table-layout:fixed;width:' + sum + 'px;max-width:100%">' + colg +
     '<thead><tr>' + s.cols.map(c => '<th>' + esc(c.l) + '</th>').join('') + '</tr></thead><tbody>';
     s.rows.forEach(r => {
@@ -4099,8 +4147,17 @@ async function buildPdf(sections, meta){
       PVKEY = sec.key; renderPvBody();
       const el = document.querySelector('#pvBody').firstElementChild;
       if(el){
+        /* .pv-sheet 平时带 overflow-x:auto（窄屏/超宽表格时卡片内滚动，不撑破页面）。
+           但栅格化要的是「内容原始尺寸」：先把裁剪关掉、让盒子按内容撑开，
+           量完 W/H 再恢复，否则量到的是裁剪后的宽度 → 导出的 PDF 会被切掉右侧。
+           width:max-content 同时也是正常预览下的宽度，所以量出来的就是所见尺寸。 */
+        const _ov = el.style.overflowX, _wd = el.style.width, _mw = el.style.maxWidth;
+        el.style.overflowX = 'visible';
+        el.style.width = 'max-content';
+        el.style.maxWidth = 'none';
         let W = Math.ceil(el.getBoundingClientRect().width);
         let H = Math.ceil(el.getBoundingClientRect().height);
+        el.style.overflowX = _ov; el.style.width = _wd; el.style.maxWidth = _mw;
         if(W >= 40 && H >= 40){
           const xml = new XMLSerializer().serializeToString(el);
           const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -4319,6 +4376,9 @@ $('#bHelp').onclick = () => {
     '<b>定额</b>层级只列到定额行，<b>点某条定额行的箭头</b>才显示它下面的主材行</li>' +
     '<li><b>导出</b>：点工具栏「导出」先出<b>导出预览</b>，再选<b>导出 CSV / Excel / PDF</b>（一次含全部七张表，PDF 带书签可直接跳转）；' +
     '只想导出其中<b>一张表</b>时，在导出预览里<b>右键那张表的标签</b>选「导出本表 Excel / PDF」即可</li>' +
+    '<li><b>手机上打开</b>：本页不设 viewport，手机会把整页<b>按桌面版式(约 980px)铺好后整体缩小</b>到你的屏宽，' +
+    '一屏能看全、不用左右拖；导出预览的表格还会按原列宽<b>比例缩到可用宽度</b>，列不会被切掉。' +
+    '若某张表列特别多、缩得字太小，可在这张表的卡片内<b>单独左右拖动</b>看细节（整页不会跟着晃），或直接把手机横过来看</li>' +
     '<li>「规格型号」默认都显示，想隐藏就在表头右键取消勾选</li>' +
     '<li><b>按页粘贴（推荐）</b>：先「新建空项目」，再点上面的 <b>造价分析 / 工程概况 / 分部分项 …</b> 任一页，' +
     '<b>还没有数据的那一页</b>里就直接有个粘贴框，<code>Ctrl+V</code>（或点「从剪贴板读取」）即可。<b>会先核对表头</b>：对上就导入，' +
