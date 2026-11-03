@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 手机端不做移动端适配：固定 1980 宽度渲染，与电脑显示效果一致 -->
+<meta name="viewport" content="width=1980">
+<title>造价审减分析表</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --text:#333a40; --muted:#8a929b;
+    --border:#e6e9ed; --accent:#5b8def; --accent-soft:#eef3ff;
+    --danger:#d9534f; --green:#3a9d6e; --chip:#f0f2f5; --chip-hover:#e7eaee;
+    --shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  [data-theme="dark"]{
+    --bg:#16181b; --card:#22262b; --text:#dfe3e8; --muted:#9aa3ad;
+    --border:#32373d; --accent:#6f9bff; --accent-soft:#1e2738;
+    --danger:#e06b67; --green:#4cbf8b; --chip:#2a2f35; --chip-hover:#33393f;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:13px; line-height:1.5; padding-bottom:80px;
+  }
+  .topbar{
+    position:sticky; top:0; z-index:20; background:var(--card);
+    border-bottom:1px solid var(--border); padding:10px 12px;
+    box-shadow:var(--shadow);
+  }
+  .topbar h1{font-size:15px; margin:0 0 8px; font-weight:600; letter-spacing:.5px;}
+  .toolbar{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .toolbar .spacer{flex:1 1 auto;}
+  label.ctl{display:inline-flex; align-items:center; gap:4px; color:var(--muted); font-size:12px;}
+  select, input.inp{
+    background:var(--input-bg,#fff); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; font-size:13px;
+    padding:5px 7px; outline:none;
+  }
+  select:focus, input.inp:focus{border-color:var(--accent);}
+  [data-theme="dark"] select,[data-theme="dark"] input.inp{background:#2b2f34;}
+  button{
+    background:var(--chip); color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer;
+    transition:background .15s;
+  }
+  button:hover{background:var(--chip-hover);}
+  button.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  button.primary:hover{filter:brightness(1.05);}
+  button.ghost{background:transparent;}
+  button.danger{color:var(--danger);}
+  .icon-btn{
+    width:26px; height:26px; padding:0; display:inline-flex; align-items:center;
+    justify-content:center; font-size:13px; color:var(--muted); background:transparent;
+    border:1px solid var(--border); border-radius:6px;
+  }
+  .icon-btn:hover{color:var(--danger); border-color:var(--danger); background:transparent;}
+
+  .wrap{padding:12px 8px; max-width:none; margin:0 auto;}
+  .empty{color:var(--muted); text-align:center; padding:40px 0; font-size:13px;}
+
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .card-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; background:var(--accent-soft); border-bottom:1px solid var(--border);
+  }
+  .card-head .ttl{font-weight:600; font-size:12px; color:var(--muted);}
+  /* ==== 数据区：Excel 表格风格 ==== */
+  /* 表格始终 100% 铺满容器，绝不出现横向滚动条，也不留左右空白 */
+  .tbl-scroll{width:100%; overflow:hidden;}
+  table.xls{border-collapse:collapse; table-layout:fixed; font-size:13px; width:100%;}
+  table.xls th{
+    position:relative; background:var(--chip); color:var(--muted); font-weight:600; font-size:11px;
+    padding:8px 9px; border:1px solid var(--border); text-align:center; white-space:nowrap; user-select:none;
+  }
+  table.xls th.ctr{text-align:center;}
+  /* 列宽拖拽手柄 */
+  .resize-handle{position:absolute; top:0; right:0; width:7px; height:100%; cursor:col-resize; z-index:3; touch-action:none;}
+  .resize-handle:hover, .resize-handle.active{background:var(--accent); opacity:.35;}
+  table.xls td{border:1px solid var(--border); padding:0; vertical-align:middle; background:var(--card);}
+  table.xls tr.title-row td{background:var(--accent-soft);}
+  table.xls tr.body-row:nth-child(odd) td{background:var(--bg);}
+  td.idx{text-align:center; color:var(--muted); font-size:12px; white-space:nowrap; padding:0 5px;}
+  .cell-input{
+    display:block; width:100%; border:0; background:transparent; color:var(--text);
+    font:inherit; font-size:13px; padding:8px 9px; outline:none; border-radius:0; box-sizing:border-box;
+    line-height:1.45; min-height:36px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .cell-input.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .cell-input::placeholder{color:var(--muted); opacity:.8;}
+  .cell-input:focus{background:rgba(91,141,239,.12);}
+  .redcell{
+    min-height:36px; padding:0 10px; font-size:12px; font-variant-numeric:tabular-nums;
+    font-weight:600; display:flex; align-items:center; justify-content:flex-end; white-space:nowrap;
+  }
+  .redcell.dec{color:var(--green);}
+  .redcell.inc{color:var(--danger);}
+  .redcell.zero{color:var(--muted); font-weight:400;}
+  .checkcell{
+    min-height:36px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:700; line-height:1;
+  }
+  .checkcell.ok{color:var(--green);}
+  .checkcell.bad{color:var(--danger);}
+  .checkcell.na{color:var(--muted); font-size:12px; font-weight:400;}
+  td.op{text-align:center;}
+  .row-del{border:0; background:transparent; color:var(--muted); font-size:13px; padding:8px 9px; cursor:pointer; border-radius:4px;}
+  .row-del:hover{color:var(--danger); background:rgba(217,83,79,.1);}
+  .add-row-cell{text-align:center;}
+  .add-row-cell button{width:100%; border:0; background:transparent; color:var(--muted); padding:10px; cursor:pointer; font-size:12px;}
+  .add-row-cell button:hover{color:var(--accent); background:var(--accent-soft);}
+  /* 导入文本框 */
+  #importText{width:100%; min-height:240px; resize:vertical; font-family:inherit; font-size:13px; line-height:1.6;
+    border:1px solid var(--border); border-radius:8px; padding:10px; background:var(--bg); color:var(--text); outline:none;}
+  #importText:focus{border-color:var(--accent);}
+
+  /* modal */
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; display:none; align-items:center; justify-content:center; padding:16px;}
+  .mask.show{display:flex;}
+  .modal{background:var(--card); border:1px solid var(--border); border-radius:12px; width:100%; max-width:680px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0; font-size:14px;}
+  .modal-body{padding:12px 14px; overflow:auto;}
+  .preview{
+    width:100%; min-height:300px; max-height:62vh; overflow:auto;
+    font-family:"PingFang SC","Microsoft YaHei",monospace; font-size:13px; line-height:1.85;
+    border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+    background:var(--bg); color:var(--text); white-space:pre-wrap; word-break:break-word;
+  }
+  .preview .inc{color:var(--danger); font-weight:600;}
+  .modal-foot{display:flex; gap:8px; justify-content:flex-end; padding:10px 14px; border-top:1px solid var(--border);}
+  .toast{
+    position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(20px);
+    background:#333; color:#fff; padding:8px 16px; border-radius:20px; font-size:12px;
+    opacity:0; pointer-events:none; transition:all .25s; z-index:99;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  /* 不做移动端专属适配：手机通过 viewport width=1980 直接渲染与电脑版完全一致的布局 */
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>造价审减分析表</h1>
+    <div class="toolbar">
+      <button id="btnAdd" class="primary">+ 添加标题行</button>
+      <button id="btnImport">导入</button>
+      <button id="btnExport">预览 / 导出</button>
+      <button id="btnClear" class="danger">清空</button>
+      <span class="spacer"></span>
+      <label class="ctl">标题序号
+        <select id="selTitleFmt">
+          <option value="一、" selected>一、</option>
+          <option value="1、">1、</option>
+          <option value="一.">一.</option>
+          <option value="1.">1.</option>
+          <option value="（一）">（一）</option>
+          <option value="（1）">（1）</option>
+          <option value="1）">1）</option>
+        </select>
+      </label>
+      <label class="ctl">正文序号
+        <select id="selBodyFmt">
+          <option value="（1）" selected>（1）</option>
+          <option value="（一）">（一）</option>
+          <option value="1、">1、</option>
+          <option value="一、">一、</option>
+          <option value="1.">1.</option>
+          <option value="一.">一.</option>
+          <option value="1）">1）</option>
+        </select>
+      </label>
+      <button id="btnTheme" class="ghost" title="深色 / 浅色">🌓</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="sections"></div>
+    <div id="emptyHint" class="empty">还没有数据，点击左上角「+ 添加标题行」开始。</div>
+  </div>
+
+  <div class="mask" id="mask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>文本预览</h3>
+        <button class="icon-btn" id="btnCloseModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="preview" class="preview"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="btnDownload">下载 .txt</button>
+        <button id="btnCopy" class="primary">复制到剪贴板</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <div class="mask" id="importMask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>导入文本</h3>
+        <button class="icon-btn" id="btnCloseImport">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.5">将本工具「预览 / 导出」得到的文本粘贴到下方，点「解析」自动识别。表格中「审减原因」留空的行为项目标题行，填写了的为正文分项行。</p>
+        <textarea id="importText" placeholder="在此粘贴文本…"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button id="btnCancelImport" class="ghost">取消</button>
+        <button id="btnParseImport" class="primary">解析</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  var uid = 0;
+  function nid(){ return 'n'+(++uid); }
+  var state = { sections: [] };
+
+  // ---------- 数字 / 中文序号 ----------
+  function getVal(v){ var n = parseFloat(v); return isNaN(n)?0:n; }
+  function fmt(n){ var v = getVal(n); return v.toFixed(2); }            // 始终 2 位小数
+  function toChinese(n){
+    if(n===0) return '零';
+    var d=['零','一','二','三','四','五','六','七','八','九'];
+    var u=['','十','百','千'];
+    var s='', str=String(n);
+    for(var i=0;i<str.length;i++){
+      var digit=+str[i], pos=str.length-1-i;
+      if(digit===0){
+        if(s && s[s.length-1]!=='零' && i!==str.length-1) s+='零';
+      }else{
+        s+=d[digit]+u[pos];
+      }
+    }
+    return s.replace(/^一十/,'十');
+  }
+  // 序号格式注册表：标题与正文共用 7 种
+  var FORMATS = {
+    '一、':   function(i){ return toChinese(i)+'、'; },
+    '1、':    function(i){ return i+'、'; },
+    '一.':    function(i){ return toChinese(i)+'.'; },
+    '1.':     function(i){ return i+'.'; },
+    '（一）': function(i){ return '（'+toChinese(i)+'）'; },
+    '（1）':  function(i){ return '（'+i+'）'; },
+    '1）':    function(i){ return i+'）'; }
+  };
+  function numStr(fmtVal, i){
+    var fn = FORMATS[fmtVal] || FORMATS['1、'];
+    return fn(i);
+  }
+
+  // ---------- 审减 / 审增 计算 ----------
+  // 返回：审减时为 {inc:false, label:'审减金额', amt:正数值}；审增时为 {inc:true, label:'审增金额', amt:正数值}
+  function amountInfo(sub, app){
+    var s = getVal(sub), a = getVal(app), r = s - a;
+    if(r < 0) return { inc:true,  label:'审增金额', amt:fmt(a - s) };
+    return      { inc:false, label:'审减金额', amt:fmt(r) };
+  }
+  function isEmptyAmount(sub, app){
+    return (sub===''||sub==null) && (app===''||app==null);
+  }
+
+  // ---------- 渲染 ----------
+  var elSections = document.getElementById('sections');
+
+  // 列宽：百分比模型 —— 表格始终 100% 铺满容器，绝不出现横向滚动条，也不留左右空白
+  // 拖动某列时，其余列按原比例让出/补回，整表宽度恒等于容器宽度（屏幕所选宽度）
+  var DEFAULT_PCT = [6, 18, 13, 13, 26, 12, 7, 5];   // 序号/名称/送审/审定/原因/审减/核对/操作，合计 100
+  var MIN_PCT = 3;
+  var colPct = DEFAULT_PCT.slice();
+  function loadColWidths(){
+    try{
+      var a = JSON.parse(localStorage.getItem('zj_colwidths_v4')||'null');
+      if(Array.isArray(a) && a.length===colPct.length){
+        var s = a.reduce(function(x,y){return x+y;},0);
+        if(s>0) colPct = a.map(function(w){ return Math.max(MIN_PCT*0.5, Number(w)||MIN_PCT*0.5); });
+      }
+    }catch(e){}
+  }
+  function saveColWidths(){ try{ localStorage.setItem('zj_colwidths_v4', JSON.stringify(colPct)); }catch(e){} }
+  function colgroupHTML(){
+    return '<colgroup>' + colPct.map(function(p){ return '<col style="width:'+p+'%">'; }).join('') + '</colgroup>';
+  }
+  function applyColWidths(){
+    document.querySelectorAll('table.xls').forEach(function(tbl){
+      tbl.style.width = '100%';
+      var cols = tbl.querySelectorAll('colgroup col');
+      cols.forEach(function(col, i){ if(i<colPct.length) col.style.width = colPct[i]+'%'; });
+    });
+  }
+  function normalize(){
+    var s = colPct.reduce(function(a,b){return a+b;},0) || 1;
+    if(Math.abs(s-100) > 0.01) colPct = colPct.map(function(w){ return w/s*100; });
+  }
+
+  // 列宽拖拽：拖动某列，其余列按比例分摊剩余宽度，整表始终铺满容器（无横向滚动）
+  document.addEventListener('pointerdown', function(e){
+    var h = e.target.closest && e.target.closest('.resize-handle');
+    if(!h) return;
+    var table = h.closest('table'); if(!table) return;
+    var scroll = table.closest('.tbl-scroll');
+    var containerW = (scroll ? scroll.clientWidth : table.clientWidth) || 1;
+    e.preventDefault();
+    var colIdx = +h.getAttribute('data-col');
+    h.classList.add('active');
+    var startX = e.clientX;
+    var sumPct = 100;
+    var startPct = colPct.slice();
+    var others = [];
+    for(var k=0;k<colPct.length;k++) if(k!==colIdx) others.push(k);
+    function onMove(ev){
+      var deltaPx = ev.clientX - startX;
+      var deltaPct = deltaPx / containerW * sumPct;
+      var target = Math.min(sumPct - MIN_PCT*(colPct.length-1), Math.max(MIN_PCT, startPct[colIdx] + deltaPct));
+      var remain = sumPct - target;
+      var oStart = others.map(function(k){ return startPct[k]; });
+      var oSum = oStart.reduce(function(a,b){return a+b;},0) || 1;
+      var vals = oStart.map(function(w){ return w/oSum*remain; });
+      for(var pass=0; pass<6; pass++){
+        var deficit = 0;
+        vals = vals.map(function(w){ if(w<MIN_PCT){ deficit += MIN_PCT-w; return MIN_PCT; } return w; });
+        if(deficit<=0.01) break;
+        var spare = vals.map(function(w){ return Math.max(0, w-MIN_PCT); });
+        var spareSum = spare.reduce(function(a,b){return a+b;},0);
+        if(spareSum<=0.01) break;
+        vals = vals.map(function(w,k){ return w - deficit*(spare[k]/spareSum); });
+      }
+      var vsum = vals.reduce(function(a,b){return a+b;},0);
+      if(vsum>remain) vals = vals.map(function(w){ return w*remain/vsum; });
+      var next = startPct.slice();
+      others.forEach(function(k,j){ next[k] = Math.max(0, vals[j]); });
+      next[colIdx] = target;
+      colPct = next;
+      normalize();
+      applyColWidths();
+    }
+    function onUp(){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      h.classList.remove('active');
+      saveColWidths();
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  });
+
+  function render(){
+    var bf = document.getElementById('selBodyFmt').value;
+    elSections.innerHTML = '';
+    if(state.sections.length===0){
+      document.getElementById('emptyHint').style.display='block';
+      return;
+    }
+    document.getElementById('emptyHint').style.display='none';
+
+    state.sections.forEach(function(sec, si){
+      var card = document.createElement('div');
+      card.className='card';
+
+      // 标题行（分区标题）—— 顶部直接显示项目名称
+      var head = document.createElement('div');
+      head.className='card-head';
+      head.innerHTML = '<span class="ttl" data-head="'+sec.id+'">'+(sec.name&&sec.name.trim()?sec.name:('标题行 '+(si+1)))+'</span>';
+      var delSec = document.createElement('button');
+      delSec.className='icon-btn'; delSec.textContent='✕'; delSec.title='删除该标题行及其正文';
+      delSec.setAttribute('data-act','delSec'); delSec.setAttribute('data-sid',sec.id);
+      head.appendChild(delSec);
+      card.appendChild(head);
+
+      var scroll = document.createElement('div');
+      scroll.className='tbl-scroll';
+
+      var table = document.createElement('table');
+      table.className = 'xls';
+      var HEADERS = [
+        {t:'序号', c:'ctr'}, {t:'名称', c:''}, {t:'送审金额', c:'num'},
+        {t:'审定金额', c:'num'}, {t:'审减原因', c:''}, {t:'审减金额', c:'num'},
+        {t:'核对', c:'ctr'}, {t:'操作', c:'ctr'}
+      ];
+      var theadHTML = HEADERS.map(function(h, i){
+        var handle = '<span class="resize-handle" data-col="'+i+'"></span>';
+        return '<th class="'+h.c+'" data-col="'+i+'">'+h.t+handle+'</th>';
+      }).join('');
+      table.innerHTML = colgroupHTML() +
+        '<thead><tr>'+theadHTML+'</tr></thead><tbody></tbody>';
+      var tbody = table.querySelector('tbody');
+
+      // 标题行数据（项目汇总）
+      var trT = document.createElement('tr');
+      trT.className = 'title-row';
+      trT.innerHTML =
+        '<td class="idx">—</td>'+
+        '<td><input class="cell-input" data-f="name" data-sid="'+sec.id+'" placeholder="项目名称" value="'+esc(sec.name)+'"></td>'+
+        '<td><input class="cell-input num amt" data-f="submitted" data-sid="'+sec.id+'" type="text" inputmode="decimal" placeholder="送审金额" value="'+esc(sec.submitted)+'"></td>'+
+        '<td><input class="cell-input num amt" data-f="approved" data-sid="'+sec.id+'" type="text" inputmode="decimal" placeholder="审定金额" value="'+esc(sec.approved)+'"></td>'+
+        '<td></td>'+
+        '<td><div class="redcell" data-red="title" data-sid="'+sec.id+'">—</div></td>'+
+        '<td><div class="checkcell na" data-check="title" data-sid="'+sec.id+'">—</div></td>'+
+        '<td class="op"></td>';
+      tbody.appendChild(trT);
+
+      // 正文行
+      sec.rows.forEach(function(row, ri){
+        var tr = document.createElement('tr');
+        tr.className = 'body-row';
+        tr.setAttribute('data-rid', row.id);
+        tr.innerHTML =
+          '<td class="idx">'+numStr(bf, ri+1)+'</td>'+
+          '<td><input class="cell-input" data-f="name" data-sid="'+sec.id+'" data-rid="'+row.id+'" placeholder="名称" value="'+esc(row.name)+'"></td>'+
+          '<td><input class="cell-input num amt" data-f="submitted" data-sid="'+sec.id+'" data-rid="'+row.id+'" type="text" inputmode="decimal" placeholder="送审" value="'+esc(row.submitted)+'"></td>'+
+          '<td><input class="cell-input num amt" data-f="approved" data-sid="'+sec.id+'" data-rid="'+row.id+'" type="text" inputmode="decimal" placeholder="审定" value="'+esc(row.approved)+'"></td>'+
+          '<td><input class="cell-input" type="text" data-f="reason" data-sid="'+sec.id+'" data-rid="'+row.id+'" placeholder="审减原因" value="'+esc(row.reason||'')+'"></td>'+
+          '<td><div class="redcell" data-red="body" data-sid="'+sec.id+'" data-rid="'+row.id+'">—</div></td>'+
+          '<td class="ctr"><div class="checkcell na" data-check="body" data-sid="'+sec.id+'" data-rid="'+row.id+'">—</div></td>'+
+          '<td class="op"><button class="row-del" data-act="delRow" data-sid="'+sec.id+'" data-rid="'+row.id+'" title="删除该行">✕</button></td>';
+        tbody.appendChild(tr);
+      });
+
+      // 添加正文行
+      var trAdd = document.createElement('tr');
+      trAdd.innerHTML = '<td colspan="8" class="add-row-cell"><button data-act="addRow" data-sid="'+sec.id+'">+ 添加正文行</button></td>';
+      tbody.appendChild(trAdd);
+
+      scroll.appendChild(table);
+      card.appendChild(scroll);
+      elSections.appendChild(card);
+    });
+    applyColWidths();
+    refreshAllRed();
+  }
+
+  function esc(s){ return (s==null?'':String(s)).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function findSec(id){ for(var i=0;i<state.sections.length;i++) if(state.sections[i].id===id) return state.sections[i]; return null; }
+  function findRow(sec, rid){ for(var i=0;i<sec.rows.length;i++) if(sec.rows[i].id===rid) return sec.rows[i]; return null; }
+
+  // 仅更新某个审减单元格，避免整页重绘丢焦点
+  function updateRedCell(cell, sub, app){
+    if(isEmptyAmount(sub, app)){
+      cell.textContent = '—';
+      cell.className = 'redcell zero';
+      return;
+    }
+    var info = amountInfo(sub, app);
+    if(info.inc){
+      cell.textContent = '审增 ' + info.amt;
+      cell.className = 'redcell inc';
+    }else{
+      cell.textContent = '审减 ' + info.amt;
+      cell.className = 'redcell dec';
+    }
+  }
+  // 根据导入时文本中的审减/审增金额，重新核对当前金额是否一致
+  function recheck(check, sub, app){
+    var s = getVal(sub), a = getVal(app);
+    var expected = (check.label==='审增金额') ? (a - s) : (s - a);
+    var ok = Math.abs(getVal(check.stated) - expected) < 0.005;
+    var msg = ok
+      ? (check.label + '核对一致（' + fmt(expected) + '元）')
+      : ('审核不符：文本' + check.label + check.stated + '元，实算' + fmt(expected) + '元');
+    return { ok:ok, msg:msg };
+  }
+  // 核对列：一致 ✓ 绿色，不一致 ✗ 红色，无参考数据显示 —
+  function updateCheckCell(cell, check, sub, app){
+    if(!check){
+      cell.textContent = '—';
+      cell.className = 'checkcell na';
+      cell.removeAttribute('title');
+      return;
+    }
+    var r = recheck(check, sub, app);
+    if(r.ok){ cell.textContent = '✓'; cell.className = 'checkcell ok'; }
+    else    { cell.textContent = '✗'; cell.className = 'checkcell bad'; }
+    cell.title = r.msg;
+  }
+  // 局部刷新某行（或标题行）的审减列与核对列，避免整页重绘丢焦点
+  function refreshRowCells(sec, rid){
+    if(!rid){
+      var rc = elSections.querySelector('[data-red="title"][data-sid="'+sec.id+'"]');
+      if(rc) updateRedCell(rc, sec.submitted, sec.approved);
+      var cc = elSections.querySelector('[data-check="title"][data-sid="'+sec.id+'"]');
+      if(cc) updateCheckCell(cc, sec.check, sec.submitted, sec.approved);
+    }else{
+      var row = findRow(sec, rid); if(!row) return;
+      var rc2 = elSections.querySelector('[data-red="body"][data-sid="'+sec.id+'"][data-rid="'+rid+'"]');
+      if(rc2) updateRedCell(rc2, row.submitted, row.approved);
+      var cc2 = elSections.querySelector('[data-check="body"][data-sid="'+sec.id+'"][data-rid="'+rid+'"]');
+      if(cc2) updateCheckCell(cc2, row.check, row.submitted, row.approved);
+    }
+  }
+  function refreshAllRed(){
+    var cells = elSections.querySelectorAll('[data-red]');
+    cells.forEach(function(cell){
+      var sec = findSec(cell.getAttribute('data-sid')); if(!sec) return;
+      if(cell.getAttribute('data-red')==='title'){
+        updateRedCell(cell, sec.submitted, sec.approved);
+      }else{
+        var row = findRow(sec, cell.getAttribute('data-rid')); if(!row) return;
+        updateRedCell(cell, row.submitted, row.approved);
+      }
+    });
+    var cks = elSections.querySelectorAll('[data-check]');
+    cks.forEach(function(cell){
+      var sec = findSec(cell.getAttribute('data-sid')); if(!sec) return;
+      if(cell.getAttribute('data-check')==='title'){
+        updateCheckCell(cell, sec.check, sec.submitted, sec.approved);
+      }else{
+        var row = findRow(sec, cell.getAttribute('data-rid')); if(!row) return;
+        updateCheckCell(cell, row.check, row.submitted, row.approved);
+      }
+    });
+  }
+
+  // ---------- 事件 ----------
+  elSections.addEventListener('input', function(e){
+    var t = e.target;
+    if(t.tagName!=='INPUT' && t.tagName!=='TEXTAREA') return;
+    var sec = findSec(t.getAttribute('data-sid')); if(!sec) return;
+    var f = t.getAttribute('data-f');
+    var rid = t.getAttribute('data-rid');
+    var target = rid ? findRow(sec, rid) : sec; if(!target) return;
+    target[f] = t.value;
+    if(f==='name' && !rid){
+      var lbl = elSections.querySelector('[data-head="'+sec.id+'"]');
+      if(lbl) lbl.textContent = (t.value && t.value.trim()) ? t.value.trim() : ('标题行 '+(state.sections.indexOf(sec)+1));
+    }
+    if(f==='submitted'||f==='approved') refreshRowCells(sec, rid);
+    saveState();
+  });
+
+  // 金额输入框失焦时格式化为 2 位小数（隐藏上下箭头，改用 type=text）
+  elSections.addEventListener('focusout', function(e){
+    var t = e.target;
+    if(!(t.classList && t.classList.contains('amt'))) return;
+    var v = t.value.trim();
+    if(v!==''){
+      var fv = getVal(v);
+      if(!isNaN(fv)) t.value = fv.toFixed(2);
+    }
+    var sec = findSec(t.getAttribute('data-sid')); if(!sec) return;
+    var f = t.getAttribute('data-f');
+    var rid = t.getAttribute('data-rid');
+    var target = rid ? findRow(sec, rid) : sec; if(!target) return;
+    target[f] = t.value;
+    if(f==='submitted'||f==='approved') refreshRowCells(sec, rid);
+    saveState();
+  });
+
+  elSections.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-act]'); if(!btn) return;
+    var act = btn.getAttribute('data-act');
+    var sid = btn.getAttribute('data-sid');
+    var sec = findSec(sid); if(!sec) return;
+    if(act==='delSec'){
+      state.sections = state.sections.filter(function(s){return s.id!==sid;});
+      saveState(); render();
+    }else if(act==='addRow'){
+      sec.rows.push({id:nid(), name:'', submitted:'', approved:'', reason:''});
+      saveState(); render();
+    }else if(act==='delRow'){
+      var rid = btn.getAttribute('data-rid');
+      sec.rows = sec.rows.filter(function(r){return r.id!==rid;});
+      saveState(); render();
+    }
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', function(){
+    var sec = { id:nid(), name:'', submitted:'', approved:'', rows:[] };
+    for(var i=0;i<5;i++) sec.rows.push({id:nid(), name:'', submitted:'', approved:'', reason:''});
+    state.sections.push(sec);
+    saveState(); render();
+    // 聚焦新标题行的名称输入框
+    var input = elSections.querySelector('input[data-f="name"][data-sid="'+sec.id+'"]');
+    if(input){ input.focus(); input.scrollIntoView({block:'center'}); }
+  });
+
+  document.getElementById('selTitleFmt').addEventListener('change', function(){
+    savePrefs(); render();
+  });
+  document.getElementById('selBodyFmt').addEventListener('change', function(){
+    savePrefs(); render();
+  });
+
+  // ---------- 生成文本（正文结尾固定为句号） ----------
+  function buildText(){
+    var tf = document.getElementById('selTitleFmt').value;
+    var bf = document.getElementById('selBodyFmt').value;
+    var lines = [];
+    state.sections.forEach(function(sec, si){
+      if(!sec.name || !sec.name.trim()) return;
+      var sub = getVal(sec.submitted), app = getVal(sec.approved);
+      var ti = amountInfo(sec.submitted, sec.approved);
+      var t = numStr(tf, si+1) + sec.name.trim() + '：送审金额' + fmt(sub) + '元，审定金额' + fmt(app) + '元，' + ti.label + ti.amt + '元。';
+      lines.push(t);
+      // 计算最后一条有名称的正文行索引，用于决定结尾标点（之间用分号，末条用句号）
+      var lastRi = -1;
+      sec.rows.forEach(function(row, ri){ if(row.name && row.name.trim()) lastRi = ri; });
+      sec.rows.forEach(function(row, ri){
+        if(!row.name || !row.name.trim()) return;
+        var rs = getVal(row.submitted), ra = getVal(row.approved);
+        var ri2 = amountInfo(row.submitted, row.approved);
+        var reason = (row.reason && row.reason.trim()) ? row.reason.trim() : '';
+        var end = (ri===lastRi) ? '。' : '；';
+        var mid = reason ? ('元，' + reason + '，审定金额') : ('元，审定金额');
+        var b = numStr(bf, ri+1) + row.name.trim() + '：送审金额' + fmt(rs) + mid + fmt(ra) + '元，' + ri2.label + ri2.amt + '元' + end;
+        lines.push(b);
+      });
+    });
+    return lines.join('\n');
+  }
+  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ---------- 预览 / 复制 / 下载 ----------
+  var mask = document.getElementById('mask');
+  var previewDiv = document.getElementById('preview');
+  function renderPreview(){
+    var txt = buildText();
+    // 审增金额以红色显示（不含负号）
+    var html = escHtml(txt).replace(/(审增金额\d+\.\d+元)/g, '<span class="inc">$1</span>');
+    previewDiv.innerHTML = html;
+  }
+  document.getElementById('btnExport').addEventListener('click', function(){
+    var txt = buildText();
+    if(!txt){ toast('请先填写至少一条带名称的数据'); return; }
+    renderPreview();
+    mask.classList.add('show');
+  });
+  document.getElementById('btnCloseModal').addEventListener('click', function(){ mask.classList.remove('show'); });
+
+  function copyText(txt){
+    function done(){ toast('已复制到剪贴板'); }
+    function fail(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand('copy'); toast('已复制'); }catch(e){ toast('复制失败，请手动选择'); }
+      ta.remove();
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, fail);
+    }else{ fail(); }
+  }
+  document.getElementById('btnCopy').addEventListener('click', function(){
+    var txt = buildText();
+    if(!txt){ toast('暂无可复制内容'); return; }
+    copyText(txt);
+  });
+  document.getElementById('btnDownload').addEventListener('click', function(){
+    var txt = buildText();
+    if(!txt){ toast('暂无可下载内容'); return; }
+    var blob = new Blob(['\ufeff'+txt], {type:'text/plain;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '造价审减分析表.txt';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 100);
+  });
+
+  // ---------- 主题 / 偏好 ----------
+  function savePrefs(){
+    try{
+      localStorage.setItem('zj_prefs', JSON.stringify({
+        theme: document.documentElement.getAttribute('data-theme')||'light',
+        tf: document.getElementById('selTitleFmt').value,
+        bf: document.getElementById('selBodyFmt').value
+      }));
+    }catch(e){}
+  }
+  function loadPrefs(){
+    try{
+      var p = JSON.parse(localStorage.getItem('zj_prefs')||'{}');
+      if(p.theme) document.documentElement.setAttribute('data-theme', p.theme);
+      if(p.tf) document.getElementById('selTitleFmt').value = p.tf;
+      if(p.bf) document.getElementById('selBodyFmt').value = p.bf;
+    }catch(e){}
+  }
+
+  // ---------- 数据持久化（浏览器缓存，退出后仍在） ----------
+  function fmtAmount(v){ var n=getVal(v); return (v===''||v==null)?'':n.toFixed(2); }
+  function saveState(){
+    try{ localStorage.setItem('zj_data', JSON.stringify(state.sections)); }catch(e){}
+  }
+  function loadState(){
+    try{
+      var raw = localStorage.getItem('zj_data');
+      if(!raw) return;
+      var arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return;
+      state.sections = arr.map(function(s){
+        var rows = (s.rows||[]).map(function(r){
+          return { id:nid(), name:r.name||'', submitted:fmtAmount(r.submitted),
+                   approved:fmtAmount(r.approved), reason:r.reason||'', check:r.check||null };
+        });
+        return { id:nid(), name:s.name||'', submitted:fmtAmount(s.submitted),
+                 approved:fmtAmount(s.approved), rows:rows, check:s.check||null };
+      });
+    }catch(e){}
+  }
+
+  // ---------- 清空 ----------
+  document.getElementById('btnClear').addEventListener('click', function(){
+    if(state.sections.length===0){ toast('当前没有数据'); return; }
+    if(!confirm('确定清空所有数据？此操作不可撤销。')) return;
+    state.sections = [];
+    saveState();
+    render();
+    toast('已清空');
+  });
+
+  // ---------- 导入：解析文本，识别标题/正文行并核对审减金额 ----------
+  var importMask = document.getElementById('importMask');
+  var importText = document.getElementById('importText');
+  function openImport(){ importText.value=''; importMask.classList.add('show'); setTimeout(function(){ importText.focus(); }, 50); }
+  document.getElementById('btnImport').addEventListener('click', openImport);
+  document.getElementById('btnCloseImport').addEventListener('click', function(){ importMask.classList.remove('show'); });
+  document.getElementById('btnCancelImport').addEventListener('click', function(){ importMask.classList.remove('show'); });
+
+  function pickAmt(str, key){
+    var m = str.match(new RegExp(key+'(\\d+(?:\\.\\d+)?)元'));
+    return m ? m[1] : '';
+  }
+  function pickStated(str){
+    var m = str.match(/((?:审减金额|审增金额))(\d+(?:\.\d+)?)元/);
+    return m ? { label:m[1], amt:m[2] } : null;
+  }
+  function verify(sub, app, stated){
+    if(stated===null) return null;   // 文本未提供审减/审增金额 → 核对列显示「—」
+    var r = recheck({ label:stated.label, stated:fmtAmount(stated.amt) }, sub, app);
+    return { label:stated.label, stated:fmtAmount(stated.amt), ok:r.ok, msg:r.msg };
+  }
+  // 去掉名称开头残留的序号：1、 / （1） / (1) / 1. / 一、 等，符号（.、）) 前的都算序号
+  function stripSerial(s){
+    return String(s==null?'':s).replace(/^\s*(?:[（(][0-9一二三四五六七八九十百千]+[）)]|[0-9]+[、.）)]|[一二三四五六七八九十百千]+[、.])\s*/,'');
+  }
+  function newSection(name){ return { id:nid(), name:name||'', submitted:'', approved:'', rows:[], check:null }; }
+  function parseImport(text){
+    var lines = text.split(/\r?\n/);
+    var sections = [], cur = null, tFmt=null, bFmt=null;
+    function detectPrefix(line){
+      var m = line.match(/^(?:[（(][0-9一二三四五六七八九十百千]+[）)]|[0-9]+[、.）)]|[一二三四五六七八九十百千]+[、.])\s*/);
+      return m ? m[0].replace(/\s+$/,'') : '';
+    }
+    function mapFmt(p){
+      if(/^（[0-9]+）$/.test(p)) return '（1）';
+      if(/^（[一二三四五六七八九十百千]+）$/.test(p)) return '（一）';
+      if(/^[0-9]+、$/.test(p)) return '1、';
+      if(/^[一二三四五六七八九十百千]+、$/.test(p)) return '一、';
+      if(/^[0-9]+\.$/.test(p)) return '1.';
+      if(/^[一二三四五六七八九十百千]+\.$/.test(p)) return '一.';
+      if(/^[0-9]+）$/.test(p)) return '1）';
+      return null;
+    }
+    lines.forEach(function(raw){
+      var line = raw.trim();
+      if(!line) return;
+      if(line.indexOf('送审金额')<0 && line.indexOf('审定金额')<0) return;
+      var prefix = detectPrefix(line);
+      var rest = line.slice(prefix.length).trim();
+
+      // 名称：取冒号（全角/半角）之前；无冒号则取到第一个金额关键词之前
+      var name='', afterName=rest;
+      var ci = rest.search(/[：:]/);
+      if(ci>=0){ name = rest.slice(0,ci); afterName = rest.slice(ci+1); }
+      else {
+        var mi = rest.search(/送审金额|审定金额|审减金额|审增金额/);
+        if(mi>0){ name = rest.slice(0,mi); afterName = rest.slice(mi); }
+      }
+      name = stripSerial(name).trim();   // 兜底：名称中若还残留序号则去掉
+
+      var sub = pickAmt(afterName,'送审金额');
+      var app = pickAmt(afterName,'审定金额');
+      var stated = pickStated(afterName);
+
+      // 审减原因：位于「送审金额…元，」与「，审定金额」之间，原样保留（含“依据”等字样）
+      var reason = '', isBody = false;
+      var rm = afterName.match(/送审金额\d+(?:\.\d+)?元，([\s\S]*?)，\s*审定金额/);
+      if(rm && rm[1].trim()!==''){ reason = rm[1].trim(); isBody = true; }
+
+      var check = verify(sub, app, stated);
+      if(isBody){
+        if(!cur) cur = newSection('');
+        cur.rows.push({ id:nid(), name:name, submitted:fmtAmount(sub), approved:fmtAmount(app), reason:reason, check:check });
+        if(!bFmt){ var bf2=mapFmt(prefix); if(bf2) bFmt=bf2; }
+      }else{
+        if(cur) sections.push(cur);
+        cur = newSection(name);
+        cur.submitted = fmtAmount(sub);
+        cur.approved = fmtAmount(app);
+        cur.check = check;
+        if(!tFmt){ var tf2=mapFmt(prefix); if(tf2) tFmt=tf2; }
+      }
+    });
+    if(cur) sections.push(cur);
+    return { sections:sections, tFmt:tFmt, bFmt:bFmt };
+  }
+  document.getElementById('btnParseImport').addEventListener('click', function(){
+    var raw = importText.value;
+    var res = parseImport(raw);
+    if(res.sections.length===0){ toast('未能从文本中解析出数据'); return; }
+    state.sections = res.sections;
+    if(res.tFmt) document.getElementById('selTitleFmt').value = res.tFmt;
+    if(res.bFmt) document.getElementById('selBodyFmt').value = res.bFmt;
+    savePrefs(); saveState();
+    importMask.classList.remove('show');
+    render();
+    var bad=0;
+    state.sections.forEach(function(s){ if(s.check && !s.check.ok) bad++; s.rows.forEach(function(r){ if(r.check && !r.check.ok) bad++; }); });
+    toast('已导入 '+state.sections.length+' 个标题行、'+
+      state.sections.reduce(function(a,s){return a+s.rows.length;},0)+' 条正文行'+(bad?('；'+bad+' 处审减金额不符'):'；核对一致'));
+  });
+  document.getElementById('btnTheme').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+    savePrefs();
+  });
+
+  // ---------- toast ----------
+  var toastTimer;
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1800);
+  }
+
+  loadPrefs();
+  loadColWidths();
+  loadState();
+  render();
+})();
+</script>
+</body>
+</html>
