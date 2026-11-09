@@ -73,17 +73,32 @@
   .periods{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;min-height:30px;}
   .period-chip{display:inline-flex;align-items:center;gap:6px;background:var(--primary-soft);color:var(--primary);
     border:1px solid transparent;border-radius:20px;padding:5px 12px 5px 14px;font-size:13px;line-height:1.5;cursor:pointer;user-select:none;}
-  .period-chip.cur{box-shadow:0 0 0 2px var(--primary) inset;}
-  .period-chip.dim{opacity:.42;}
+  .period-chip.cur{background:var(--sel);border-color:var(--primary);box-shadow:0 0 0 1px var(--primary);font-weight:600;}  /* 点中/当期：主色蓝框 + 浅蓝底 */
   .period-chip.all{background:var(--surface);border-color:var(--line);color:var(--muted);}
+  .period-chip.all.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}  /* 单击「全部」：选中底色，可与当期胶囊同时高亮 */
+  .period-chip.all.preview{background:var(--yellow-bg);border-color:var(--yellow-tx);color:var(--yellow-tx);font-weight:600;}  /* 双击「全部」：只读预览 */
+  .period-chip.auto-hidden{border-style:dashed;border-color:var(--muted);background:var(--bg);color:var(--muted);}  /* 该期工程量为0：虚线框且不可点击 */
+  .period-chip.disabled{cursor:not-allowed;}
+  .period-chip.disabled:hover{background:var(--bg);}
   .period-chip .pd{color:var(--muted);font-size:11px;}
-  .period-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);}
   .period-chip button{border:none;background:transparent;color:var(--primary);cursor:pointer;width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0;}
   .period-chip button:hover{background:rgba(0,0,0,.07);}
   .vis-list{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:7px;padding:4px;}
   .vis-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;}
   .vis-item:hover{background:var(--primary-soft);}
   .vis-item input{margin:0;flex:none;}
+  .vis-set-row{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;font-size:12px;}
+  .vis-set-row:hover{background:var(--primary-soft);}
+  .vis-set-row input[type=checkbox]{margin:0;flex:none;cursor:pointer;}
+  .vis-set-row .per-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;
+    padding:4px 7px;font-size:12px;background:var(--surface);color:var(--text);}
+  .vis-set-row .per-name:focus{outline:none;border-color:var(--primary);}
+  .vis-set-row.is-new .per-name{border-style:dashed;border-color:var(--primary);}
+  .vis-set-row .per-remark{color:var(--muted);font-size:10.5px;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none;}
+  .vis-set-row .mini{width:20px;height:20px;line-height:1;padding:0;border:1px solid var(--line);border-radius:5px;
+    background:var(--surface);color:var(--muted);cursor:pointer;font-size:13px;flex:none;}
+  .vis-set-row .mini:hover{border-color:var(--red-tx);color:var(--red-tx);}
+  #visList .vis-empty{padding:16px;text-align:center;color:var(--muted);font-size:11px;}
   .table-scroll{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);}
   table{border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:1180px;}
   colgroup col{border-right:1px solid var(--line);}
@@ -213,6 +228,11 @@
   tr.section.sec-sub .sec-mark{color:var(--muted);}
   tr.section.sec-sub .sec-toggle{width:13px;height:13px;font-size:8px;}  /* 子分部行折叠按钮略小 */
   tr.section.sec-folded td.name{color:var(--muted);}
+  /* 3 / 4 级分部：标记逐级变淡、名称字重略降，配合缩进区分深度 */
+  tr.section[data-lv="2"] .sec-mark{opacity:.72;}
+  tr.section[data-lv="3"] .sec-mark{opacity:.55;}
+  tr.section[data-lv="4"] .sec-mark,tr.section[data-lv="5"] .sec-mark{opacity:.42;}
+  tr.section.sec-deep td.name{font-weight:500;}
   tr.section.sec-folded .sec-toggle{color:var(--primary);border-color:var(--primary);}
   /* 右键清单分部行：分部浮窗 */
   .sec-pop{position:fixed;z-index:82;background:var(--surface);border:1px solid var(--line);border-radius:10px;
@@ -244,7 +264,7 @@
   <button class="btn" id="btnUndo" title="撤销上一步数据改动（Ctrl+Z）">↶ 撤销</button>
   <button class="btn" id="btnRedo" title="恢复被撤销的改动（Ctrl+Y）">↷ 恢复</button>
   <div class="menu-wrap" id="importWrap">
-    <button class="btn" id="btnImportMenu">📥 导入 <span style="font-size:9px;color:var(--muted)">▼</span></button>
+    <button class="btn" id="btnImportMenu">📥 导入 <span style="font-size:15px;line-height:1;font-weight:700;color:var(--primary);vertical-align:-1px">▾</span></button>
     <div class="dropdown icon-menu" id="importMenu">
       <div data-act="batch" title="批量导入：选一个表格文件，勾选要导入的工作表，统一填一个项目名称"><span class="ico">📥</span><b>批量导入</b></div>
       <div data-act="custom" title="自定义导入：按 Sheet 名「项目-单位工程」拆分项目/单位工程，期数列自动判别、可手填"><span class="ico">🧩</span><b>自定义导入</b></div>
@@ -338,12 +358,13 @@
   <div data-act="del">删除选中行</div>
 </div>
 <div class="mask" id="visMask">
-  <div class="modal"><h3>批量显示期数</h3>
-    <div class="hint" style="margin-bottom:8px">勾选要在数据区显示的期数。仅影响页面显示，导出备份始终包含全部期数。</div>
+  <div class="modal"><h3>批量设置期数</h3>
+    <div class="hint" style="margin-bottom:8px">勾选要显示的期数列；可直接修改期数名称、删除或新增期数。改动在点击「确定」后生效，「取消」则丢弃。导出备份始终包含全部期数。</div>
     <div class="vis-list" id="visList"></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn" id="visAll" type="button">全选</button>
       <button class="btn ghost" id="visNone" type="button">全不选</button>
+      <button class="btn" id="visAdd" type="button">＋ 新增期数</button>
       <span class="spacer"></span><span class="hint" id="visCount"></span>
     </div>
     <div class="modal-actions"><button class="btn ghost" id="visCancel">取消</button><button class="btn primary" id="visOk">确定</button></div>
@@ -352,7 +373,7 @@
 
 <div class="mask" id="colMask">
   <div class="modal"><h3>显示 / 隐藏列</h3>
-    <div class="hint" style="margin-bottom:8px">勾选要在数据区显示的列。期数列由「期数胶囊 / 批量显示期数」控制；备注列默认显示、也可隐藏；导出备份始终包含全部列。</div>
+    <div class="hint" style="margin-bottom:8px">勾选要在数据区显示的列。期数列由「期数胶囊 / 批量设置期数」控制；备注列默认显示、也可隐藏；导出备份始终包含全部列。</div>
     <div class="vis-list" id="colList"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
       <button class="btn" id="colAll" type="button">全选</button>
@@ -364,7 +385,8 @@
 </div>
 
 <div class="ctx-menu" id="periodCtx">
-  <div data-act="visible">批量显示期数…</div>
+  <div data-act="visible">批量设置期数…</div>
+  <div data-act="zeroRows" id="zeroRowsAct" title="未选「全部」时按当期数值为 0 隐藏；选中「全部」时按已完工程量为 0 隐藏">隐藏工程量为0的行</div>
   <div data-act="cols">显示/隐藏列…</div>
   <div class="sep"></div>
   <div data-act="edit">编辑期数</div>
@@ -441,7 +463,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var NSTATIC=STATIC_COLS.length;
   var DEFAULT_HIDDEN=['remPct','donePct'];
   var DEFAULT_W={seq:50,code:120,name:200,feature:220,unit:50,qty:90,price:90,total:110,rem:110,remPct:90,done:110,donePct:90,note:180,period:95};
-  var state={projects:[],periods:[],activeProjectId:null,activeDivisionId:null,currentPeriodId:null,colWidths:{},selection:[],collapsed:{},secCollapsed:{},treeWidth:280,activeSection:null,activeNode:null,visiblePeriodIds:null,hiddenCols:DEFAULT_HIDDEN.slice()};
+  var state={projects:[],periods:[],activeProjectId:null,activeDivisionId:null,currentPeriodId:null,colWidths:{},selection:[],collapsed:{},secCollapsed:{},treeWidth:280,activeSection:null,activeNode:null,visiblePeriodIds:null,hiddenCols:DEFAULT_HIDDEN.slice(),hideZeroRows:false,allOn:false,previewAll:false};
   var editingPeriodId=null, ctxPeriodId=null, pendingFile=null, treeCtxTarget=null, treeImportTarget=null, ctxRowRid=null, batchItems=null, importMode='batch';
 
   function $(id){return document.getElementById(id);}
@@ -541,7 +563,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if(state.periods.length){state.projects.forEach(function(pp){pp.periods=state.periods.slice();});}
     state.projects.forEach(function(pp){if(!pp.periods)pp.periods=[];else pp.periods.sort(periodCmp);});
     delete state.periods;
-    if(!state.colWidths)state.colWidths={};if(!state.selection)state.selection=[];if(!state.collapsed)state.collapsed={};if(!state.divOpen)delete state.divOpen;if(!state.secCollapsed)state.secCollapsed={};if(!state.treeWidth)state.treeWidth=280;if(!state.visiblePeriodIds)state.visiblePeriodIds=null;if(!state.hiddenCols)state.hiddenCols=DEFAULT_HIDDEN.slice();if(!state.activeNode&&state.activeProjectId&&state.activeDivisionId)state.activeNode={type:'div',id:state.activeDivisionId};}}catch(e){}histLast=histCur();}
+    if(!state.colWidths)state.colWidths={};if(!state.selection)state.selection=[];if(!state.collapsed)state.collapsed={};if(!state.divOpen)delete state.divOpen;if(!state.secCollapsed)state.secCollapsed={};if(!state.treeWidth)state.treeWidth=280;if(!state.visiblePeriodIds)state.visiblePeriodIds=null;if(!state.hiddenCols)state.hiddenCols=DEFAULT_HIDDEN.slice();if(typeof state.hideZeroRows!=='boolean')state.hideZeroRows=false;if(typeof state.allOn!=='boolean')state.allOn=false;state.previewAll=false;if(!state.activeNode&&state.activeProjectId&&state.activeDivisionId)state.activeNode={type:'div',id:state.activeDivisionId};}}catch(e){}histLast=histCur();}
   function activeProj(){return state.projects.find(function(p){return p.id===state.activeProjectId;})||state.projects[0];}
   function activeDiv(){var p=activeProj();if(!p)return null;return p.divisions.find(function(d){return d.id===state.activeDivisionId;})||p.divisions[0];}
   function activePeriods(){var p=activeProj();return (p&&p.periods)?p.periods:[];}
@@ -555,6 +577,40 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function displayPeriods(){var all=activePeriods(),v=visibleIds();
     return v?all.filter(function(p){return v.indexOf(p.id)>=0;}):all;}
+  // 该期在当前显示范围内工程量合计是否为 0（纯判定，与手动显隐无关，供胶囊虚线标记使用）
+  function zeroPeriodIds(){
+    var out={},divs=activeDivisions();if(!divs.length)return out;
+    activePeriods().forEach(function(p){
+      var s=0;
+      divs.forEach(function(d){d.rows.forEach(function(r){
+        if(r.type==='item')s+=Number((r.periods||{})[p.id])||0;
+      });});
+      if(Math.abs(s)<=0.005)out[p.id]=true;
+    });
+    return out;
+  }
+  // 自动隐藏「该期合计为 0」的期数列（只影响网页显示，不影响计算/导出）
+  // 规则：手动选过期数时以手动为准；当期永不自动隐藏，保证总能录入；点项目节点时按该项目全部单位工程合计
+  function autoHiddenPeriodIds(){
+    if(state.visiblePeriodIds&&state.visiblePeriodIds.length)return {};   // 用户手动指定过期数显隐 → 不自动介入
+    var z=zeroPeriodIds(),cur=currentPeriod();
+    if(cur)delete z[cur.id];
+    return z;
+  }
+  // 「隐藏工程量为0的行」：选中「全部」胶囊时按「已完工程量（全部期数累计）为 0」判定；
+  // 其余状态按「当期数值为 0」判定；分部行始终保留（方便定位结构）
+  function zeroPeriodRow(row,cur){
+    if(!state.hideZeroRows||row.type!=='item')return false;
+    var t=0.005;
+    if(state.allOn){
+      var done=0;
+      activePeriods().forEach(function(p){done+=Number((row.periods||{})[p.id])||0;});
+      return !(Math.abs(done)>t);
+    }
+    if(!cur)return false;
+    var v=(row.periods||{})[cur.id];
+    return !(Math.abs(Number(v)||0)>t);
+  }
   // 显示用单位工程：点左侧「项目」节点 → 该项目下所有单位工程连续显示；点「单位工程」节点 → 单个单位工程
   function activeDivisions(){var p=activeProj();if(!p||!p.divisions.length)return [];
     if(state.activeNode&&state.activeNode.type==='proj')return p.divisions.slice();
@@ -756,31 +812,35 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
      判定：某分部自身下「0 个清单项」，且它的合价 = 紧随其后若干分部合价之和
      → 后面这些分部就是它的子分部（可多级嵌套）。没有命中规则的分部保持平级。 */
   function secTotTol(tot){return Math.max(0.05,Math.min(1,Math.abs(tot)*0.0002));}
+  // 自底向上（从后往前）归约：内层父子先合并，外层再拿合并后的顶层节点比对。
+  // 这样孙分部的合价不会被重复累加到祖分部上，可识别 3 级 / 4 级甚至更深的树。
   function buildSecTree(div){
     var rows=div.rows,byId={},secIdx=[];
     rows.forEach(function(r,i){
       if(r.type!=='section')return;
       r._lvl=0;r._parent=null;r._sub=0;byId[r.id]=r;secIdx.push(i);});
-    for(var q=0;q<secIdx.length;q++){
+    var top=[];   // 尚未被任何父分部认领的顶层节点（始终按文档顺序，头部 = 最靠前）
+    for(var q=secIdx.length-1;q>=0;q--){
       var r=rows[secIdx[q]];
       var end=(q+1<secIdx.length)?secIdx[q+1]:rows.length;
       var items=0;for(var j=secIdx[q]+1;j<end;j++){if(rows[j].type==='item')items++;}
-      if(items)continue;                                   // 自身有清单项 → 不可能是父分部
-      var tot=num(r.total);if(!(tot>0))continue;            // 合价必须有值才能比对
-      var tol=secTotTol(tot),sum=0,taken=0;
-      for(var p=q+1;p<secIdx.length;p++){
-        if(rows[secIdx[p]]._parent)break;                   // 已被别的分部认领，不再重复
-        sum+=(num(rows[secIdx[p]].total)||0);
-        if(Math.abs(sum-tot)<=tol){taken=p-q;break;}        // 取最短的匹配段
-        if(sum>tot+tol)break;                               // 已超出，后面不可能再相等
+      var tot=num(r.total),tol=secTotTol(tot),sum=0,taken=0;
+      if(!items&&tot>0){                                    // 仅「0 个清单项且合价有值」的分部可作父
+        for(var p=0;p<top.length;p++){
+          sum+=(num(top[p].total)||0);
+          if(Math.abs(sum-tot)<=tol){taken=p+1;break;}       // 取最短的匹配段
+          if(sum>tot+tol)break;                              // 已超出，后面不可能再相等
+        }
+        for(var m=0;m<taken;m++){top[m]._parent=r.id;r._sub++;}
+        if(taken)top.splice(0,taken);                         // 被认领的节点从顶层序列移除
       }
-      if(taken){for(var m=q+1;m<=q+taken;m++){rows[secIdx[m]]._parent=r.id;r._sub++;}}
+      top.unshift(r);                                         // 该分部（含整棵子树）成为新的顶层节点
     }
     // 层级 = 父链长度（父分部总在子分部之前，无环）
     rows.forEach(function(r){
       if(r.type!=='section')return;
       var d=0,p=byId[r._parent];
-      while(p&&d<8){d++;p=byId[p._parent];}
+      while(p&&d<12){d++;p=byId[p._parent];}
       r._lvl=d;
     });
   }
@@ -830,10 +890,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ps.forEach(function(p){div._per[p.id]=(div._per[p.id]||0)+(r.periods[p.id]||0);});}});
   }
 
-  // 列定义：静态列按 hiddenCols 过滤（两个比例列默认隐藏；备注列默认显示、也可隐藏），期数列按 displayPeriods 过滤
+  // 列定义：静态列按 hiddenCols 过滤（两个比例列默认隐藏；备注列默认显示、也可隐藏）
+  // 期数列三态：只读预览（排除 0 期） / 选中「全部」（全部期数） / 默认（手动选择 + 自动隐藏 0 期）
   function cols(){var hidden=state.hiddenCols||DEFAULT_HIDDEN;
     var c=STATIC_COLS.filter(function(x){return hidden.indexOf(x.key)<0;});
-    displayPeriods().forEach(function(p){c.push({key:'per_'+p.id,name:p.label,num:true,pid:p.id});});return c;}
+    var ps;
+    if(state.previewAll){var z=zeroPeriodIds();ps=activePeriods().filter(function(p){return !z[p.id];});}
+    else if(state.allOn){var z0=zeroPeriodIds(),cur0=currentPeriod();
+      ps=activePeriods().filter(function(p){return !z0[p.id]||(cur0&&p.id===cur0.id);});}
+    else{var auto=autoHiddenPeriodIds();ps=displayPeriods().filter(function(p){return !auto[p.id];});}
+    ps.forEach(function(p){c.push({key:'per_'+p.id,name:p.label,num:true,pid:p.id});});return c;}
 
   // 合计行只汇总「当前数据区实际显示的单位工程」：点单位工程节点=该单位工程，点项目节点=该项目全部单位工程
   // label 保持未转义纯文本：render 用 escapeHtml 插入 innerHTML，refreshFoot 用 textContent 刷新
@@ -864,7 +930,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var title='';
       if(c.pid){var p=activePeriods().find(function(x){return x.id===c.pid;});if(p&&p.remark)title=' title="备注：'+escapeHtml(p.remark)+'"';}
       else title=' title="右键：显示/隐藏列"';
-      var curCls=(c.pid&&cur&&c.pid===cur.id)?' cur':'';
+      var curCls=(c.pid&&cur&&c.pid===cur.id&&!state.previewAll)?' cur':'';
       var cls=(c.pid?' ph':' col-static')+curCls+((c.key==='remPct'||c.key==='donePct')?' pct':'');
       return '<th data-key="'+c.key+'"'+(c.pid?' data-pid="'+c.pid+'"':'')+' class="'+cls+'"'+title+'>'+escapeHtml(c.name)+'<span class="col-resizer" data-key="'+c.key+'"></span></th>';
     }).join('')+'</tr></thead>';
@@ -877,6 +943,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       tbody+=summaryRow(C,'divhead',{div:div,label:'单位工程：'+div.name});
       var open=[];   // 当前行所处的分部链：{lvl,folded}
       div.rows.forEach(function(row){
+        if(zeroPeriodRow(row,cur))return;      // 已开启「隐藏工程量为0的行」：跳过当期无量的清单项
         var lvl=(row.type==='section')?(row._lvl||0):99;
         if(row.type==='section'){
           while(open.length&&open[open.length-1].lvl>=lvl)open.pop();
@@ -931,17 +998,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var lvl=row._lvl||0,sub=row._sub||0;
       var secN=secItemCount(div,row);
       var par=row._parent?div.rows.filter(function(x){return x.id===row._parent;})[0]:null;
-      var tip=(par?'子分部（上级：'+par.name+'）｜':'')+'清单分部｜点序号列按钮收起/展开清单项；右键列出全部分部跳转';
-      var tg='<span class="sec-toggle" data-sectoggle="'+row.id+'" title="'+(folded?'展开':'收起')+'该分部下的 '+secN+' 个清单项">'+(folded?'▶':'▼')+'</span>';
+      var tip=(lvl?'第 '+(lvl+1)+' 级清单分部'+(par?'（上级：'+par.name+'）':'')+'｜':'清单分部｜')+'点序号列按钮收起/展开本分部的清单项及子分部；右键列出全部分部跳转';
+      var tg='<span class="sec-toggle" data-sectoggle="'+row.id+'" title="'+(folded?'展开':'收起')+'该分部下的 '+secN+' 个清单项'+(sub?'及 '+sub+' 个子分部':'')+'">'+(folded?'▶':'▼')+'</span>';
       var hasSeq=C.some(function(c){return c.key==='seq';});
-      var nm='<span class="sec-mark">'+(lvl?'└':'▍')+'</span>'+escapeHtml(row.name)
+      var marks=['▍','└','└─','└──','└───'];
+      var nm='<span class="sec-mark">'+(marks[Math.min(lvl,4)]||'└───')+'</span>'+escapeHtml(row.name)
         +(sub?'<span class="sec-sub-tag">'+sub+' 个子分部</span>':'')
         +(secN?'<span class="sec-cnt">'+secN+' 项</span>':'');
-      var html='<tr class="section'+(lvl?' sec-sub':'')+(folded?' sec-folded':'')+'" data-rid="'+row.id+'" data-div="'+div.id+'">';
+      var html='<tr class="section'+(lvl?' sec-sub':'')+(lvl>1?' sec-deep':'')+'" data-lv="'+lvl+'"'+(folded?' sec-folded':'')+'" data-rid="'+row.id+'" data-div="'+div.id+'">';
       C.forEach(function(c){
         if(c.key==='seq')html+='<td data-key="seq">'+tg+'</td>';
         else if(c.key==='name')html+='<td data-key="name" class="name" style="padding-left:'+(9+lvl*16)+'px" title="'+escapeHtml(tip)+'">'+(hasSeq?'':tg)+nm+'</td>';
         else if(c.key==='total')html+='<td data-key="total" class="num">'+fmtq(row.total)+'</td>';
+        else if(c.key==='rem')html+='<td data-key="rem" class="num" title="本清单分部剩余工程量占比">'+fmtPct(pctVal(row._rem||0,row._qty||0))+'</td>';
+        else if(c.key==='done')html+='<td data-key="done" class="num" title="本清单分部已完工程量占比">'+fmtPct(pctVal((row._qty||0)-(row._rem||0),row._qty||0))+'</td>';
         else if(c.pid)html+='<td data-key="'+c.key+'" data-pid="'+c.pid+'" class="period-cell"></td>';
         else html+='<td data-key="'+c.key+'"></td>';
       });
@@ -955,10 +1025,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     C.forEach(function(c){
       var k=c.key;
       if(c.pid){var val=row.periods[c.pid]||'';
-        if(cur&&c.pid===cur.id){
+        if(cur&&c.pid===cur.id&&!state.previewAll){
           html+='<td data-key="'+c.key+'" data-pid="'+c.pid+'"><input class="pidx" type="text" inputmode="decimal" data-div="'+div.id+'" data-rid="'+row.id+'" data-pid="'+c.pid+'" value="'+fmtp(val)+'" placeholder="0"></td>';
         }else{
-          html+='<td data-key="'+c.key+'" data-pid="'+c.pid+'" class="period-cell ro num" title="仅当期可输入（点上方期数胶囊切换当期）">'+fmtp(val)+'</td>';
+          var roTip=state.previewAll?'只读预览（双击「全部」进入）：点任意期数胶囊可恢复编辑':'仅当期可输入（点上方期数胶囊切换当期）';
+          html+='<td data-key="'+c.key+'" data-pid="'+c.pid+'" class="period-cell ro num" title="'+roTip+'">'+fmtp(val)+'</td>';
         }
         return;}
       if(k==='seq')html+='<td data-key="seq">'+escapeHtml(row.seq)+'</td>';
@@ -1106,7 +1177,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // 右键菜单（行）
   function openRowMenu(x,y){var m=$('ctxMenu');m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';}
-  function openCtx(key,x,y){ctxPeriodId=key;var m=$('periodCtx');m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';}
+  function openCtx(key,x,y){ctxPeriodId=key;var m=$('periodCtx');
+    var z=$('zeroRowsAct');if(z){z.textContent=state.hideZeroRows?'显示工程量为0的行':'隐藏工程量为0的行';
+      z.title=state.allOn?'当前按「已完工程量（全部期数累计）为 0」隐藏清单项行':'当前按「当期数值为 0」隐藏清单项行';}
+    m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';}
 
   function selectedItemRows(){var out=[];
     activeDivisions().forEach(function(d){d.rows.forEach(function(r){
@@ -1244,8 +1318,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         var lvl=sc._lvl||0;
         var folded=!!(state.secCollapsed&&state.secCollapsed[sc.id]);
         var act=(state.activeSection===sc.id)?' active':'';
+        var pfx=lvl?(new Array(Math.min(lvl,4)+1).join('└')+' '):'';
         return '<div class="sp-item'+(lvl?' sp-sub':'')+act+'" data-sid="'+sc.id+'" style="padding-left:'+(9+lvl*14)+'px"><span class="sp-nm">'+
-          (lvl?'└ ':'')+escapeHtml(sc.name)+'</span>'+
+          pfx+escapeHtml(sc.name)+'</span>'+
           '<span class="sp-n">'+n+'项</span><span class="sp-fd">'+(folded?'已折叠':'')+'</span></div>';
       }).join('');
     }
@@ -1279,23 +1354,73 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     m.querySelectorAll('div[data-act]').forEach(function(it){it.style.display=(it.getAttribute('data-act')==='newProj')?'':'none';});
     m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';}
 
+  // 「全部」胶囊三态：off（默认） / on（单击：显示全部期数列，可与当期胶囊同时高亮） / preview（双击：只读预览）
+  function setAllChipMode(mode){
+    state.allOn=(mode!=='off');
+    state.previewAll=(mode==='preview');
+    state.visiblePeriodIds=null;
+    save();render();
+  }
   function renderPeriodChips(){
     var box=$('periodChips'),all=activePeriods();
-    if(!all.length){box.innerHTML='<span class="hint">（尚未添加期数，点「＋ 添加期数」）</span>';return;}
-    var cur=currentPeriod(),vis=visibleIds();
-    var html=vis?'<span class="period-chip all" data-all="1" title="显示全部期数">全部</span>':'';
-    html+=all.map(function(p){
-      var dim=(vis&&vis.indexOf(p.id)<0)?' dim':'';
-      return '<span class="period-chip'+dim+(cur&&p.id===cur.id?' cur':'')+'" data-pid="'+p.id+'"'+(p.remark?' title="备注：'+p.remark+'"':'')+'>'+escapeHtml(p.label)+
-        (cur&&p.id===cur.id?'<span class="dot"></span>':'')+'</span>';}).join('');
-    box.innerHTML=html;
-    box.querySelectorAll('.period-chip[data-all]').forEach(function(ch){
-      ch.addEventListener('click',function(){state.visiblePeriodIds=null;save();render();});});
-    box.querySelectorAll('.period-chip[data-pid]').forEach(function(ch){
-      ch.addEventListener('click',function(){
-        var pid=ch.getAttribute('data-pid');
-        state.currentPeriodId=pid;state.visiblePeriodIds=[pid];save();render();});
-      ch.addEventListener('contextmenu',function(e){e.preventDefault();openCtx(ch.getAttribute('data-pid'),e.clientX,e.clientY);});
+    if(!all.length){box.innerHTML='<span class="hint">（尚未添加期数，点「＋ 添加期数」）</span>';box._sig='';return;}
+    var cur=currentPeriod(),zero=zeroPeriodIds();
+    var preview=!!state.previewAll,allOn=!!state.allOn;
+    var items=[{all:true,label:'全部',
+      cls:'period-chip all'+(preview?' preview':(allOn?' on':'')),
+      title:preview?'只读预览：展示全部有量的期数，所有期数列不可编辑；点任意期数恢复编辑'
+                   :'单击显示全部有量的期数列（0 期列不显示，可与期数胶囊同时选中）；双击进入只读预览'}];
+    all.forEach(function(p){
+      if(preview&&zero[p.id])return;                      // 只读预览：虚线（0 期）胶囊不展示
+      var isCur=!!(cur&&p.id===cur.id)&&!preview;
+      var dis=!!(zero[p.id]&&!isCur);                     // 0 期：虚线框且不可点击（当期除外）
+      var cls='period-chip'+(dis?' auto-hidden disabled':'')+(isCur?' cur':'');
+      var tip=(zero[p.id]?'本期工程量为 0'+(dis?'，不可点击；想显示该列请在期数上右键「批量设置期数」':'')+'（虚线框）':'')
+        +(p.remark?(zero[p.id]?'｜':'')+'备注：'+p.remark:'');
+      items.push({pid:p.id,label:p.label,cls:cls,title:tip});
+    });
+    // 结构不变时只增量改 class / title，保留 DOM 节点，保证 dblclick 能稳定命中同一胶囊
+    var sig=items.map(function(x){return (x.all?'all':'p:'+x.pid)+'|'+x.label;}).join('~');
+    if(box._sig!==sig){
+      box.innerHTML=items.map(function(x){
+        return '<span class="'+x.cls+'"'+(x.all?' data-all="1"':' data-pid="'+x.pid+'"')+
+          (x.title?' title="'+escapeHtml(x.title)+'"':'')+'>'+escapeHtml(x.label)+'</span>';
+      }).join('');
+      box._sig=sig;
+    }else{
+      var nodes=box.children;
+      for(var i=0;i<items.length;i++){
+        if(!nodes[i])break;
+        nodes[i].className=items[i].cls;
+        if(items[i].title)nodes[i].setAttribute('title',items[i].title);else nodes[i].removeAttribute('title');
+      }
+    }
+    if(box._bound)return;                                 // 事件委托只绑一次
+    box._bound=true;
+    box.addEventListener('click',function(e){
+      var t=e.target,cl=function(s){return t&&t.closest?t.closest(s):null;};
+      if(cl('.period-chip[data-all]')){
+        if(e.detail>1)return;                             // 双击的第二次 click 交给 dblclick
+        setAllChipMode(state.allOn?'off':'on');
+        return;
+      }
+      var pc=cl('.period-chip[data-pid]');
+      if(!pc||pc.classList.contains('disabled'))return;  // 0 期胶囊不可点击
+      var pid=pc.getAttribute('data-pid');
+      state.currentPeriodId=pid;
+      if(state.previewAll){state.previewAll=false;state.allOn=true;}   // 退出只读预览 → 全部列 + 当期可编辑
+      state.visiblePeriodIds=state.allOn?null:[pid];                    // 未选「全部」时维持只显示该期一列
+      save();render();
+    });
+    box.addEventListener('dblclick',function(e){
+      var t=e.target,a=t&&t.closest?t.closest('.period-chip[data-all]'):null;
+      if(!a)return;
+      e.preventDefault();setAllChipMode('preview');
+    });
+    box.addEventListener('contextmenu',function(e){
+      var pc=e.target&&e.target.closest?e.target.closest('.period-chip[data-pid]'):null;
+      if(!pc)return;
+      e.preventDefault();openCtx(pc.getAttribute('data-pid'),e.clientX,e.clientY);
     });
   }
   function renderSummary(){
@@ -1737,14 +1862,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var i=2,cand;do{cand=base.slice(0,27)+'('+i+')';i++;}while(bakSheetName._u[cand]);
     bakSheetName._u[cand]=1;return cand;
   }
+  // 工作簿内部跳转用表名引用：单引号包裹，名称内单引号加倍（OOXML hyperlink@location）
+  function bakSheetRef(name){return "'"+String(name==null?'':name).replace(/'/g,"''")+"'";}
   var BACKUP_STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +'<fonts count="3">'
+    +'<fonts count="10">'
     +'<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>'
     +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>'
     +'<font><b/><sz val="11"/><color rgb="FF1F1F1F"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><u/><sz val="11"/><color rgb="FF2F6FD0"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><b/><u/><sz val="11"/><color rgb="FF1F4E79"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><sz val="9"/><color rgb="FF7A828E"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><sz val="9"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><b/><sz val="10"/><color rgb="FF7A5A00"/><name val="Calibri"/><family val="2"/></font>'
+    +'<font><b/><sz val="11"/><color rgb="FF1F4E79"/><name val="Calibri"/><family val="2"/></font>'
     +'</fonts>'
-    +'<fills count="8">'
+    +'<fills count="12">'
     +'<fill><patternFill patternType="none"/></fill>'
     +'<fill><patternFill patternType="gray125"/></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FF4472C4"/><bgColor indexed="64"/></patternFill></fill>'
@@ -1753,11 +1887,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFEAF1FB"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFFAFBFC"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFFFF7E0"/><bgColor indexed="64"/></patternFill></fill>'
     +'</fills>'
     +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
     +'<border><left style="thin"><color rgb="FFD9D9D9"/></left><right style="thin"><color rgb="FFD9D9D9"/></right><top style="thin"><color rgb="FFD9D9D9"/></top><bottom style="thin"><color rgb="FFD9D9D9"/></bottom><diagonal/></border></borders>'
     +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    +'<cellXfs count="13">'
+    +'<cellXfs count="26">'
     +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
     +'<xf numFmtId="0" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
@@ -1771,6 +1909,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<xf numFmtId="2" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'<xf numFmtId="2" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'<xf numFmtId="2" fontId="0" fillId="7" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="4" fillId="8" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="7" fillId="8" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="8" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="5" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="0" fillId="9" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="0" fillId="9" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="0" fillId="9" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="3" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="0" fillId="10" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="0" fillId="10" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="9" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
     +'</cellXfs>'
     +'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     +'<dxfs count="3">'
@@ -1817,7 +1968,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       +'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing" Target="../drawings/vmlDrawing'+n+'.vml"/>'
       +'</Relationships>';
   }
-  function buildBackupSheet(div,ps,colW,legacyRid){
+  function buildBackupSheet(div,ps,colW,legacyRid,tocName){
     var ncol=NSTATIC+ps.length;
     var qtyCol=colL(5),remCol=colL(8),remPctCol=colL(9),doneCol=colL(10),donePctCol=colL(11),noteCol=colL(NSTATIC-1);
     var firstPer=colL(NSTATIC),lastPer=colL(NSTATIC+ps.length-1);
@@ -1851,16 +2002,51 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     ps.forEach(function(p,k){rows+=pCell(colL(NSTATIC+k)+r,div._per&&div._per[p.id]||0);});
     rows+='</row>';r++;
     var firstData=r;
+    // 每个清单分部行的子树范围（div.rows 索引，不含自身、到下一个同级/更高级分部为止）
+    // 分部行的「剩余/已完工程量百分比」用 SUMIF 只合计本子树内 F 列有值的清单项行
+    var secEnd={};
+    for(var si=0;si<div.rows.length;si++){
+      var sr=div.rows[si];if(sr.type!=='section')continue;
+      var slvl=sr._lvl||0,ei=div.rows.length;
+      for(var sj=si+1;sj<div.rows.length;sj++){
+        var nr=div.rows[sj];
+        if(nr.type==='section'&&(nr._lvl||0)<=slvl){ei=sj;break;}
+      }
+      secEnd[si]=ei;
+    }
+    // Excel 行分组（分级显示）：分部行是其下清单项的汇总行（汇总行在上方 → summaryBelow=0）
+    // section 行 outlineLevel=_lvl（0 省略）；item 行 = 最近所属分部 _lvl+1，天然支持 3/4 级嵌套展开/折叠
+    var curSecLvl=-1,maxOutline=0,rowLvls=[];
     div.rows.forEach(function(row){
+      var lv;
+      if(row.type==='section'){curSecLvl=row._lvl||0;lv=curSecLvl;}
+      else lv=curSecLvl+1;
+      if(lv>7)lv=7;
+      rowLvls.push(lv);if(lv>maxOutline)maxOutline=lv;
+    });
+    var olAttr=function(i){return rowLvls[i]>0?' outlineLevel="'+rowLvls[i]+'"':'';};
+    var seqLinks=[];   // 序号列单元格：点击返回目录页
+    div.rows.forEach(function(row,idx){
       if(row.type==='section'){
-        rows+='<row r="'+r+'">';
+        rows+='<row r="'+r+'"'+olAttr(idx)+'>';
         // 清单分部名称必须落在「名称」列 C（与网页、导入解析器一致），项目特征列 D 留空
         rows+=bCell(colL(0)+r,'s','',null,9)+bCell(colL(1)+r,'s','',null,4)+bCell(colL(2)+r,'s',row.name,null,2);
         rows+=bCell(colL(3)+r,'s','',null,4)+bCell(colL(4)+r,'s','',null,9)+bCell(colL(5)+r,'s','',null,4)+bCell(colL(6)+r,'s','',null,4);
         rows+=bCell(colL(7)+r,'n',row.total||0,null,7);
-        // 剩余工程量 / 剩余比例 / 已完工程量 / 已完比例：清单分部行均留空
-        for(var z=8;z<NSTATIC;z++)rows+=bCell(colL(z)+r,'s','',null,(z===9||z===11)?8:((z===NSTATIC-1)?6:7));
-        ps.forEach(function(p,k){rows+=bCell(colL(NSTATIC+k)+r,'s','',null,4);});
+        // 剩余工程量 I / 已完工程量 K：分部行显示占比（0.00%），且写成 Excel 公式，改数据会自动重算
+        var sRow=3+idx+1,eRow=2+(secEnd[idx]||(idx+1));
+        var secQty=row._qty||0,secRem=row._rem||0;
+        var hasRange=(eRow>=sRow&&Math.abs(secQty)>1e-9);
+        var frng='F'+sRow+':F'+eRow;
+        var sumifQty='SUMIF('+frng+',"<>",'+frng+')';
+        var fRem='IFERROR(SUMIF('+frng+',"<>",I'+sRow+':I'+eRow+')/'+sumifQty+',"")';
+        var fDone='IFERROR(SUMIF('+frng+',"<>",K'+sRow+':K'+eRow+')/'+sumifQty+',"")';
+        for(var z=8;z<NSTATIC;z++){
+          if(z===8&&hasRange)rows+=bCell(remCol+r,'f',secRem/secQty,bakEsc(fRem),8);
+          else if(z===10&&hasRange)rows+=bCell(doneCol+r,'f',(secQty-secRem)/secQty,bakEsc(fDone),8);
+          else rows+=bCell(colL(z)+r,'s','',null,(z===9||z===11)?8:((z===NSTATIC-1)?6:7));
+        }
+        // 清单分部（含各级子分部）行：期数列完全不写单元格，网页与导出均不显示内容
         rows+='</row>';r++;
       } else {
         var qty=isNaN(row.qty)?0:row.qty;
@@ -1868,7 +2054,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         var remV=qty-done;
         var feat=String(row.feature||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
         var sumExpr=ps.length?('SUM('+firstPer+r+':'+lastPer+r+')'):'0';
-        rows+='<row r="'+r+'">';
+        rows+='<row r="'+r+'"'+olAttr(idx)+'>';
+        if(tocName)seqLinks.push('A'+r);
         rows+=bCell(colL(0)+r,'s',row.seq,null,9)+bCell(colL(1)+r,'s',row.code,null,4)+bCell(colL(2)+r,'s',row.name,null,4);
         rows+=bCell(colL(3)+r,'s',feat,null,6)+bCell(colL(4)+r,'s',row.unit,null,9);
         rows+=bCell(qtyCol+r,'n',qty,null,7)+bCell(colL(6)+r,'n',row.price,null,7)+bCell(colL(7)+r,'n',row.total,null,7);
@@ -1900,21 +2087,105 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     rows+='</row>';
     var lastRow=r;
     var cf='<conditionalFormatting sqref="'+remCol+firstData+':'+remCol+lastData+'">'
-      +'<cfRule type="expression" dxfId="0" priority="1"><formula>AND(ISNUMBER('+remCol+firstData+'),ABS('+remCol+firstData+')&lt;='+TOL+')</formula></cfRule>'
-      +'<cfRule type="expression" dxfId="1" priority="2"><formula>AND(ISNUMBER('+remCol+firstData+'),'+remCol+firstData+'&lt;0)</formula></cfRule>'
+      +'<cfRule type="expression" dxfId="0" priority="1"><formula>AND(ISNUMBER('+qtyCol+firstData+'),ISNUMBER('+remCol+firstData+'),ABS('+remCol+firstData+')&lt;='+TOL+')</formula></cfRule>'
+      +'<cfRule type="expression" dxfId="1" priority="2"><formula>AND(ISNUMBER('+qtyCol+firstData+'),ISNUMBER('+remCol+firstData+'),'+remCol+firstData+'&lt;0)</formula></cfRule>'
       +'<cfRule type="expression" dxfId="2" priority="3"><formula>AND(ISNUMBER('+remCol+firstData+'),ISNUMBER('+qtyCol+firstData+'),'+remCol+firstData+'&gt;'+TOL+',ABS('+remCol+firstData+'-'+qtyCol+firstData+')&gt;'+TOL+')</formula></cfRule>'
       +'</conditionalFormatting>';
+    // 数据表的「序号」表头(A1) 与序号列单元格 → 跳回目录页（内部 location 链接，无需外部关系）
+    var links='';
+    if(tocName){
+      var back=bakSheetRef(tocName)+'!A1';
+      links+='<hyperlink ref="A1" location="'+bakEsc(back)+'" display="序号" tooltip="点击返回目录页"/>';
+      seqLinks.forEach(function(ref){links+='<hyperlink ref="'+ref+'" location="'+bakEsc(back)+'" tooltip="点击返回目录页"/>';});
+    }
+    var linksXml=links?'<hyperlinks>'+links+'</hyperlinks>':'';
+    var sheetPr=maxOutline?'<sheetPr><outlinePr summaryBelow="0"/></sheetPr>':'';
+    var fmtPr=maxOutline?'<sheetFormatPr defaultRowHeight="15" outlineLevelRow="'+maxOutline+'"/>':'';
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      +sheetPr
       +'<dimension ref="A1:'+colL(ncol-1)+lastRow+'"/>'
-      +'<sheetViews><sheetView workbookViewId="0">'
+      +'<sheetViews><sheetView workbookViewId="0"'+(maxOutline?' showOutlineSymbols="1"':'')+'>'
       +'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
       +'<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>'
-      +'</sheetView></sheetViews>'+cols
-      +'<sheetData>'+rows+'</sheetData>'+cf+(legacyRid?'<legacyDrawing r:id="'+legacyRid+'"/>':'')+'</worksheet>';
+      +'</sheetView></sheetViews>'+fmtPr+cols
+      +'<sheetData>'+rows+'</sheetData>'+cf+linksXml+(legacyRid?'<legacyDrawing r:id="'+legacyRid+'"/>':'')+'</worksheet>';
   }
+  // 自动生成目录页：按「项目 → 单位工程 → 清单分部」列出，点击名称跳转到对应工作表/分部行
+  // 清单分部行用 Excel 原生分组（outlineLevel=1）承载：默认收起；点左上角「1 / 2」分级按钮或行号旁「+ / −」即可开启 / 关闭展示
+  // 注意：A1 必须恒为「目录」、C2 必须含「单位工程」——导入时据此跳过目录页，旧备份也依赖此约定
+  function buildTocSheet(toc,tocName){
+    var rows='',links='',merges='',mergeCount=0;
+    var addMerge=function(ref){merges+='<mergeCell ref="'+ref+'"/>';mergeCount++;};
+    var addLink=function(ref,loc,disp,tip){
+      links+='<hyperlink ref="'+ref+'" location="'+bakEsc(loc)+'" display="'+bakEsc(disp)+'" tooltip="'+bakEsc(tip)+'"/>';};
+    var now=new Date(),pd=function(n){return (n<10?'0':'')+n;};
+    var stamp=now.getFullYear()+'-'+pd(now.getMonth()+1)+'-'+pd(now.getDate())+' '+pd(now.getHours())+':'+pd(now.getMinutes());
+    // 第 1 行：大标题（A1:D1 合并，深蓝底白字）
+    rows+='<row r="1" ht="38" customHeight="1">'+bCell('A1','s','目录',null,14)+'</row>';
+    addMerge('A1:D1');
+    // 第 2 行：表头（保持 C2 含「单位工程」）
+    rows+='<row r="2" ht="24" customHeight="1">'
+      +bCell('A2','s','序号',null,1)+bCell('B2','s','项目',null,1)
+      +bCell('C2','s','单位工程 / 清单分部',null,1)+bCell('D2','s','清单项数',null,1)+'</row>';
+    // 第 3 行：开关提示条（浅黄底）
+    rows+='<row r="3" ht="44" customHeight="1">'
+      +bCell('A3','s','清单分部默认收起（关闭展示）：点 Excel 左上角「1 / 2」分级按钮，或单位工程行号左侧的「+ / −」，即可开启 / 关闭展示清单分部。点击蓝色名称可跳转；数据表中点「序号」或 A1 返回本页。',null,16)+'</row>';
+    addMerge('A3:D3');
+    var r=4,cnt=0,projCount=0,secCount=0,itemCount=0,lastProj=null;
+    toc.forEach(function(t){
+      if(t.projName!==lastProj){projCount++;lastProj=t.projName;}
+      cnt++;itemCount+=t.itemCount;
+      var hasSec=!!(t.sections&&t.sections.length);
+      rows+='<row r="'+r+'" ht="20" customHeight="1"'+(hasSec?' collapsed="1"':'')+'>'
+        +bCell('A'+r,'s',String(cnt),null,19)
+        +bCell('B'+r,'s',t.projName,null,18)
+        +bCell('C'+r,'s',t.divName,null,17)
+        +bCell('D'+r,'n',t.itemCount,null,20)+'</row>';
+      addLink('C'+r,bakSheetRef(t.sheetName)+'!A1',t.divName,'跳转到：'+t.projName+' / '+t.divName);
+      r++;
+      t.sections.forEach(function(sc){
+        secCount++;
+        var pad=new Array(sc.lvl+1).join('\u3000');
+        var txt=pad+(sc.lvl?'\u2514 ':'')+sc.name;
+        rows+='<row r="'+r+'" outlineLevel="1" hidden="1">'
+          +bCell('A'+r,'s','',null,22)+bCell('B'+r,'s','',null,22)
+          +bCell('C'+r,'s',txt,null,21)+bCell('D'+r,'n',sc.count,null,23)+'</row>';
+        addLink('C'+r,bakSheetRef(t.sheetName)+'!A'+sc.excelRow,txt,'跳转到分部：'+sc.name);
+        r++;
+      });
+    });
+    // 底部：留白 + 使用说明 / 统计
+    rows+='<row r="'+r+'" ht="10" customHeight="1"/>';r++;
+    var note=function(txt,st,ht){
+      rows+='<row r="'+r+'" ht="'+ht+'" customHeight="1">'+bCell('A'+r,'s',txt,null,st)+'</row>';
+      addMerge('A'+r+':D'+r);r++;};
+    note('使用说明 · 统计',24,22);
+    note('• 蓝色名称为内部链接：点击跳转到对应单位工程工作表 / 清单分部行；数据表中点击「序号」列或 A1 单元格可返回本页。',25,30);
+    note('• 清单分部默认收起（关闭展示）。点 Excel 左上角「1 / 2」分级按钮，或每个单位工程行号左侧的「+ / −」，即可开启 / 关闭展示清单分部。',25,30);
+    note('• 共 '+projCount+' 个项目 · '+toc.length+' 个单位工程 · '+secCount+' 个清单分部 · '+itemCount+' 个清单项　|　生成时间 '+stamp,25,30);
+    var lastRow=r-1;
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      +'<sheetPr><outlinePr summaryBelow="0"/></sheetPr>'
+      +'<dimension ref="A1:D'+Math.max(lastRow,3)+'"/>'
+      +'<sheetViews><sheetView tabSelected="1" showGridLines="0" showOutlineSymbols="1" workbookViewId="0">'
+      +'<pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/>'
+      +'<selection pane="bottomLeft" activeCell="A4" sqref="A4"/>'
+      +'</sheetView></sheetViews>'
+      +'<sheetFormatPr defaultRowHeight="15" outlineLevelRow="1"/>'
+      +'<cols><col min="1" max="1" width="7" customWidth="1"/><col min="2" max="2" width="24" customWidth="1"/>'
+      +'<col min="3" max="3" width="62" customWidth="1"/><col min="4" max="4" width="12" customWidth="1"/></cols>'
+      +'<sheetData>'+rows+'</sheetData>'
+      +(mergeCount?'<mergeCells count="'+mergeCount+'">'+merges+'</mergeCells>':'')
+      +(links?'<hyperlinks>'+links+'</hyperlinks>':'')
+      +'</worksheet>';
+  }
+
   function buildBackupXlsx(){
-    var sheets=[], sheetRels='', sheetNum=1;
+    bakSheetName._u={};
+    var tocName=bakSheetName('目录');   // 先占位，避免数据表占用「目录」名
+    var sheets=[], sheetRels='', sheetNum=1, toc=[];
     var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
       +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
       +'<Default Extension="xml" ContentType="application/xml"/>'
@@ -1929,8 +2200,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ps.forEach(function(p){keys.push('per_'+p.id);colW.push(getWidth('per_'+p.id));});
       proj.divisions.forEach(function(div){
         computeDivision(div,ps); // 导出永远按该项目全部期数计算，不受页面显示过滤影响
-        var xml=buildBackupSheet(div,ps,colW,'rId2');
         var nm=bakSheetName(proj.name+'-'+div.name);
+        var xml=buildBackupSheet(div,ps,colW,'rId2',tocName);
+        var secs=[];
+        div.rows.forEach(function(row,idx){
+          if(row.type==='section')secs.push({name:row.name,lvl:row._lvl||0,excelRow:3+idx,count:secItemCount(div,row)});
+        });
+        toc.push({projName:proj.name,divName:div.name,sheetName:nm,sections:secs,
+          itemCount:div.rows.filter(function(r){return r.type==='item';}).length});
         var parts=buildPeriodCommentParts(ps);
         sheets.push({name:nm,xml:xml,comments:parts.comments,vml:parts.vml});
         ct+='<Override PartName="/xl/worksheets/sheet'+sheetNum+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
@@ -1939,17 +2216,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         sheetNum++;
       });
     });
-    var meta={version:1,projects:state.projects,colWidths:state.colWidths,hiddenCols:state.hiddenCols||DEFAULT_HIDDEN,activeProjectId:state.activeProjectId,activeDivisionId:state.activeDivisionId,currentPeriodId:state.currentPeriodId};
+    var meta={version:1,toc:tocName,projects:state.projects,colWidths:state.colWidths,hiddenCols:state.hiddenCols||DEFAULT_HIDDEN,hideZeroRows:!!state.hideZeroRows,allOn:!!state.allOn,activeProjectId:state.activeProjectId,activeDivisionId:state.activeDivisionId,currentPeriodId:state.currentPeriodId};
     var metaXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">'+bakEsc(JSON.stringify(meta))+'</t></is></c></row></sheetData></worksheet>';
-    var metaNum=sheetNum;
+    var metaNum=sheetNum, tocNum=metaNum+1, stylesId=metaNum+2;
     ct+='<Override PartName="/xl/worksheets/sheet'+metaNum+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
     sheetRels+='<Relationship Id="rId'+metaNum+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+metaNum+'.xml"/>';
+    ct+='<Override PartName="/xl/worksheets/sheet'+tocNum+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    sheetRels+='<Relationship Id="rId'+tocNum+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+tocNum+'.xml"/>';
     ct+='</Types>';
-    var wbSheets='';
+    // 目录放在 <sheets> 首位 → Excel/WPS 打开备份时默认停留在目录页
+    var wbSheets='<sheet name="'+bakEsc(tocName)+'" sheetId="'+tocNum+'" r:id="rId'+tocNum+'"/>';
     sheets.forEach(function(s,i){wbSheets+='<sheet name="'+bakEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';});
     wbSheets+='<sheet name="_META" sheetId="'+metaNum+'" state="hidden" r:id="rId'+metaNum+'"/>';
     var workbookXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+wbSheets+'</sheets></workbook>';
-    var wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheetRels+'<Relationship Id="rId'+(metaNum+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    var wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheetRels+'<Relationship Id="rId'+stylesId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
     var rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>';
     var coreXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">工程量清单进度备份</dc:title></cp:coreProperties>';
     var appXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>工程量清单进度工具</Application></Properties>';
@@ -1968,6 +2248,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       entries.push({name:'xl/worksheets/_rels/sheet'+n+'.xml.rels',data:enc.encode(sheetCommentRels(n))});
     });
     entries.push({name:'xl/worksheets/sheet'+metaNum+'.xml',data:enc.encode(metaXml)});
+    entries.push({name:'xl/worksheets/sheet'+tocNum+'.xml',data:enc.encode(buildTocSheet(toc,tocName))});
     return zipStore(entries);
   }
   function exportXlsx(){
@@ -1987,6 +2268,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     state.projects=data.projects||[];
     state.colWidths=data.colWidths||{};
     state.hiddenCols=(data.hiddenCols||DEFAULT_HIDDEN).slice();
+    state.hideZeroRows=!!data.hideZeroRows;                 // 视图开关同样跟随备份恢复
+    state.allOn=!!data.allOn;state.previewAll=false;       // 只读预览是临时状态，导入后一律回到可编辑
     state.activeProjectId=data.activeProjectId||(state.projects[0]&&state.projects[0].id)||null;
     state.activeDivisionId=data.activeDivisionId||null;
     state.currentPeriodId=data.currentPeriodId||null;
@@ -2081,6 +2364,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       wb.SheetNames.forEach(function(sn){
         if(sn==='_META')return;
         var ws=wb.Sheets[sn];if(!ws)return;
+        // 自动生成的目录页不参与导入（A1=「目录」且 C2 为目录表头；数据表 A1 恒为「序号」）
+        if(String(bakCellVal(ws,'A1')||'').trim()==='目录'
+          &&String(bakCellVal(ws,'C2')||'').indexOf('单位工程')>=0)return;
+        if(meta&&meta.toc&&sn===meta.toc)return;
         var parsed=parseBackupSheet(ws);if(!parsed)return;
         // 优先按表名拆分；表名不含「-」时回退到单元格标注 / 表名
         var pname=null,dname=null;
@@ -2119,6 +2406,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       state.projects=projects;
       if(meta&&meta.colWidths)state.colWidths=meta.colWidths;
       state.hiddenCols=(meta&&meta.hiddenCols)?meta.hiddenCols.slice():DEFAULT_HIDDEN.slice();
+      state.hideZeroRows=!!(meta&&meta.hideZeroRows);
+      state.allOn=!!(meta&&meta.allOn);state.previewAll=false;   // 备份恢复「全部」选中态；只读预览是临时状态，导入后一律退出
       state.activeProjectId=projects[0]?projects[0].id:null;
       state.activeDivisionId=projects[0]&&projects[0].divisions[0]?projects[0].divisions[0].id:null;
       state.currentPeriodId=(projects[0]&&projects[0].periods.length)?projects[0].periods[projects[0].periods.length-1].id:null;
@@ -2131,20 +2420,77 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     rd.readAsArrayBuffer(file);
   }
 
-  // 批量显示期数（仅影响页面显示，导出备份始终含全部期数）
-  function visCountUpdate(){var ins=$('visList').querySelectorAll('input'),n=$('visList').querySelectorAll('input:checked').length;
-    $('visCount').textContent='已选 '+n+' / '+ins.length;}
-  function openVisibleModal(){
-    var all=activePeriods();if(!all.length){toast('尚未添加期数');return;}
-    var vis=visibleIds();
-    $('visList').innerHTML=all.map(function(p){
-      var on=!vis||vis.indexOf(p.id)>=0;
-      return '<label class="vis-item"><input type="checkbox" data-pid="'+p.id+'"'+(on?' checked':'')+'>'+
-        '<span>'+escapeHtml(p.label)+'</span>'+(p.remark?'<span class="hint">'+escapeHtml(p.remark)+'</span>':'')+'</label>';}).join('');
-    $('visList').querySelectorAll('input').forEach(function(c){c.addEventListener('change',visCountUpdate);});
-    visCountUpdate();$('visMask').classList.add('show');
+  // 批量设置期数：勾选显示列 + 名称编辑 + 删除 + 新增（草稿制，点「确定」统一提交，「取消」丢弃）
+  var visDraft=null;
+  function visCountUpdate(){
+    if(!visDraft){$('visCount').textContent='';return;}
+    var n=visDraft.filter(function(x){return x.show;}).length;
+    $('visCount').textContent='已选 '+n+' / '+visDraft.length;
   }
-  function closeVisibleModal(){$('visMask').classList.remove('show');}
+  function renderVisList(){
+    var box=$('visList');
+    if(!visDraft||!visDraft.length){box.innerHTML='<div class="vis-empty">暂无期数，点「＋ 新增期数」添加</div>';visCountUpdate();return;}
+    box.innerHTML=visDraft.map(function(x,i){
+      return '<div class="vis-set-row'+(x.isNew?' is-new':'')+'" data-i="'+i+'">'+
+        '<input type="checkbox" data-vis="'+i+'"'+(x.show?' checked':'')+' title="显示该期数列">'+
+        '<input class="per-name" data-name="'+i+'" value="'+escapeHtml(x.label)+'" placeholder="期数名称" title="可直接修改期数名称">'+
+        (x.remark?'<span class="per-remark" title="'+escapeHtml(x.remark)+'">'+escapeHtml(x.remark)+'</span>':'')+
+        '<button class="mini" type="button" data-del="'+i+'" title="删除该期数">×</button></div>';}).join('');
+    visCountUpdate();
+  }
+  function openVisibleModal(){
+    var all=activePeriods(),vis=visibleIds();
+    visDraft=all.map(function(p){return {id:p.id,label:p.label,remark:p.remark||'',show:!vis||vis.indexOf(p.id)>=0,isNew:false};});
+    renderVisList();$('visMask').classList.add('show');
+  }
+  function closeVisibleModal(){$('visMask').classList.remove('show');visDraft=null;}
+  function addVisPeriod(){
+    if(!visDraft)visDraft=[];
+    var k=visDraft.length+1,label='第'+k+'期';
+    while(visDraft.some(function(x){return x.label===label;})){k++;label='第'+k+'期';}
+    visDraft.push({id:null,label:label,remark:'',show:true,isNew:true});
+    renderVisList();
+    var box=$('visList');box.scrollTop=box.scrollHeight;
+    var last=box.querySelector('.vis-set-row:last-child .per-name');if(last){last.focus();last.select();}
+  }
+  function applyVisSettings(){
+    if(!visDraft)return;
+    var d=visDraft.map(function(x){return {id:x.id,label:String(x.label==null?'':x.label).trim(),remark:x.remark||'',show:!!x.show,isNew:!!x.isNew};});
+    var seen={};
+    for(var j=0;j<d.length;j++){
+      if(!d[j].label){toast('期数名称不能为空');return;}
+      if(seen[d[j].label]){toast('期数名称不能重复：'+d[j].label);return;}
+      seen[d[j].label]=1;
+    }
+    var proj=activeProj();if(!proj){toast('请先新建项目');return;}
+    var old=activePeriods().slice(),keptIds={};
+    d.forEach(function(x){if(x.id)keptIds[x.id]=1;});
+    var removed=old.filter(function(p){return !keptIds[p.id];}).map(function(p){return p.id;});
+    // 名称更新
+    old.forEach(function(p){var m=d.find(function(x){return x.id===p.id;});if(m)p.label=m.label;});
+    // 删除期数：同步清理已录入数据与相关视图引用
+    if(removed.length){
+      proj.periods=proj.periods.filter(function(p){return removed.indexOf(p.id)<0;});
+      (proj.divisions||[]).forEach(function(dv){dv.rows.forEach(function(r){
+        if(r.periods)removed.forEach(function(id){delete r.periods[id];});});});
+      if(removed.indexOf(state.currentPeriodId)>=0)state.currentPeriodId=null;
+    }
+    // 新增期数：为所有清单项初始化为 0
+    d.filter(function(x){return x.isNew||!x.id;}).forEach(function(x){
+      var np={id:uid(),label:x.label,remark:x.remark};proj.periods.push(np);x.id=np.id;
+      (proj.divisions||[]).forEach(function(dv){dv.rows.forEach(function(r){
+        if(r.type==='item'&&r.periods[np.id]==null)r.periods[np.id]=0;});});
+    });
+    proj.periods.sort(periodCmp);
+    if(!proj.periods.length)state.currentPeriodId=null;
+    else if(!proj.periods.some(function(p){return p.id===state.currentPeriodId;}))state.currentPeriodId=proj.periods[proj.periods.length-1].id;
+    var ids=d.filter(function(x){return x.show;}).map(function(x){return x.id;});
+    if(proj.periods.length&&!ids.length){toast('请至少勾选一个期数');return;}
+    state.allOn=false;state.previewAll=false;      // 手动设置期数时退出「全部 / 只读预览」模式
+    state.visiblePeriodIds=proj.periods.length?((ids.length===proj.periods.length)?proj.periods.map(function(p){return p.id;}):ids):null;
+    if(state.visiblePeriodIds&&state.visiblePeriodIds.indexOf(state.currentPeriodId)<0)state.currentPeriodId=state.visiblePeriodIds[state.visiblePeriodIds.length-1];
+    closeVisibleModal();save();render();toast('期数设置已保存');
+  }
 
   // 标题行右键：显示 / 隐藏列（两个比例列默认隐藏；备注列默认显示、可隐藏；导出始终含全部列）
   function colCountUpdate(){var ins=$('colList').querySelectorAll('input'),n=$('colList').querySelectorAll('input:checked').length;
@@ -2288,18 +2634,30 @@ $('importMenu').addEventListener('click',function(e){
   $('periodCtx').addEventListener('click',function(e){var act=e.target.getAttribute('data-act');if(!act)return;
     $('periodCtx').style.display='none';
     if(act==='visible'){openVisibleModal();return;}
+    if(act==='zeroRows'){state.hideZeroRows=!state.hideZeroRows;save();render();
+      toast(state.hideZeroRows?(state.allOn?'已隐藏已完工程量为 0 的清单项行':'已隐藏当期工程量为 0 的清单项行'):'已显示全部清单项行');return;}
     if(act==='cols'){openColModal();return;}
     if(act==='edit'&&ctxPeriodId)openPeriodModal(ctxPeriodId);if(act==='delete'&&ctxPeriodId)deletePeriod(ctxPeriodId);});
-  $('visAll').addEventListener('click',function(){$('visList').querySelectorAll('input').forEach(function(c){c.checked=true;});visCountUpdate();});
-  $('visNone').addEventListener('click',function(){$('visList').querySelectorAll('input').forEach(function(c){c.checked=false;});visCountUpdate();});
+  $('visAll').addEventListener('click',function(){if(!visDraft)return;visDraft.forEach(function(x){x.show=true;});renderVisList();});
+  $('visNone').addEventListener('click',function(){if(!visDraft)return;visDraft.forEach(function(x){x.show=false;});renderVisList();});
+  $('visAdd').addEventListener('click',addVisPeriod);
   $('visCancel').addEventListener('click',closeVisibleModal);
-  $('visOk').addEventListener('click',function(){
-    var ids=[];$('visList').querySelectorAll('input:checked').forEach(function(c){ids.push(c.getAttribute('data-pid'));});
-    if(!ids.length){toast('请至少勾选一个期数');return;}
-    var all=activePeriods();
-    state.visiblePeriodIds=(ids.length===all.length)?null:ids;
-    var cur=currentPeriod();if(cur&&ids.indexOf(cur.id)<0)state.currentPeriodId=ids[ids.length-1];
-    closeVisibleModal();save();render();
+  $('visOk').addEventListener('click',applyVisSettings);
+  $('visList').addEventListener('input',function(e){
+    var t=e.target;if(!visDraft||!t.hasAttribute||!t.hasAttribute('data-name'))return;
+    var i=+t.getAttribute('data-name');if(visDraft[i])visDraft[i].label=t.value;
+  });
+  $('visList').addEventListener('change',function(e){
+    var t=e.target;if(!visDraft||!t.hasAttribute||!t.hasAttribute('data-vis'))return;
+    var i=+t.getAttribute('data-vis');if(visDraft[i]){visDraft[i].show=t.checked;visCountUpdate();}
+  });
+  $('visList').addEventListener('click',function(e){
+    if(!visDraft)return;
+    var b=e.target&&e.target.closest?e.target.closest('[data-del]'):null;
+    if(b){var i=+b.getAttribute('data-del');visDraft.splice(i,1);renderVisList();return;}
+    var row=e.target&&e.target.closest?e.target.closest('.vis-set-row'):null;
+    if(row&&e.target===row){var cb=row.querySelector('[data-vis]');if(cb){cb.checked=!cb.checked;
+      var k=+cb.getAttribute('data-vis');if(visDraft[k]){visDraft[k].show=cb.checked;visCountUpdate();}}}
   });
 
   $('colAll').addEventListener('click',function(){$('colList').querySelectorAll('input').forEach(function(c){c.checked=true;});colCountUpdate();});
