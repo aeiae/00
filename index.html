@@ -193,16 +193,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .card:hover .card-ico{background:var(--accent);color:#fff}
 .card-body{min-width:0;display:flex}
 .card-name{font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-arrow{margin-left:auto;color:var(--muted);opacity:0;transition:opacity .15s;flex:none;font-size:14px;line-height:1}
 .card:hover .card-arrow{opacity:1;color:var(--accent)}
 .card-row{align-items:center;gap:11px;padding:8px 12px;min-height:44px}
-.card-row .card-body{flex:1;align-items:center;gap:14px}
-.card-row .card-name{flex:0 1 38%;min-width:80px}
-.card-row .card-path{flex:1;min-width:0}
+.card-row .card-body{flex:1;min-width:0;align-items:center}
+.card-row .card-name{flex:1;min-width:0}
 .card-tile{flex-direction:column;align-items:flex-start;gap:10px;padding:13px}
-.card-tile .card-body{flex-direction:column;gap:3px;width:100%}
-.card-tile .card-name,.card-tile .card-path{width:100%}
+.card-tile .card-body{flex-direction:column;width:100%}
+.card-tile .card-name{width:100%}
 .card-tile .card-arrow{display:none}
 
 /* 拖拽 */
@@ -222,8 +220,8 @@ button:disabled{opacity:.4;cursor:not-allowed}
   box-shadow:0 14px 34px rgba(0,0,0,.22);border:1px solid var(--accent);
   background:var(--surface);opacity:.96;padding:10px 12px;display:flex;align-items:center;gap:10px;
 }
-.drag-clone .card-body{display:flex;flex-direction:column;gap:2px}
-.drag-clone .card-path,.drag-clone .card-arrow,.drag-clone .drag-handle{display:none}
+.drag-clone .card-body{display:flex;flex-direction:column}
+.drag-clone .card-arrow,.drag-clone .drag-handle{display:none}
 .card.dragging{opacity:.38}
 .card.drop-before::before,.card.drop-after::after{
   content:'';position:absolute;left:0;right:0;height:2px;background:var(--accent);z-index:3;border-radius:2px;
@@ -327,7 +325,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
   .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
   .card-row{min-height:52px;padding:10px 12px}
   .card-name{font-size:13.5px}
-  .card-path{font-size:11.5px}
   .card-tile{padding:12px}
   .drag-handle{width:34px;height:34px;font-size:17px;right:6px}
   .card-tile .drag-handle{top:6px}
@@ -862,8 +859,8 @@ var Renderer = {
     var a=document.createElement('a');
     a.className='card '+(S.view==='list'?'card-row':'card-tile');
     a.dataset.path=file.path;
-    a.title=file.path;
-    a.setAttribute('aria-label','打开 '+file.path);
+    a.title=U.fileName(file.path);                       // 悬停只提示文件名，不含分组
+    a.setAttribute('aria-label','打开 '+U.fileName(file.path));
     if(file.isLocal){
       a.href='#';
       a.addEventListener('click',function(ev){
@@ -880,8 +877,7 @@ var Renderer = {
     var ico=document.createElement('span'); ico.className='card-ico'; ico.setAttribute('aria-hidden','true'); ico.innerHTML=ICON_SVG;
     var body=document.createElement('span'); body.className='card-body';
     var nm=document.createElement('span'); nm.className='card-name'; nm.textContent=file.name;   // textContent 防 XSS
-    var pt=document.createElement('span'); pt.className='card-path'; pt.textContent=U.groupLabel(U.effectiveDir(file.path));
-    body.appendChild(nm); body.appendChild(pt);
+    body.appendChild(nm);
     var ar=document.createElement('span'); ar.className='card-arrow'; ar.textContent='→';
     a.appendChild(ico); a.appendChild(body); a.appendChild(ar);
     if(S.sortEnabled){
