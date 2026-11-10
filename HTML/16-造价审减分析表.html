@@ -69,7 +69,17 @@
     display:flex; align-items:center; justify-content:space-between;
     padding:8px 10px; background:var(--accent-soft); border-bottom:1px solid var(--border);
   }
-  .card-head .ttl{font-weight:600; font-size:12px; color:var(--muted);}
+  .card-head .ttl{font-weight:600; font-size:12px; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:38%; flex:0 1 auto;}
+  /* 每个标题单独汇总：紧凑单行、小字号、不刺眼 */
+  .sec-sum{
+    flex:1 1 auto; text-align:right; margin:0 12px; font-size:11px; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums;
+  }
+  .sec-sum b{color:var(--text); font-weight:600; margin:0 2px 0 3px;}
+  .sec-sum b.dec{color:var(--green);}
+  .sec-sum b.inc{color:var(--danger);}
+  .sec-sum .sep{color:var(--border); margin:0 7px;}
   /* ==== 数据区：Excel 表格风格 ==== */
   /* 表格始终 100% 铺满容器，绝不出现横向滚动条，也不留左右空白 */
   .tbl-scroll{width:100%; overflow:hidden;}
@@ -147,7 +157,7 @@
   <div class="topbar">
     <h1>造价审减分析表</h1>
     <div class="toolbar">
-      <button id="btnAdd" class="primary">+ 添加标题行</button>
+      <button id="btnAdd" class="primary">+ 添加</button>
       <button id="btnImport">导入</button>
       <button id="btnExport">预览 / 导出</button>
       <button id="btnClear" class="danger">清空</button>
@@ -180,7 +190,7 @@
 
   <div class="wrap">
     <div id="sections"></div>
-    <div id="emptyHint" class="empty">还没有数据，点击左上角「+ 添加标题行」开始。</div>
+    <div id="emptyHint" class="empty">还没有数据，点击左上角「+ 添加」开始。</div>
   </div>
 
   <div class="mask" id="mask">
@@ -229,6 +239,7 @@
   function fmt(n){ var v = getVal(n); return v.toFixed(2); }            // 始终 2 位小数
   function toChinese(n){
     if(n===0) return '零';
+    if(n>9999 || !isFinite(n)) return String(n);   // 超出「千百十」位时退化为数字
     var d=['零','一','二','三','四','五','六','七','八','九'];
     var u=['','十','百','千'];
     var s='', str=String(n);
@@ -356,9 +367,11 @@
 
   function render(){
     var bf = document.getElementById('selBodyFmt').value;
+    var tf = document.getElementById('selTitleFmt').value;   // 标题行序号随「标题序号」下拉实时变化
     elSections.innerHTML = '';
     if(state.sections.length===0){
       document.getElementById('emptyHint').style.display='block';
+      refreshSectionSums();
       return;
     }
     document.getElementById('emptyHint').style.display='none';
@@ -370,7 +383,9 @@
       // 标题行（分区标题）—— 顶部直接显示项目名称
       var head = document.createElement('div');
       head.className='card-head';
-      head.innerHTML = '<span class="ttl" data-head="'+sec.id+'">'+(sec.name&&sec.name.trim()?sec.name:('标题行 '+(si+1)))+'</span>';
+      var headLabel = (sec.name && sec.name.trim()) ? esc(sec.name) : ('标题行 '+(si+1));
+      head.innerHTML = '<span class="ttl" data-head="'+esc(sec.id)+'">'+headLabel+'</span>'
+        + '<span class="sec-sum" data-sum="'+esc(sec.id)+'"></span>';
       var delSec = document.createElement('button');
       delSec.className='icon-btn'; delSec.textContent='✕'; delSec.title='删除该标题行及其正文';
       delSec.setAttribute('data-act','delSec'); delSec.setAttribute('data-sid',sec.id);
@@ -399,7 +414,7 @@
       var trT = document.createElement('tr');
       trT.className = 'title-row';
       trT.innerHTML =
-        '<td class="idx">—</td>'+
+        '<td class="idx">'+esc(numStr(tf, si+1))+'</td>'+
         '<td><input class="cell-input" data-f="name" data-sid="'+sec.id+'" placeholder="项目名称" value="'+esc(sec.name)+'"></td>'+
         '<td><input class="cell-input num amt" data-f="submitted" data-sid="'+sec.id+'" type="text" inputmode="decimal" placeholder="送审金额" value="'+esc(sec.submitted)+'"></td>'+
         '<td><input class="cell-input num amt" data-f="approved" data-sid="'+sec.id+'" type="text" inputmode="decimal" placeholder="审定金额" value="'+esc(sec.approved)+'"></td>'+
@@ -437,12 +452,59 @@
     });
     applyColWidths();
     refreshAllRed();
+    refreshSectionSums();
   }
 
-  function esc(s){ return (s==null?'':String(s)).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s){
+    return (s==null?'':String(s))
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
 
   function findSec(id){ for(var i=0;i<state.sections.length;i++) if(state.sections[i].id===id) return state.sections[i]; return null; }
   function findRow(sec, rid){ for(var i=0;i<sec.rows.length;i++) if(sec.rows[i].id===rid) return sec.rows[i]; return null; }
+
+  // ---------- 每个标题单独汇总 ----------
+  function money(n){
+    var s = fmt(n).split('.');
+    return s[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + s[1];
+  }
+  // 单个标题（项目）的统计口径
+  function sectionStats(sec){
+    var sub = sec.submitted, app = sec.approved;
+    // 项目标题行金额留空时，用该项目正文行合计兜底
+    if((sub===''||sub==null) && (app===''||app==null)){
+      var rs=0, ra=0;
+      sec.rows.forEach(function(r){ rs+=getVal(r.submitted); ra+=getVal(r.approved); });
+      sub = rs; app = ra;
+    }
+    var s = getVal(sub), a = getVal(app);
+    var diff = s - a, inc = diff < 0;
+    var rate = s ? (Math.abs(diff)/s*100).toFixed(2)+'%' : '—';
+    var bad = 0;
+    if(sec.check && !recheck(sec.check, sec.submitted, sec.approved).ok) bad++;
+    sec.rows.forEach(function(r){
+      if(r.check && !recheck(r.check, r.submitted, r.approved).ok) bad++;
+    });
+    return { sub:s, app:a, diff:diff, inc:inc, rate:rate, bad:bad };
+  }
+  // 卡片头部的单项目汇总（紧凑单行）
+  function secSumHtml(st){
+    var cls = st.inc ? 'inc' : 'dec';
+    var lbl = st.inc ? '审增' : '审减';
+    return '送审<b>'+money(st.sub)+'</b><span class="sep">·</span>'
+      + '审定<b>'+money(st.app)+'</b><span class="sep">·</span>'
+      + lbl+'<b class="'+cls+'">'+money(Math.abs(st.diff))+'</b><span class="sep">·</span>'
+      + '审减率<b>'+st.rate+'</b>'
+      + (st.bad ? '<span class="sep">·</span>核对异常<b class="inc">'+st.bad+' 处</b>' : '');
+  }
+  function refreshSectionSums(){
+    // 只更新每个卡片头部的独立汇总；全局统计条已移除，不重绘表格、不丢焦点
+    state.sections.forEach(function(sec){
+      var box = elSections.querySelector('[data-sum="'+sec.id+'"]');
+      if(box) box.innerHTML = secSumHtml(sectionStats(sec));
+    });
+  }
 
   // 仅更新某个审减单元格，避免整页重绘丢焦点
   function updateRedCell(cell, sub, app){
@@ -535,6 +597,7 @@
       if(lbl) lbl.textContent = (t.value && t.value.trim()) ? t.value.trim() : ('标题行 '+(state.sections.indexOf(sec)+1));
     }
     if(f==='submitted'||f==='approved') refreshRowCells(sec, rid);
+    refreshSectionSums();
     saveState();
   });
 
@@ -543,9 +606,13 @@
     var t = e.target;
     if(!(t.classList && t.classList.contains('amt'))) return;
     var v = t.value.trim();
-    if(v!==''){
-      var fv = getVal(v);
-      if(!isNaN(fv)) t.value = fv.toFixed(2);
+    var num = Number(v);
+    if(v!=='' && !isFinite(num)){
+      // 旧逻辑 getVal() 会把 NaN 变成 0，导致非法输入被静默写成 0.00
+      t.value = '';
+      toast('请输入有效金额（数字）');
+    }else if(v!==''){
+      t.value = num.toFixed(2);
     }
     var sec = findSec(t.getAttribute('data-sid')); if(!sec) return;
     var f = t.getAttribute('data-f');
@@ -553,6 +620,7 @@
     var target = rid ? findRow(sec, rid) : sec; if(!target) return;
     target[f] = t.value;
     if(f==='submitted'||f==='approved') refreshRowCells(sec, rid);
+    refreshSectionSums();
     saveState();
   });
 
@@ -687,9 +755,20 @@
 
   // ---------- 数据持久化（浏览器缓存，退出后仍在） ----------
   function fmtAmount(v){ var n=getVal(v); return (v===''||v==null)?'':n.toFixed(2); }
-  function saveState(){
-    try{ localStorage.setItem('zj_data', JSON.stringify(state.sections)); }catch(e){}
+  var saveTimer = null;
+  function writeState(){
+    saveTimer = null;
+    try{ localStorage.setItem('zj_data', JSON.stringify(state.sections)); }
+    catch(e){ toast('本地保存失败：存储空间可能已满'); }
   }
+  function saveState(){
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(writeState, 200);   // 连续输入合并写入，避免每次按键全量序列化
+  }
+  // 关闭 / 切到后台前立即落盘，防止防抖窗口内丢数据
+  function flushState(){ if(saveTimer){ clearTimeout(saveTimer); writeState(); } }
+  window.addEventListener('pagehide', flushState);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) flushState(); });
   function loadState(){
     try{
       var raw = localStorage.getItem('zj_data');
@@ -835,6 +914,7 @@
 
   loadPrefs();
   loadColWidths();
+  normalize();          // 防止损坏的列宽缓存（总和不为 100）撑破布局
   loadState();
   render();
 })();

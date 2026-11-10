@@ -11,6 +11,7 @@
     --green-bg:#e3f5e9; --green-tx:#1f8a4c; --red-bg:#fde8e6; --red-tx:#c0392b;
     --yellow-bg:#fff6d9; --yellow-tx:#8a6a00;
     --section-bg:#f0f3f7; --div-bg:#e9eef7; --sel:#d8e6ff; --st-line:#c8cfd9;
+    --sec-l0:#d9e6fb; --sec-l1:#dff0ea; --sec-l2:#eee9f8; --sec-l3:#f8efdd;
   }
   [data-theme="dark"]{
     --bg:#16181d; --surface:#1f232b; --line:#2b3038; --text:#e6e9ee;
@@ -18,6 +19,7 @@
     --green-bg:#1e3a2a; --green-tx:#6fdc97; --red-bg:#3a2320; --red-tx:#ff8a7a;
     --yellow-bg:#463a17; --yellow-tx:#ffd866;
     --section-bg:#232830; --div-bg:#222a38; --sel:#2c3a55; --st-line:#3b4451;
+    --sec-l0:#25334d; --sec-l1:#20382f; --sec-l2:#302a42; --sec-l3:#3a3320;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
@@ -243,7 +245,7 @@
   .sec-mark{margin-right:1px;color:var(--primary);}
   .sec-sub-tag{font-size:9.5px;font-weight:400;color:var(--muted);border:1px solid var(--line);border-radius:4px;
     padding:0 4px;margin-left:7px;background:var(--surface);}
-  tr.section.sec-sub td{background:var(--surface);font-weight:600;border-top:1px dashed var(--line);}
+  tr.section.sec-sub td{font-weight:600;border-top:1px dashed var(--line);}
   tr.section.sec-sub td.name{color:var(--text);}
   tr.section.sec-sub .sec-mark{color:var(--muted);}
   tr.section.sec-sub .sec-toggle{width:13px;height:13px;font-size:8px;}  /* 子分部行折叠按钮略小 */
@@ -254,6 +256,14 @@
   tr.section[data-lv="4"] .sec-mark,tr.section[data-lv="5"] .sec-mark{opacity:.42;}
   tr.section.sec-deep td.name{font-weight:500;}
   tr.section.sec-folded .sec-toggle{color:var(--primary);border-color:var(--primary);}
+  /* 清单分部按级别配色：一级蓝 / 二级青绿 / 三级淡紫 / 四级米黄，一眼分辨层级 */
+  tr.section[data-lv="0"] td{background:var(--sec-l0);}
+  tr.section[data-lv="1"] td{background:var(--sec-l1);}
+  tr.section[data-lv="2"] td{background:var(--sec-l2);}
+  tr.section[data-lv="3"] td,tr.section[data-lv="4"] td,tr.section[data-lv="5"] td,tr.section[data-lv="6"] td{background:var(--sec-l3);}
+  /* 单位工程汇总首行 */
+  tr.div-sum td{background:var(--div-bg);font-weight:700;border-top:2px solid var(--primary);border-bottom:1px solid var(--line);}
+  tr.div-sum td.name{color:var(--primary);}
   /* 清单分部树栏：独立侧边面板，树线 / ± 展开框 / 文件夹图标 */
   .sec-tree-panel{width:220px;flex:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;
     display:flex;flex-direction:column;height:100%;min-height:0;}
@@ -346,6 +356,7 @@
   </div>
   <button class="btn" id="btnAddPeriod">＋ 添加期数</button>
   <button class="btn" id="btnExport">📤 导出备份</button>
+  <button class="btn" id="btnExportClean">📄 导出清单</button>
   <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
   <input type="file" id="fileInputBackup" accept=".xlsx" style="display:none">
 </div>
@@ -959,6 +970,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if(r.type==='item')n++;}
     return n;
   }
+  // 一级分部合计（单位工程汇总首行的「合价」）：顶层分部合价之和；分部未填合价时回退为全部清单项合价之和
+  function divTopTotal(div){
+    var s=0;
+    div.rows.forEach(function(r){if(r.type==='section'&&(r._lvl||0)===0)s+=(num(r.total)||0);});
+    if(!(Math.abs(s)>1e-9))div.rows.forEach(function(r){if(r.type==='item')s+=(num(r.total)||0);});
+    return s;
+  }
 
   function computeDivision(div,ps){
     ps=ps||activePeriods();
@@ -1090,6 +1108,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if(filt&&!range)return;
       var vd=secViewDiv(div,range);
       tbody+='<tbody class="div-block" data-div="'+div.id+'">';
+      tbody+=renderDivSumRow(div,C);
       var open=[];   // 当前行所处的分部链：{lvl,folded}
       vd.rows.forEach(function(row){
         if(zeroPeriodRow(row,cur))return;      // 已开启「隐藏工程量为0的行」：跳过当期无量的清单项
@@ -1140,6 +1159,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return html+'</tr>';
   }
 
+  // 单位工程汇总首行：相当于把该单位工程下所有一级清单分部再汇总一次
+  function renderDivSumRow(div,C){
+    var q=div._qty||0,rem=div._rem||0,done=div._done||0;
+    var html='<tr class="div-sum" data-div="'+div.id+'">';
+    C.forEach(function(c){
+      if(c.key==='name')html+='<td data-key="name" class="name">'+escapeHtml(div.name)+'</td>';
+      else if(c.key==='total')html+='<td data-key="total" class="num">'+fmtq(divTopTotal(div))+'</td>';
+      else if(c.key==='rem')html+='<td data-key="rem" class="num" title="本工程剩余工程量占比">'+fmtPct(pctVal(rem,q))+'</td>';
+      else if(c.key==='done')html+='<td data-key="done" class="num" title="本工程已完工程量占比">'+fmtPct(pctVal(done,q))+'</td>';
+      else html+='<td data-key="'+c.key+'"'+(c.pid?' data-pid="'+c.pid+'"':'')+'></td>';
+    });
+    return html+'</tr>';
+  }
+  function setDivSumCells(tr,div){
+    var q=div._qty||0,rem=div._rem||0,done=div._done||0;
+    setCell(tr,'total',fmtq(divTopTotal(div)));
+    setCell(tr,'rem',fmtPct(pctVal(rem,q)));
+    setCell(tr,'done',fmtPct(pctVal(done,q)));
+  }
   function renderRow(row,div,C){
     var cur=currentPeriod();
     if(row.type==='section'){
@@ -1151,9 +1189,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var tg='<span class="sec-toggle" data-sectoggle="'+row.id+'" title="'+(folded?'展开':'收起')+'该分部下的 '+secN+' 个清单项'+(sub?'及 '+sub+' 个子分部':'')+'">'+(folded?'▶':'▼')+'</span>';
       var hasSeq=C.some(function(c){return c.key==='seq';});
       var marks=['▍','└','└─','└──','└───'];
-      var nm='<span class="sec-mark">'+(marks[Math.min(lvl,4)]||'└───')+'</span>'+escapeHtml(row.name)
-        +(sub?'<span class="sec-sub-tag">'+sub+' 个子分部</span>':'')
-        +(secN?'<span class="sec-cnt">'+secN+' 项</span>':'');
+      // 数据区清单分部名称只显示层级标记 + 名称，不再展示「X 个子分部 / X 项」计数标签
+      var nm='<span class="sec-mark">'+(marks[Math.min(lvl,4)]||'└───')+'</span>'+escapeHtml(row.name);
       var html='<tr class="section'+(lvl?' sec-sub':'')+(lvl>1?' sec-deep':'')+'" data-lv="'+lvl+'"'+(folded?' sec-folded':'')+'" data-rid="'+row.id+'" data-div="'+div.id+'">';
       C.forEach(function(c){
         if(c.key==='seq')html+='<td data-key="seq">'+tg+'</td>';
@@ -1205,6 +1242,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();
         state.secCollapsed=state.secCollapsed||{};
         var sid=el.getAttribute('data-sectoggle');
+        if(state.secCollapsed[sid])delete state.secCollapsed[sid];else state.secCollapsed[sid]=true;
+        save();render();});
+    });
+    // 名称列双击清单分部名称：折叠 / 展开该分部下的清单项与子分部
+    wrap.querySelectorAll('tr.section td[data-key="name"]').forEach(function(td){
+      td.addEventListener('dblclick',function(e){
+        if(e.target.closest&&e.target.closest('.sec-toggle'))return;
+        e.stopPropagation();
+        var sid=td.parentNode.getAttribute('data-rid');if(!sid)return;
+        state.secCollapsed=state.secCollapsed||{};
         if(state.secCollapsed[sid])delete state.secCollapsed[sid];else state.secCollapsed[sid]=true;
         save();render();});
     });
@@ -1273,6 +1320,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var tb=wrap.querySelector('tbody.div-block[data-div="'+div.id+'"]');if(!tb)return;
       var dh=tb.querySelector('tr.div-head');
       if(dh)setSummaryCells(dh,div._qty||0,div._rem||0,div._done||0,div._per||{},div._qty);
+      var ds=tb.querySelector('tr.div-sum');
+      if(ds)setDivSumCells(ds,div);
       var trs=tb.querySelectorAll('tr.item');
       var idx=0;div.rows.forEach(function(row){if(row.type!=='item')return;var tr=trs[idx++];if(!tr)return;
         var rem=row._rem||0,done=row._done||0;
@@ -2163,6 +2212,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   // 工作簿内部跳转用表名引用：单引号包裹，名称内单引号加倍（OOXML hyperlink@location）
   function bakSheetRef(name){return "'"+String(name==null?'':name).replace(/'/g,"''")+"'";}
+  // 清单分部按级别着色（导出清单 / 导出备份共用）：fill 12-15 = 1-4 级，fill 16 = 单位工程汇总首行
+  var SUM_TEXT=42,SUM_NUM=43,SUM_PCT=44;
+  function secLvlStyles(lvl){
+    var i=Math.min(Math.max(lvl||0,0),3),b=26+i*4;
+    return {name:b,text:b+1,num:b+2,pct:b+3};
+  }
+  function secXfs(){
+    var out='';
+    for(var i=0;i<4;i++){
+      var f=12+i;
+      out+='<xf numFmtId="0" fontId="2" fillId="'+f+'" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>';
+      out+='<xf numFmtId="0" fontId="0" fillId="'+f+'" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>';
+      out+='<xf numFmtId="2" fontId="0" fillId="'+f+'" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>';
+      out+='<xf numFmtId="10" fontId="0" fillId="'+f+'" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>';
+    }
+    out+='<xf numFmtId="0" fontId="2" fillId="16" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>';
+    out+='<xf numFmtId="2" fontId="2" fillId="16" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>';
+    out+='<xf numFmtId="10" fontId="2" fillId="16" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>';
+    return out;
+  }
   var BACKUP_STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
     +'<fonts count="10">'
@@ -2177,7 +2246,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<font><b/><sz val="10"/><color rgb="FF7A5A00"/><name val="Calibri"/><family val="2"/></font>'
     +'<font><b/><sz val="11"/><color rgb="FF1F4E79"/><name val="Calibri"/><family val="2"/></font>'
     +'</fonts>'
-    +'<fills count="12">'
+    +'<fills count="17">'
     +'<fill><patternFill patternType="none"/></fill>'
     +'<fill><patternFill patternType="gray125"/></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FF4472C4"/><bgColor indexed="64"/></patternFill></fill>'
@@ -2190,11 +2259,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFEAF1FB"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFFAFBFC"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFFFF7E0"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFD9E6FB"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFDFF0EA"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFEEE9F8"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFF8EFDD"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFE3E9F2"/><bgColor indexed="64"/></patternFill></fill>'
     +'</fills>'
     +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
     +'<border><left style="thin"><color rgb="FFD9D9D9"/></left><right style="thin"><color rgb="FFD9D9D9"/></right><top style="thin"><color rgb="FFD9D9D9"/></top><bottom style="thin"><color rgb="FFD9D9D9"/></bottom><diagonal/></border></borders>'
     +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    +'<cellXfs count="26">'
+    +'<cellXfs count="45">'
     +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
     +'<xf numFmtId="0" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
@@ -2221,6 +2295,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<xf numFmtId="0" fontId="0" fillId="10" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="9" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +secXfs()
     +'</cellXfs>'
     +'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     +'<dxfs count="3">'
@@ -2290,15 +2365,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     rows+='<row r="1" ht="26" customHeight="1">';
     header.forEach(function(h,i){rows+=bCell(colL(i)+r,'s',h,null,1);});
     rows+='</row>';r++;
-    // 单位工程抬头行
+    // 单位工程汇总首行：名称列=单位工程名称、合价=一级分部合计、剩余/已完工程量显示百分比
+    var sumPct=function(ref,part,qty){var v=pctVal(part,qty);if(isNaN(v))return bCell(ref,'s','',null,SUM_PCT);return bCell(ref,'n',v,null,SUM_PCT);};
     rows+='<row r="'+r+'">';
-    rows+=bCell(colL(0)+r,'s','',null,9)+bCell(colL(1)+r,'s','',null,4)+bCell(colL(2)+r,'s','单位工程：'+div.name,null,3);
-    rows+=bCell(colL(3)+r,'s','',null,4)+bCell(colL(4)+r,'s','',null,9);
-    rows+=bCell(qtyCol+r,'n',div._qty,null,7)+bCell(colL(6)+r,'s','',null,4)+bCell(colL(7)+r,'s','',null,4);
-    rows+=bCell(remCol+r,'n',div._rem,null,7)+pctCell(remPctCol+r,div._rem,div._qty);
-    rows+=bCell(doneCol+r,'n',div._done||0,null,7)+pctCell(donePctCol+r,div._done,div._qty);
-    rows+=bCell(noteCol+r,'s','',null,6); // 备注列：单位工程抬头行 / 合计行留空
-    ps.forEach(function(p,k){rows+=pCell(colL(NSTATIC+k)+r,div._per&&div._per[p.id]||0);});
+    rows+=bCell(colL(0)+r,'s','',null,SUM_TEXT)+bCell(colL(1)+r,'s','',null,SUM_TEXT)+bCell(colL(2)+r,'s',div.name,null,SUM_TEXT);
+    rows+=bCell(colL(3)+r,'s','',null,SUM_TEXT)+bCell(colL(4)+r,'s','',null,SUM_TEXT);
+    rows+=bCell(qtyCol+r,'n',div._qty,null,SUM_NUM)+bCell(colL(6)+r,'s','',null,SUM_TEXT)+bCell(colL(7)+r,'n',divTopTotal(div),null,SUM_NUM);
+    rows+=sumPct(remCol+r,div._rem,div._qty)+sumPct(remPctCol+r,div._rem,div._qty);
+    rows+=sumPct(doneCol+r,div._done||0,div._qty)+sumPct(donePctCol+r,div._done,div._qty);
+    rows+=bCell(noteCol+r,'s','',null,SUM_TEXT);
+    ps.forEach(function(p,k){var v=num(div._per&&div._per[p.id]||0);rows+=(Math.abs(v)>1e-9)?bCell(colL(NSTATIC+k)+r,'n',v,null,SUM_NUM):bCell(colL(NSTATIC+k)+r,'s','',null,SUM_TEXT);});
     rows+='</row>';r++;
     var firstData=r;
     // 每个清单分部行的子树范围（div.rows 索引，不含自身、到下一个同级/更高级分部为止）
@@ -2327,11 +2403,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var seqLinks=[];   // 序号列单元格：点击返回目录页
     div.rows.forEach(function(row,idx){
       if(row.type==='section'){
+        var st=secLvlStyles(row._lvl);
         rows+='<row r="'+r+'"'+olAttr(idx)+'>';
         // 清单分部名称必须落在「名称」列 C（与网页、导入解析器一致），项目特征列 D 留空
-        rows+=bCell(colL(0)+r,'s','',null,9)+bCell(colL(1)+r,'s','',null,4)+bCell(colL(2)+r,'s',row.name,null,2);
-        rows+=bCell(colL(3)+r,'s','',null,4)+bCell(colL(4)+r,'s','',null,9)+bCell(colL(5)+r,'s','',null,4)+bCell(colL(6)+r,'s','',null,4);
-        rows+=bCell(colL(7)+r,'n',row.total||0,null,7);
+        rows+=bCell(colL(0)+r,'s','',null,st.text)+bCell(colL(1)+r,'s','',null,st.text)+bCell(colL(2)+r,'s',row.name,null,st.name);
+        rows+=bCell(colL(3)+r,'s','',null,st.text)+bCell(colL(4)+r,'s','',null,st.text)+bCell(colL(5)+r,'s','',null,st.text)+bCell(colL(6)+r,'s','',null,st.text);
+        rows+=bCell(colL(7)+r,'n',row.total||0,null,st.num);
         // 剩余工程量 I / 已完工程量 K：分部行显示占比（0.00%），且写成 Excel 公式，改数据会自动重算
         var sRow=3+idx+1,eRow=2+(secEnd[idx]||(idx+1));
         var secQty=row._qty||0,secRem=row._rem||0;
@@ -2341,9 +2418,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         var fRem='IFERROR(SUMIF('+frng+',"<>",I'+sRow+':I'+eRow+')/'+sumifQty+',"")';
         var fDone='IFERROR(SUMIF('+frng+',"<>",K'+sRow+':K'+eRow+')/'+sumifQty+',"")';
         for(var z=8;z<NSTATIC;z++){
-          if(z===8&&hasRange)rows+=bCell(remCol+r,'f',secRem/secQty,bakEsc(fRem),8);
-          else if(z===10&&hasRange)rows+=bCell(doneCol+r,'f',(secQty-secRem)/secQty,bakEsc(fDone),8);
-          else rows+=bCell(colL(z)+r,'s','',null,(z===9||z===11)?8:((z===NSTATIC-1)?6:7));
+          if(z===8&&hasRange)rows+=bCell(remCol+r,'f',secRem/secQty,bakEsc(fRem),st.pct);
+          else if(z===10&&hasRange)rows+=bCell(doneCol+r,'f',(secQty-secRem)/secQty,bakEsc(fDone),st.pct);
+          else rows+=bCell(colL(z)+r,'s','',null,(z===9||z===11)?st.pct:st.text);
         }
         // 清单分部（含各级子分部）行：期数列完全不写单元格，网页与导出均不显示内容
         rows+='</row>';r++;
@@ -2559,6 +2636,152 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       toast('已导出备份（'+state.projects.reduce(function(a,p){return a+p.divisions.length;},0)+' 个单位工程工作表，含公式与条件格式）');
     }catch(err){console.error(err);toast('导出失败：'+((err&&err.message)||err));}
   }
+  /* ===== 导出清单：在导出备份基础上精简为 9 列基础数据，去掉单位工程抬头行与合计行 ===== */
+  // 仅保留这 9 列（顺序与备份前 8 列一致；备注列由备份第 13 列前移到第 9 列）
+  var CLEAN_KEYS=['seq','code','name','feature','unit','qty','price','total','note'];
+  var CLEAN_COLS=CLEAN_KEYS.map(function(k){return STATIC_COLS.filter(function(c){return c.key===k;})[0];});
+  function buildCleanSheet(div,colW,tocName){
+    var ncol=CLEAN_COLS.length;
+    var cols='<cols>';
+    for(var i=0;i<ncol;i++){var w=Math.max(8,Math.round((colW[i]||90)/7));cols+='<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}
+    cols+='</cols>';
+    var rows='',r=1;
+    rows+='<row r="1" ht="26" customHeight="1">';
+    CLEAN_COLS.forEach(function(c,i){rows+=bCell(colL(i)+r,'s',c.name,null,1);});
+    rows+='</row>';r++;
+    // 单位工程汇总首行：名称列=单位工程名称、合价=一级分部合计（本表仅 9 列，无剩余/已完列，故不写百分比）
+    rows+='<row r="'+r+'">';
+    rows+=bCell(colL(0)+r,'s','',null,SUM_TEXT)+bCell(colL(1)+r,'s','',null,SUM_TEXT)
+      +bCell(colL(2)+r,'s',div.name,null,SUM_TEXT)
+      +bCell(colL(3)+r,'s','',null,SUM_TEXT)+bCell(colL(4)+r,'s','',null,SUM_TEXT)
+      +bCell(colL(5)+r,'s','',null,SUM_TEXT)+bCell(colL(6)+r,'s','',null,SUM_TEXT)
+      +bCell(colL(7)+r,'n',divTopTotal(div),null,SUM_NUM)
+      +bCell(colL(8)+r,'s','',null,SUM_TEXT);
+    rows+='</row>';r++;
+    // Excel 行分组：分部行 outlineLevel=_lvl，其下清单项 = _lvl+1（与导出备份一致，可用左上角 1/2 折叠）
+    var curSecLvl=-1,maxOutline=0,rowLvls=[];
+    div.rows.forEach(function(row){
+      var lv;
+      if(row.type==='section'){curSecLvl=row._lvl||0;lv=curSecLvl;}
+      else lv=curSecLvl+1;
+      if(lv>7)lv=7;
+      rowLvls.push(lv);if(lv>maxOutline)maxOutline=lv;
+    });
+    var olAttr=function(i){return rowLvls[i]>0?' outlineLevel="'+rowLvls[i]+'"':'';};
+    var seqLinks=[];
+    div.rows.forEach(function(row,idx){
+      if(row.type==='section'){
+        var st=secLvlStyles(row._lvl);
+        rows+='<row r="'+r+'"'+olAttr(idx)+'>';
+        rows+=bCell(colL(0)+r,'s','',null,st.text)+bCell(colL(1)+r,'s','',null,st.text)
+          +bCell(colL(2)+r,'s',row.name,null,st.name)
+          +bCell(colL(3)+r,'s','',null,st.text)+bCell(colL(4)+r,'s','',null,st.text)
+          +bCell(colL(5)+r,'s','',null,st.text)+bCell(colL(6)+r,'s','',null,st.text)
+          +bCell(colL(7)+r,'n',row.total||0,null,st.num)
+          +bCell(colL(8)+r,'s','',null,st.text);
+        rows+='</row>';r++;
+      }else{
+        var qty=isNaN(row.qty)?0:row.qty;
+        var feat=String(row.feature||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+        rows+='<row r="'+r+'"'+olAttr(idx)+'>';
+        if(tocName)seqLinks.push('A'+r);
+        rows+=bCell(colL(0)+r,'s',row.seq,null,9)+bCell(colL(1)+r,'s',row.code,null,4)
+          +bCell(colL(2)+r,'s',row.name,null,4)+bCell(colL(3)+r,'s',feat,null,6)
+          +bCell(colL(4)+r,'s',row.unit,null,9)
+          +bCell(colL(5)+r,'n',qty,null,7)+bCell(colL(6)+r,'n',row.price,null,7)
+          +bCell(colL(7)+r,'n',row.total,null,7)
+          +bCell(colL(8)+r,'s',String(row.note||''),null,6);
+        rows+='</row>';r++;
+      }
+    });
+    var lastRow=r-1;
+    var links='';
+    if(tocName){
+      var back=bakSheetRef(tocName)+'!A1';
+      links+='<hyperlink ref="A1" location="'+bakEsc(back)+'" display="序号" tooltip="点击返回目录页"/>';
+      seqLinks.forEach(function(ref){links+='<hyperlink ref="'+ref+'" location="'+bakEsc(back)+'" tooltip="点击返回目录页"/>';});
+    }
+    var linksXml=links?'<hyperlinks>'+links+'</hyperlinks>':'';
+    var sheetPr=maxOutline?'<sheetPr><outlinePr summaryBelow="0"/></sheetPr>':'';
+    var fmtPr=maxOutline?'<sheetFormatPr defaultRowHeight="15" outlineLevelRow="'+maxOutline+'"/>':'';
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      +sheetPr
+      +'<dimension ref="A1:'+colL(ncol-1)+lastRow+'"/>'
+      +'<sheetViews><sheetView workbookViewId="0"'+(maxOutline?' showOutlineSymbols="1"':'')+'>'
+      +'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
+      +'<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>'
+      +'</sheetView></sheetViews>'+fmtPr+cols
+      +'<sheetData>'+rows+'</sheetData>'+linksXml+'</worksheet>';
+  }
+  function buildCleanXlsx(){
+    bakSheetName._u={};
+    var tocName=bakSheetName('目录');
+    var sheets=[],toc=[],sheetRels='',sheetNum=1;
+    var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      +'<Default Extension="xml" ContentType="application/xml"/>'
+      +'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+      +'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+      +'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
+      +'<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>';
+    state.projects.forEach(function(proj){
+      var ps=proj.periods||[];
+      var colW=CLEAN_KEYS.map(function(k){return getWidth(k);});
+      proj.divisions.forEach(function(div){
+        computeDivision(div,ps);
+        var nm=bakSheetName(proj.name+'-'+div.name);
+        var xml=buildCleanSheet(div,colW,tocName);
+        var secs=[];
+        // 清单表：表头(1) + 单位工程汇总首行(2) → 第一个数据行从第 3 行开始（与备份一致）
+        div.rows.forEach(function(row,idx){
+          if(row.type==='section')secs.push({name:row.name,lvl:row._lvl||0,excelRow:3+idx,count:secItemCount(div,row)});
+        });
+        toc.push({projName:proj.name,divName:div.name,sheetName:nm,sections:secs,
+          itemCount:div.rows.filter(function(x){return x.type==='item';}).length});
+        sheets.push({name:nm,xml:xml});
+        ct+='<Override PartName="/xl/worksheets/sheet'+sheetNum+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+        sheetRels+='<Relationship Id="rId'+sheetNum+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+sheetNum+'.xml"/>';
+        sheetNum++;
+      });
+    });
+    var tocNum=sheetNum,stylesId=tocNum+1;
+    ct+='<Override PartName="/xl/worksheets/sheet'+tocNum+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    sheetRels+='<Relationship Id="rId'+tocNum+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+tocNum+'.xml"/>';
+    ct+='</Types>';
+    var wbSheets='<sheet name="'+bakEsc(tocName)+'" sheetId="'+tocNum+'" r:id="rId'+tocNum+'"/>';
+    sheets.forEach(function(s,i){wbSheets+='<sheet name="'+bakEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';});
+    var workbookXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+wbSheets+'</sheets></workbook>';
+    var wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheetRels+'<Relationship Id="rId'+stylesId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    var rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>';
+    var coreXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">工程量清单</dc:title></cp:coreProperties>';
+    var appXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>工程量清单进度工具</Application></Properties>';
+    var entries=[];
+    entries.push({name:'[Content_Types].xml',data:enc.encode(ct)});
+    entries.push({name:'_rels/.rels',data:enc.encode(rootRels)});
+    entries.push({name:'docProps/core.xml',data:enc.encode(coreXml)});
+    entries.push({name:'docProps/app.xml',data:enc.encode(appXml)});
+    entries.push({name:'xl/workbook.xml',data:enc.encode(workbookXml)});
+    entries.push({name:'xl/_rels/workbook.xml.rels',data:enc.encode(wbRels)});
+    entries.push({name:'xl/styles.xml',data:enc.encode(BACKUP_STYLES)});
+    sheets.forEach(function(s,i){var n=i+1;
+      entries.push({name:'xl/worksheets/sheet'+n+'.xml',data:enc.encode(s.xml)});
+    });
+    entries.push({name:'xl/worksheets/sheet'+tocNum+'.xml',data:enc.encode(buildTocSheet(toc,tocName))});
+    return zipStore(entries);
+  }
+  function exportCleanXlsx(){
+    try{
+      if(!state.projects.length){toast('暂无可导出的数据');return;}
+      var out=buildCleanXlsx();
+      var blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;
+      var d=new Date(),pd=function(n){return (n<10?'0':'')+n;};
+      a.download='工程量清单_'+d.getFullYear()+'-'+pd(d.getMonth()+1)+'-'+pd(d.getDate())+'_'+pd(d.getHours())+'-'+pd(d.getMinutes())+'.xlsx';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+      toast('已导出清单（'+state.projects.reduce(function(a,p){return a+p.divisions.length;},0)+' 个单位工程工作表，仅 9 列基础数据，含目录页）');
+    }catch(err){console.error(err);toast('导出失败：'+((err&&err.message)||err));}
+  }
   function restoreFromBackup(data){
     state.projects=data.projects||[];
     state.colWidths=data.colWidths||{};
@@ -2600,6 +2823,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var a2=bakCellVal(ws,'A2');if(a2&&String(a2).indexOf('项目：')===0)projName=String(a2).replace('项目：','').trim();
     var divR=-1,r;
     for(r=2;r<=4000;r++){var cC=bakCellVal(ws,'C'+r);if(cC&&/^(单位工程|分部)：/.test(String(cC))){divR=r;divName=String(cC).replace(/^(单位工程|分部)：/,'').trim();break;}}
+    // 新版备份：第 2 行是「单位工程汇总首行」，名称列直接写单位工程名称（不再带「单位工程：」前缀）。
+    // 仅当表头是本工具完整静态列时才启用，避免把 9 列的「导出清单」误判成备份表。
+    if(divR<0&&perStart===STATIC_COLS.length){
+      var c2=bakCellVal(ws,'C2');
+      if(c2!=null&&String(c2).trim()!==''&&String(bakCellVal(ws,'A2')||'').trim()===''){
+        divR=2;divName=String(c2).trim();
+      }
+    }
     if(divR<0)return null;
     var rows=[];
     for(r=divR+1;r<=4000;r++){
@@ -2932,6 +3163,7 @@ $('importMenu').addEventListener('click',function(e){
   $('fileInput').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(f)handleFile(f,importMode);e.target.value='';});
   $('btnAddPeriod').addEventListener('click',function(){openPeriodModal(null);});
   $('btnExport').addEventListener('click',exportXlsx);
+  $('btnExportClean').addEventListener('click',exportCleanXlsx);
     $('fileInputBackup').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(f)openBackupMode(f);e.target.value='';});
   $('periodCancel').addEventListener('click',closePeriodModal);
   $('periodSave').addEventListener('click',savePeriod);
