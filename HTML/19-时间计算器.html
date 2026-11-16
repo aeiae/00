@@ -34,8 +34,29 @@
             text-align: center;
             color: #1f2937;
             font-size: 22px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             font-weight: 600;
+        }
+
+        .mode-wrap {
+            display:flex;
+            gap:6px;
+            margin-bottom:20px;
+            flex-wrap: wrap;
+        }
+        .mode-btn{
+            flex:1;
+            min-width: 100px;
+            padding:8px;
+            border:1px solid #2563eb;
+            background:#fff;
+            color:#2563eb;
+            border-radius:8px;
+            cursor:pointer;
+        }
+        .mode-btn.active{
+            background:#2563eb;
+            color:#fff;
         }
 
         .form-group {
@@ -89,6 +110,10 @@
             justify-content: center;
             gap: 6px;
         }
+        .result.overtime{
+            background-color: #fff1f2;
+            color:#be123c;
+        }
 
         .result .day-tag {
             display: inline-block;
@@ -98,6 +123,14 @@
             border-radius: 4px;
             font-size: 14px;
             font-weight: normal;
+        }
+        .result.overtime .day-tag{
+            background-color: #fecdd3;
+            color:#be123c;
+        }
+
+        .hide {
+            display: none !important;
         }
 
         @media (max-width: 480px) {
@@ -118,20 +151,43 @@
 <body>
     <div class="container">
         <h1>时间计算器</h1>
-
-        <div class="form-group">
-            <label for="startTime">起始时间</label>
-            <input type="datetime-local" id="startTime" oninput="calculate()">
+        <div class="mode-wrap">
+            <button class="mode-btn" id="modeAdd">时间相加</button>
+            <button class="mode-btn" id="modeDiff">距离当前</button>
+            <button class="mode-btn active" id="modeSub18">丰巢取件计算</button>
         </div>
 
-        <div class="form-row">
+        <!-- 模式1：时间相加 -->
+        <div id="panelAdd" class="hide">
             <div class="form-group">
-                <label for="hours">加几小时</label>
-                <input type="number" id="hours" value="18" min="0" step="0.1" oninput="calculate()">
+                <label for="startTime">起始时间</label>
+                <input type="datetime-local" id="startTime" oninput="calculate()">
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="hours">加几小时</label>
+                    <input type="number" id="hours" value="18" min="0" step="0.1" oninput="calculate()">
+                </div>
+                <div class="form-group">
+                    <label for="minutes">加几分钟</label>
+                    <input type="number" id="minutes" value="0" min="0" oninput="calculate()">
+                </div>
+            </div>
+        </div>
+
+        <!-- 模式2：计算和当前时间差值 -->
+        <div id="panelDiff" class="hide">
             <div class="form-group">
-                <label for="minutes">加几分钟</label>
-                <input type="number" id="minutes" value="0" min="0" oninput="calculate()">
+                <label for="targetTime">目标时间</label>
+                <input type="datetime-local" id="targetTime" oninput="calculate()">
+            </div>
+        </div>
+
+        <!-- 模式3：丰巢取件【默认打开】 -->
+        <div id="panelSub18">
+            <div class="form-group">
+                <label for="inCabinetTime">入柜时间</label>
+                <input type="datetime-local" id="inCabinetTime" oninput="calculate()">
             </div>
         </div>
 
@@ -139,52 +195,132 @@
     </div>
 
     <script>
-        // 页面加载自动填充当前时间并计算
+        // 模式 0=相加 1=时差 2=丰巢取件（默认）
+        let mode = 2;
+        const btnAdd = document.getElementById('modeAdd');
+        const btnDiff = document.getElementById('modeDiff');
+        const btnSub18 = document.getElementById('modeSub18');
+
+        const panelAdd = document.getElementById('panelAdd');
+        const panelDiff = document.getElementById('panelDiff');
+        const panelSub18 = document.getElementById('panelSub18');
+        const resultDom = document.getElementById('result');
+
+        // 切换
+        btnAdd.onclick = ()=>{
+            mode = 0;
+            setActive(btnAdd);
+            showPanel(panelAdd);
+            calculate();
+        }
+        btnDiff.onclick = ()=>{
+            mode = 1;
+            setActive(btnDiff);
+            showPanel(panelDiff);
+            calculate();
+        }
+        btnSub18.onclick = ()=>{
+            mode = 2;
+            setActive(btnSub18);
+            showPanel(panelSub18);
+            calculate();
+        }
+
+        function setActive(activeBtn){
+            [btnAdd,btnDiff,btnSub18].forEach(b=>b.classList.remove('active'));
+            activeBtn.classList.add('active');
+        }
+        function showPanel(show){
+            [panelAdd,panelDiff,panelSub18].forEach(p=>p.classList.add('hide'));
+            show.classList.remove('hide');
+        }
+
+        // 页面加载填充当前时间
         window.onload = function () {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('startTime').value = now.toISOString().slice(0, 16);
+            const nowStr = now.toISOString().slice(0, 16);
+            document.getElementById('startTime').value = nowStr;
+            document.getElementById('targetTime').value = nowStr;
+            document.getElementById('inCabinetTime').value = nowStr;
             calculate();
         };
 
+        // 格式化日期时间
+        function formatDateTime(date){
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hour = String(date.getHours()).padStart(2, '0');
+            const minute = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hour}:${minute}`;
+        }
+
+        // 毫秒转天时分
+        function ms2DHM(ms){
+            const abs = Math.abs(ms);
+            const totalMin = abs / (1000*60);
+            const d = Math.floor(totalMin / (24*60));
+            const h = Math.floor((totalMin % (24*60)) / 60);
+            const m = Math.round(totalMin % 60);
+            return {d,h,m};
+        }
+
         function calculate() {
-            const startTimeStr = document.getElementById('startTime').value;
-            const hours = parseFloat(document.getElementById('hours').value) || 0;
-            const minutes = parseFloat(document.getElementById('minutes').value) || 0;
+            resultDom.classList.remove('overtime');
+            if(mode === 0){
+                // 时间相加
+                const startTimeStr = document.getElementById('startTime').value;
+                const hours = parseFloat(document.getElementById('hours').value) || 0;
+                const minutes = parseFloat(document.getElementById('minutes').value) || 0;
+                if (!startTimeStr) {
+                    resultDom.textContent = '请选择起始时间';
+                    return;
+                }
+                const startDate = new Date(startTimeStr);
+                const addMs = (hours * 60 + minutes) * 60 * 1000;
+                const endDate = new Date(startDate.getTime() + addMs);
+                resultDom.innerHTML = formatDateTime(endDate);
+            }else if(mode === 1){
+                // 距离当前时差
+                const targetStr = document.getElementById('targetTime').value;
+                if(!targetStr){
+                    resultDom.textContent = '请选择目标时间';
+                    return;
+                }
+                const targetDate = new Date(targetStr);
+                const nowDate = new Date();
+                const diffMs = targetDate.getTime() - nowDate.getTime();
+                const t = ms2DHM(diffMs);
+                let tip = diffMs>0 ? "距离现在还有" : "已经过去";
+                let html = tip;
+                if(t.d>0) html += `${t.d}天 `;
+                html += `${t.h}小时 ${t.m}分钟`;
+                resultDom.innerHTML = html;
+            }else if(mode === 2){
+                // ====== 丰巢取件计算 ======
+                const inStr = document.getElementById('inCabinetTime').value;
+                if(!inStr){
+                    resultDom.textContent = '请选择入柜时间';
+                    return;
+                }
+                const inTime = new Date(inStr);
+                const freeEnd = new Date(inTime.getTime() + 18 * 60 * 60 * 1000); //免费截止
+                const now = new Date();
+                const before18hNow = new Date(now.getTime() - 18 * 60 * 60 * 1000); // 当前真实时间往前18小时
+                const diff = freeEnd.getTime() - now.getTime();
 
-            if (!startTimeStr) {
-                document.getElementById('result').textContent = '请选择起始时间';
-                return;
+                let html = `18小时前：${formatDateTime(before18hNow)}<br>`;
+                html += `免费截止：${formatDateTime(freeEnd)}<br>`;
+                const t = ms2DHM(diff);
+                if(diff >= 0){
+                    html += `<span class="day-tag">✅ 还有 ${t.d>0?t.d+'天 ':''}${t.h}小时 ${t.m}分钟 到期</span>`;
+                }else{
+                    resultDom.classList.add('overtime');
+                    html += `<span class="day-tag">⚠️ 已超时 ${t.d>0?t.d+'天 ':''}${t.h}小时 ${t.m}分钟</span>`;
+                }
+                resultDom.innerHTML = html;
             }
-
-            const startDate = new Date(startTimeStr);
-            const addMilliseconds = (hours * 60 + minutes) * 60 * 1000;
-            const endDate = new Date(startDate.getTime() + addMilliseconds);
-
-            // 计算天数差
-            const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-            const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-            const dayDiff = Math.round((endDay - startDay) / (1000 * 60 * 60 * 24));
-
-            // 格式化结果
-            const year = endDate.getFullYear();
-            const month = String(endDate.getMonth() + 1).padStart(2, '0');
-            const day = String(endDate.getDate()).padStart(2, '0');
-            const hour = String(endDate.getHours()).padStart(2, '0');
-            const minute = String(endDate.getMinutes()).padStart(2, '0');
-
-            let dayText = '';
-            if (dayDiff === 0) {
-                dayText = '当天';
-            } else if (dayDiff === 1) {
-                dayText = '次日';
-            } else {
-                dayText = dayDiff + '天后';
-            }
-
-            document.getElementById('result').innerHTML = 
-                `${year}-${month}-${day} ${hour}:${minute}
-                <span class="day-tag">${dayText}</span>`;
         }
     </script>
 </body>
