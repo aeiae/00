@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>计价文件无锁预览工具</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --bar:#eef1f4; --line:#d9dfe6; --tx:#252b33; --tx2:#68737f;
+  --accent:#1f6fb2; --accent-bg:#e6f0fa; --green:#eaf6e4; --green-line:#c9e6b8;
+  --blue:#e2effa; --blue-line:#b9d8ef; --mauve:#a5449b; --orange:#e08a1e;
+  --hover:#f3f8fd; --sel:#d9e9f7; --warn:#b26a19; --shadow:0 1px 3px rgba(20,30,40,.06);
+  --tl:#e0a155;
+}
+html[data-theme="dark"]{
+  --bg:#15191e; --panel:#1d2229; --bar:#252b33; --line:#39414b; --tx:#d7dee6; --tx2:#96a1ae;
+  --accent:#6eabe3; --accent-bg:#24384b; --green:#25382a; --green-line:#3e5e44;
+  --blue:#223547; --blue-line:#365773; --mauve:#d98fce; --orange:#e5a651;
+  --hover:#28313b; --sel:#2b455d; --warn:#d7a167; --shadow:0 1px 3px rgba(0,0,0,.25);
+  --tl:#9d7434;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:12px/1.45 "Segoe UI","Microsoft YaHei",sans-serif;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* title bar */
+.title{height:32px;flex:none;display:flex;align-items:center;gap:9px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+.title .logo{font-weight:600;color:var(--accent);font-size:12px;white-space:nowrap}
+.title .file{color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:3px 10px;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.9;color:#fff}
+.btn.mini{padding:1px 7px;font-size:11px}
+.spacer{flex:1}
+#search{width:190px;border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:3px 8px;outline:none}
+#search:focus{border-color:var(--accent)}
+#levelSel{border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:2px 4px;outline:none}
+
+/* tabs */
+.tabs{height:29px;flex:none;display:flex;align-items:flex-end;gap:3px;padding:0 10px;background:var(--bar);border-bottom:1px solid var(--line)}
+.tabs button{height:26px;min-width:86px;padding:0 12px;background:var(--panel);border:1px solid var(--line);border-bottom:none;border-radius:4px 4px 0 0;color:var(--tx2)}
+.tabs button.on{height:28px;color:#fff;background:var(--accent);border-color:var(--accent);font-weight:600}
+
+/* main split + 可拖动列宽 */
+.main{flex:1;min-height:0;display:flex}
+.tree1{width:182px;flex:none;background:var(--panel);overflow:auto;overflow-x:hidden}
+.tree2{width:200px;flex:none;background:var(--panel);overflow:auto;overflow-x:hidden}
+.hsplit{width:5px;flex:none;cursor:ew-resize;background:var(--panel);border-right:1px solid var(--line);position:relative;touch-action:none;z-index:2}
+.hsplit::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:transparent}
+.hsplit:hover,.hsplit.drag{background:var(--accent-bg)}
+.hsplit:hover::after,.hsplit.drag::after{background:var(--accent)}
+.tree-hd{position:sticky;top:0;background:var(--bar);color:var(--tx2);padding:5px 9px;border-bottom:1px solid var(--line);font-size:11px;z-index:1;display:flex;justify-content:space-between}
+/* 目录树：橙色折角连接线 + 节点图标（参照广联达树样式） */
+.tn{position:relative;display:flex;align-items:center;height:21px;padding-right:8px;white-space:nowrap;cursor:pointer;user-select:none}
+.tn:hover{background:var(--hover)}
+.tn.on{background:var(--sel)}
+.tn.on .nm{color:var(--accent);font-weight:600}
+.tn .tv{position:absolute;width:1px;background:var(--tl);pointer-events:none}
+.tn .tj{position:absolute;top:calc(50% - 6px);height:7px;border-left:1px solid var(--tl);border-bottom:1px solid var(--tl);border-bottom-left-radius:4px;pointer-events:none}
+.tn .tg{flex:none;width:14px;height:14px;display:flex;align-items:center;justify-content:center;color:#8d96a1}
+.tn .tg.box{color:#2f6091}
+.tn.on .tg{color:var(--accent)}
+html[data-theme="dark"] .tn .tg{color:#8e99a5}
+html[data-theme="dark"] .tn .tg.box{color:#9ec4e6}
+.tn .ic{flex:none;width:15px;height:14px;display:flex;align-items:center;justify-content:center;margin-right:4px;color:#77828f}
+.tn .ic.k{color:#2f6fa8}
+html[data-theme="dark"] .tn .ic.k{color:#7fb1dc}
+html[data-theme="dark"] .tn .ic{color:#9aa6b3}
+.tn .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tn .ct{flex:none;color:var(--tx2);font-size:11px;margin-left:5px}
+
+.content{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel)}
+.grid-wrap{flex:1;min-height:0;overflow:auto;position:relative}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+th{position:sticky;top:0;z-index:3;background:var(--bar);color:var(--tx);font-weight:600;text-align:left;padding:5px 7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:3px 7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px;background:var(--panel)}
+tr.section td{background:var(--bar);font-weight:600;color:var(--tx)}
+tr.section.sec1 td{background:#d8e3ef}
+tr.section.sec2 td{background:#e6ecf3}
+tr.section.sec3 td{background:#eef2f7}
+tr.section.sec4 td{background:#f4f7fa}
+html[data-theme="dark"] tr.section.sec1 td{background:#2b3d50}
+html[data-theme="dark"] tr.section.sec2 td{background:#28323d}
+html[data-theme="dark"] tr.section.sec3 td{background:#232c35}
+html[data-theme="dark"] tr.section.sec4 td{background:#20272e}
+tr.bill td{background:var(--green)}
+tr.quota td{background:var(--blue)}
+tr.material td{background:var(--panel);color:var(--mauve)}
+td.seq{text-align:center;color:var(--tx2);padding-left:2px;padding-right:2px}
+td.secname{font-weight:600}
+td.multi{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;vertical-align:top}
+tbody tr:hover td{filter:brightness(.97)}
+tbody tr.picked td{box-shadow:inset 0 0 0 1px var(--accent)}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.indent1{padding-left:24px}
+td.indent2{padding-left:42px}
+td.cat{text-align:center;color:var(--tx2)}
+td.match{background:#fff3c4;color:#7a4a00}
+html[data-theme="dark"] td.match{background:#4c3f1c;color:#f0d38a}
+.tw{display:inline-block;width:11px;color:var(--tx2);cursor:pointer;text-align:center}
+.feature{color:var(--tx2);font-size:11px}
+
+/* detail pane */
+.splitter{height:7px;flex:none;cursor:ns-resize;touch-action:none;background:var(--bar);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.splitter:hover{background:var(--accent-bg)}
+.detail{height:41%;min-height:80px;flex:none;display:flex;flex-direction:column;background:var(--panel)}
+.detail-hd{height:25px;flex:none;display:flex;align-items:center;gap:2px;background:var(--bar);border-bottom:1px solid var(--line);padding:0 6px}
+.detail-hd button{border:1px solid transparent;background:none;color:var(--tx2);padding:2px 8px;font-size:11px}
+.detail-hd button.on{background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel);color:var(--accent);font-weight:600}
+.detail-body{flex:1;min-height:0;overflow:auto}
+.detail-body table{font-size:11px}
+.detail-body th{top:0}
+.detail-body td{padding:2px 7px}
+.detail-body tr.material td{color:var(--mauve);background:rgba(165,68,155,.07)}
+html[data-theme="dark"] .detail-body tr.material td{background:rgba(217,143,206,.12)}
+.empty{padding:18px;color:var(--tx2);text-align:center}
+
+/* status */
+.status{height:22px;flex:none;display:flex;align-items:center;gap:10px;padding:0 9px;background:var(--bar);border-top:1px solid var(--line);color:var(--tx2);font-size:11px;white-space:nowrap;overflow:hidden}
+.status b{font-weight:600;color:var(--tx)}
+
+/* drop / start */
+.start{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.drop{width:min(620px,80vw);border:2px dashed var(--line);border-radius:12px;background:var(--panel);padding:44px 30px;text-align:center;box-shadow:var(--shadow)}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop h2{margin:0 0 8px;font-size:16px}
+.drop p{color:var(--tx2);margin:5px 0}
+.drop .big{margin-top:20px;padding:8px 22px;font-size:13px}
+.bar-progress{height:5px;background:var(--bar);border-radius:3px;overflow:hidden;margin-top:18px;display:none}
+.bar-progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .18s}
+.msg{margin-top:10px;color:var(--tx2);min-height:16px}
+.msg.err{color:#c0392b}
+.convert{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.convert .bar-progress{display:block;width:340px}
+
+/* cost analysis */
+.cost-wrap{min-width:100%;width:max-content}
+table.cost{font-size:11px;width:max-content}
+table.cost th{background:#fde9cf;text-align:center;font-size:11px;line-height:1.3;padding:4px 5px;white-space:normal;color:var(--tx)}
+html[data-theme="dark"] table.cost th{background:#4a3b2a}
+table.cost td{padding:2px 6px;font-size:11px}
+table.cost td.nm{font-weight:600;color:var(--tx)}
+table.cost tr.cost-row:nth-child(even) td{background:#fffcf4}
+html[data-theme="dark"] table.cost tr.cost-row:nth-child(even) td{background:#20242a}
+table.cost tr.total td{background:#c9e3f3;font-weight:600}
+html[data-theme="dark"] table.cost tr.total td{background:#27455a}
+table.cost td.seq{width:40px}
+table.cost .ord{color:var(--tx2)}
+.cost-3cai{padding:10px 12px 16px;width:max-content;min-width:520px}
+.cost-3cai-hd{font-weight:600;font-size:11px;margin-bottom:5px}
+.cost-3cai table{width:420px;font-size:11px}
+.cost-3cai th{background:var(--bar);text-align:center;padding:3px 6px}
+.cost-3cai td{padding:2px 6px}
+.cost-3cai .hint{margin-top:5px}
+
+/* other items / resource summary / fee summary */
+.hjbar{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:18px;padding:4px 9px;background:var(--bar);border-bottom:1px solid var(--line);font-size:11px;color:var(--tx2);white-space:nowrap}
+.hjbar label{cursor:pointer}
+.hjbar b{color:var(--tx);font-weight:600}
+.hjbar .hint{margin-left:auto}
+th.mk{background:#fde9cf}
+html[data-theme="dark"] th.mk{background:#4a3b2a}
+td.mkcol{background:#fffdf7}
+html[data-theme="dark"] td.mkcol{background:#242821}
+td.material{color:var(--mauve)}
+
+/* overview pages */
+.cards{padding:12px;overflow:auto;flex:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card h3{font-size:12px;margin:0 0 9px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:5px 16px;color:var(--tx2)}
+.kv b{color:var(--tx);font-weight:600}
+.ov2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:1100px){.ov2{grid-template-columns:1fr}}
+.mono{font-family:Consolas,Monaco,monospace;font-size:11px}
+.hint{color:var(--tx2);font-size:11px}
+.warn{color:var(--warn)}
+
+/* 新点（Epoint）加密容器识别面板 */
+.epoint{flex:1;display:none;flex-direction:column;overflow:auto;padding:16px;gap:12px;background:var(--bg)}
+.ep-hd{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;box-shadow:var(--shadow)}
+.ep-hd b{font-size:13px}
+.ep-badge{flex:none;background:#e8f0fe;color:#1a4fa0;border:1px solid #bcd0f0;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
+html[data-theme="dark"] .ep-badge{background:#243449;color:#a9c6ee;border-color:#38506e}
+.ep-warn{background:#fff7e0;border:1px solid #f0d79a;color:#7a5a13;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.7}
+html[data-theme="dark"] .ep-warn{background:#3a3020;border-color:#5c4a25;color:#e6cd92}
+.ep-warn code{font-family:Consolas,Monaco,monospace;background:rgba(0,0,0,.05);border-radius:3px;padding:0 3px}
+html[data-theme="dark"] .ep-warn code{background:rgba(255,255,255,.08)}
+.ep-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.ep-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow)}
+.ep-card span{display:block;color:var(--tx2);font-size:11px}
+.ep-card b{display:block;font-size:18px;font-weight:600;margin-top:4px;color:var(--accent)}
+.ep-card i{display:block;font-style:normal;color:var(--tx2);font-size:10.5px;margin-top:3px}
+.ep-line{font-size:11.5px;color:var(--tx2)}
+.ep-line code{font-family:Consolas,Monaco,monospace;color:var(--tx)}
+.ep-tbl{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;box-shadow:var(--shadow)}
+.ep-tbl table{font-size:11.5px}
+.ep-tbl th{position:sticky;top:0;background:var(--bar)}
+.ep-tbl tr.ep-enc td{color:#9a5b12}
+html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
+.ep-tbl tr.ep-zip td{color:var(--tx2)}
+.ep-tip{font-size:11.5px;color:var(--tx2);line-height:1.7;background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.ep-actions{display:flex;gap:8px;padding-bottom:8px}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="title">
+    <span class="logo">计价无锁预览</span>
+    <span class="file" id="fileName">未打开工程</span>
+    <span class="spacer"></span>
+    <select id="levelSel" title="显示层级">
+      <option value="s1">一级分部</option>
+      <option value="s2">二级分部</option>
+      <option value="s3">三级分部</option>
+      <option value="s4">四级分部</option>
+      <option value="bill">清单</option>
+      <option value="quota">定额</option>
+      <option value="all" selected>全部</option>
+    </select>
+    <input id="search" placeholder="搜索清单 / 定额 / 人材机…">
+    <button class="btn mini" id="exportBtn" title="把当前工程打包成可单独双击打开的快照 HTML">导出 HTML</button>
+    <button class="btn mini" id="themeBtn">深色</button>
+  </div>
+  <div class="tabs" id="tabs" style="display:none"></div>
+  <div class="start" id="startView">
+    <div class="drop" id="dropZone">
+      <h2>选择或拖入计价文件</h2>
+      <p>全程在本机浏览器内只读解析，不启动计价软件、不占用原文件、不上传任何数据。</p>
+      <p class="hint">广联达：.gbq7 / .gbq6（清单与定额模式均可读）&nbsp;·&nbsp;新点：.EYS11 / .emjyx（识别容器结构，加密数据段不破解）</p>
+      <button class="btn primary big" id="pickBtn">选择计价文件</button>
+      <input type="file" id="fileInput" accept=".gbq7,.gbq6,.gbq,.eys,.eys11,.een,.emjyx,.gc" hidden>
+      <div class="msg" id="msg1"></div>
+    </div>
+  </div>
+  <div class="convert" id="convertView" style="display:none">
+    <h2 style="margin:0;font-size:14px">正在解析工程</h2>
+    <div class="bar-progress" id="progressBar" style="display:block"></div>
+    <div class="msg" id="msg2"></div>
+    <div class="hint">首次解析 10~20 MB 工程约需数秒，请稍候</div>
+  </div>
+  <div class="epoint" id="epointView" style="display:none"></div>
+  <div class="main" id="workView" style="display:none">
+    <div class="tree1" id="tree1"></div>
+    <div class="hsplit" id="hs1" title="拖动调整工程结构列宽（双击恢复默认）"></div>
+    <div class="tree2" id="tree2"></div>
+    <div class="hsplit" id="hs2" title="拖动调整分部 / 专业列宽（双击恢复默认）"></div>
+    <div class="content">
+      <div class="grid-wrap" id="grid"></div>
+      <div class="splitter" id="splitter" title="拖动调整工料显示高度"></div>
+      <div class="detail" id="detail">
+        <div class="detail-hd">
+          <button class="on" id="detailTitle">工料显示</button>
+          <span class="spacer"></span>
+          <span class="hint">点击定额行查看人材机组成</span>
+        </div>
+        <div class="detail-body" id="detailBody"><div class="empty">选中定额行后，在此显示人材机明细</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="status">
+    <span id="statusLeft">就绪 · 离线只读</span>
+    <span class="spacer"></span>
+    <span id="statusRight"></span>
+  </div>
+</div>
+<script>
+/* GBQ7 只读解析内核：ZIP -> GSP(Rijndael+zlib) -> 业务表。零依赖，浏览器/Node 均可运行。 */
+(function (global) {
+  'use strict';
+
+  var TE = new TextEncoder();
+  var TD_UTF8 = new TextDecoder('utf-8');
+  var TD_UTF16 = new TextDecoder('utf-16le');
+
+  function str(bytes) { return TD_UTF8.decode(bytes); }
+  function u8(bytes) { return new Uint8Array(bytes); }
+  function u32at(d, p) {
+    if (p < 0 || p + 4 > d.length) throw new Error('Truncated integer');
+    return (d[p] | (d[p + 1] << 8) | (d[p + 2] << 16) | (d[p + 3] << 24)) >>> 0;
+  }
+  function eq(d, off, arr) {
+    if (off + arr.length > d.length) return false;
+    for (var i = 0; i < arr.length; i++) if (d[off + i] !== arr[i]) return false;
+    return true;
+  }
+  function findBytes(d, needle, from) {
+    for (var i = from || 0; i <= d.length - needle.length; i++) if (eq(d, i, needle)) return i;
+    return -1;
+  }
+
+  /* ---------- Rijndael 256-bit block / 256-bit key, encrypt only ---------- */
+  var SBOX = [
+    0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
+    0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
+    0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
+    0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,
+    0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,
+    0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,
+    0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,
+    0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,
+    0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,
+    0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,
+    0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,
+    0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,
+    0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,
+    0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
+    0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
+    0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
+  ];
+  var ALOG = [1], LOG = new Array(256).fill(0);
+  for (var i = 0; i < 255; i++) {
+    var j = (ALOG[ALOG.length - 1] << 1) ^ ALOG[ALOG.length - 1];
+    if (j & 0x100) j ^= 0x11b;
+    ALOG.push(j);
+  }
+  for (i = 1; i < 255; i++) LOG[ALOG[i]] = i;
+  function gmul(a, b) {
+    if (!a || !b) return 0;
+    return ALOG[(LOG[a & 255] + LOG[b & 255]) % 255];
+  }
+  var G = [[2,1,1,3],[3,2,1,1],[1,3,2,1],[1,1,3,2]];
+  function mul4(s, bs) {
+    var r = 0;
+    for (var i = 0; i < 4; i++) { r = (r << 8) | gmul(s, bs[i]); }
+    return r >>> 0;
+  }
+  var T = [];
+  for (i = 0; i < 256; i++) {
+    var s = SBOX[i];
+    T.push([mul4(s, G[0]), mul4(s, G[1]), mul4(s, G[2]), mul4(s, G[3])]);
+  }
+  var RCON = [1];
+  for (i = 1; i < 30; i++) RCON.push(gmul(2, RCON[i - 1]));
+
+  function Rijndael256(key) {
+    var kc = 8, bc = 8, rounds = 14, total = (rounds + 1) * bc;
+    var Ke = [];
+    for (var r = 0; r <= rounds; r++) Ke.push(new Array(bc).fill(0));
+    var tk = [];
+    for (i = 0; i < kc; i++) {
+      tk[i] = ((key[i * 4] << 24) | (key[i * 4 + 1] << 16) | (key[i * 4 + 2] << 8) | key[i * 4 + 3]) >>> 0;
+    }
+    var t = 0, j = 0;
+    while (j < kc && t < total) { Ke[(t / bc) | 0][t % bc] = tk[j]; j++; t++; }
+    var rp = 0;
+    while (t < total) {
+      var tt = tk[kc - 1];
+      tk[0] = (tk[0] ^ ((SBOX[(tt >>> 16) & 255] << 24) ^ (SBOX[(tt >>> 8) & 255] << 16) ^
+        (SBOX[tt & 255] << 8) ^ SBOX[(tt >>> 24) & 255] ^ (RCON[rp] << 24))) >>> 0;
+      rp++;
+      for (i = 1; i < kc / 2; i++) tk[i] = (tk[i] ^ tk[i - 1]) >>> 0;
+      var t2 = tk[kc / 2 - 1];
+      tk[kc / 2] = (tk[kc / 2] ^ (SBOX[t2 & 255] ^ (SBOX[(t2 >>> 8) & 255] << 8) ^
+        (SBOX[(t2 >>> 16) & 255] << 16) ^ (SBOX[(t2 >>> 24) & 255] << 24))) >>> 0;
+      for (i = kc / 2 + 1; i < kc; i++) tk[i] = (tk[i] ^ tk[i - 1]) >>> 0;
+      j = 0;
+      while (j < kc && t < total) { Ke[(t / bc) | 0][t % bc] = tk[j]; j++; t++; }
+    }
+    this.Ke = Ke;
+  }
+  Rijndael256.prototype.encrypt = function (source) {
+    if (source.length !== 32) throw new Error('Rijndael block must be 32 bytes');
+    var bc = 8, s1 = 1, s2 = 3, s3 = 4, Ke = this.Ke, rounds = 14;
+    var t = [];
+    for (var i = 0; i < bc; i++) {
+      t[i] = (((source[i * 4] << 24) | (source[i * 4 + 1] << 16) |
+        (source[i * 4 + 2] << 8) | source[i * 4 + 3]) ^ Ke[0][i]) >>> 0;
+    }
+    for (var r = 1; r < rounds; r++) {
+      var a = new Array(bc);
+      for (i = 0; i < bc; i++) {
+        a[i] = (T[(t[i] >>> 24) & 255][0] ^ T[(t[(i + s1) % bc] >>> 16) & 255][1] ^
+          T[(t[(i + s2) % bc] >>> 8) & 255][2] ^ T[t[(i + s3) % bc] & 255][3] ^ Ke[r][i]) >>> 0;
+      }
+      t = a;
+    }
+    var out = new Uint8Array(32);
+    for (i = 0; i < bc; i++) {
+      var tt = Ke[rounds][i];
+      out[i * 4] = (SBOX[(t[i] >>> 24) & 255] ^ (tt >>> 24)) & 255;
+      out[i * 4 + 1] = (SBOX[(t[(i + s1) % bc] >>> 16) & 255] ^ (tt >>> 16)) & 255;
+      out[i * 4 + 2] = (SBOX[(t[(i + s2) % bc] >>> 8) & 255] ^ (tt >>> 8)) & 255;
+      out[i * 4 + 3] = (SBOX[t[(i + s3) % bc] & 255] ^ tt) & 255;
+    }
+    return out;
+  };
+
+  /* ---------- decompression ---------- */
+  async function inflate(data, format) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('浏览器不支持 DecompressionStream，请使用新版 Chrome / Edge');
+    }
+    var ds = new DecompressionStream(format || 'deflate');
+    var stream = new Blob([data]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  /* 纯 JS raw DEFLATE：仅用于 ZIP 条目，规避部分浏览器 DecompressionStream 对 raw 流的兼容问题 */
+  var LBASE = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  var LEXT = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  var DBASE = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  var DEXT = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+  function inflateRaw(data) {
+    var pos = 0;
+    function bits(n) {
+      var v = 0;
+      for (var i = 0; i < n; i++) {
+        var byte = data[pos >> 3];
+        if (byte === undefined) throw new Error('DEFLATE 数据截断');
+        v |= ((byte >> (pos & 7)) & 1) << i;
+        pos++;
+      }
+      return v;
+    }
+    function align() { pos = (pos + 7) & ~7; }
+    function huffman(lens) {
+      var max = 0, count = new Array(16).fill(0), i;
+      for (i = 0; i < lens.length; i++) { if (lens[i] > max) max = lens[i]; if (lens[i]) count[lens[i]]++; }
+      count[0] = 0;
+      var first = new Array(16).fill(0), code = 0;
+      for (var len = 1; len <= max; len++) { first[len] = code; code = (code + count[len]) << 1; }
+      var symbol = new Array(lens.length), used = new Array(16).fill(0), off = 0;
+      for (var len2 = 1; len2 <= max; len2++) { used[len2] = off; off += count[len2]; }
+      for (i = 0; i < lens.length; i++) if (lens[i]) symbol[used[lens[i]]++] = i;
+      return { count: count, first: first, symbol: symbol, max: max, used: used };
+    }
+    function decode(h) {
+      var code = 0, first = 0, index = 0;
+      for (var len = 1; len <= h.max; len++) {
+        code |= bits(1);
+        var cnt = h.count[len];
+        if (code - first < cnt) return h.symbol[index + code - first];
+        index += cnt; first += cnt; first <<= 1; code <<= 1;
+      }
+      throw new Error('无效 Huffman 编码');
+    }
+    var out = [];
+    while (true) {
+      var final = bits(1), type = bits(2), i, j;
+      if (type === 0) {
+        align();
+        var len = data[pos] | (data[pos + 1] << 8);
+        pos += 4;
+        for (j = 0; j < len; j++) out.push(data[pos++]);
+      } else if (type === 1 || type === 2) {
+        var lit, dst;
+        if (type === 1) {
+          var ll = new Array(288);
+          for (i = 0; i < 144; i++) ll[i] = 8;
+          for (; i < 256; i++) ll[i] = 9;
+          for (; i < 280; i++) ll[i] = 7;
+          for (; i < 288; i++) ll[i] = 8;
+          lit = huffman(ll);
+          dst = huffman(new Array(30).fill(5));
+        } else {
+          var hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
+          var order = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+          var cl = new Array(19).fill(0);
+          for (i = 0; i < hclen; i++) cl[order[i]] = bits(3);
+          var ch = huffman(cl), all = [];
+          while (all.length < hlit + hdist) {
+            var sym = decode(ch), rep, prev;
+            if (sym < 16) all.push(sym);
+            else if (sym === 16) { rep = bits(2) + 3; prev = all[all.length - 1]; for (j = 0; j < rep; j++) all.push(prev); }
+            else if (sym === 17) { rep = bits(3) + 3; for (j = 0; j < rep; j++) all.push(0); }
+            else { rep = bits(7) + 11; for (j = 0; j < rep; j++) all.push(0); }
+          }
+          lit = huffman(all.slice(0, hlit));
+          dst = huffman(all.slice(hlit, hlit + hdist));
+        }
+        while (true) {
+          var s = decode(lit);
+          if (s === 256) break;
+          if (s < 256) out.push(s);
+          else {
+            var li = s - 257;
+            if (li < 0 || li >= LBASE.length) throw new Error('无效长度码');
+            var length = LBASE[li] + bits(LEXT[li]);
+            var di = decode(dst);
+            if (di < 0 || di >= DBASE.length) throw new Error('无效距离码');
+            var distance = DBASE[di] + bits(DEXT[di]);
+            if (distance > out.length) throw new Error('DEFLATE 距离越界');
+            for (j = 0; j < length; j++) out.push(out[out.length - distance]);
+          }
+        }
+      } else throw new Error('无效 DEFLATE 块类型');
+      if (final) break;
+    }
+    return new Uint8Array(out);
+  }
+  function b64decode(text) {
+    var bin = atob(text), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  var MASK_MODEL = new Uint8Array([
+    0xc5,0xbf,0xde,0xcc,0x8f,0xee,0x69,0xbb,0xff,0x7e,0xdb,0x9f,0x6b,0x37,0xc2,0xb1,
+    0x25,0xbb,0x1e,0x7f,0x96,0x77,0xc2,0xf5,0x83,0xfb,0xcd,0xff,0x52,0xba,0xfc,0x0e
+  ]);
+  var MASK_DATA = new Uint8Array([
+    0xf5,0xb4,0xcc,0xfc,0x6d,0xbb,0x60,0xac,0x0f,0x6e,0xd1,0x0e,0x5a,0x29,0xa1,0xb2,
+    0x12,0xbb,0x0c,0x8f,0x66,0x38,0xc2,0xf5,0x38,0xbf,0xab,0xff,0x02,0x59,0xcc,0x9e
+  ]);
+
+  async function decodeEnvelope(data, extra, mask) {
+    var start = 96 + extra;
+    if (data.length <= start) throw new Error('Truncated encoded GSP envelope');
+    var p = start;
+    function isB64(c) { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c === 43 || c === 47; }
+    while (p < data.length && isB64(data[p])) p++;
+    var eqs = 0;
+    while (p < data.length && data[p] === 61 && eqs < 2) { p++; eqs++; }
+    if (p === start) throw new Error('Encoded GSP envelope has no base64 payload');
+    var text = '';
+    for (var q = start; q < p; q++) text += String.fromCharCode(data[q]);
+    // 个别 GBQ7 结算文件在 base64 尾部夹带 1 个多余字符，截齐到 4 的倍数再解码
+    while (text.length % 4 === 1) { text = text.slice(0, -1); p--; }
+    while (text.length % 4) text += '=';
+    var ct = b64decode(text);
+    if (!ct.length || ct.length % 32) throw new Error('Encoded payload is not aligned to 32-byte blocks');
+    var key = new Uint8Array(32), prev = new Uint8Array(32);
+    for (var i = 0; i < 32; i++) {
+      key[i] = data[i] ^ (i % 2 === 0 ? mask[i] : 0);
+      prev[i] = data[64 + i] ^ (i % 3 === 0 ? mask[i] : 0);
+    }
+    var cipher = new Rijndael256(key), plain = new Uint8Array(ct.length);
+    for (var o = 0; o < ct.length; o += 32) {
+      var ks = cipher.encrypt(prev);
+      for (i = 0; i < 32; i++) plain[o + i] = ct[o + i] ^ ks[i];
+      prev = ct.subarray(o, o + 32);
+    }
+    var pad = plain[plain.length - 1];
+    if (pad < 1 || pad > 32) throw new Error('Invalid GSP envelope padding');
+    for (i = 1; i <= pad; i++) if (plain[plain.length - i] !== pad) throw new Error('Invalid GSP envelope padding');
+    var out = await inflate(plain.subarray(0, plain.length - pad));
+    return { data: out, used: p };
+  }
+  async function decodedPayload(payload) {
+    if (payload.length >= 2 && payload[0] === 0x78 && ((payload[0] * 256 + payload[1]) % 31 === 0)) {
+      return await inflate(payload);
+    }
+    return (await decodeEnvelope(payload, 0, MASK_DATA)).data;
+  }
+
+  /* ---------- schema TLV reader ---------- */
+  class SchemaError extends Error {}
+  function SchemaReader(data) {
+    this.d = data;
+    this.fieldCount = 0;
+  }
+  SchemaReader.prototype.u32 = function (pos, end) {
+    if (pos < 0 || end > this.d.length || pos + 4 > end) throw new SchemaError('Truncated schema integer');
+    return u32at(this.d, pos);
+  };
+  SchemaReader.prototype.string = function (pos, end) {
+    var n = this.u32(pos, end);
+    pos += 4;
+    if (n > 1000000 || pos + n * 2 > end) throw new SchemaError('Schema string out of bounds');
+    return { text: TD_UTF16.decode(this.d.subarray(pos, pos + n * 2)), pos: pos + n * 2 };
+  };
+  SchemaReader.prototype.chunks = function (pos, end) {
+    if (!(pos >= 0 && pos <= end && end <= this.d.length)) throw new SchemaError('Invalid schema bounds');
+    var items = [], tags = {};
+    while (pos < end) {
+      var tag = this.d[pos]; pos++;
+      if (tag === 255) return { items: items, pos: pos };
+      var size = this.u32(pos, end); pos += 4;
+      if (pos + size > end) throw new SchemaError('Schema TLV exceeds container');
+      if (tags[tag]) throw new SchemaError('Duplicate schema TLV tag ' + tag);
+      tags[tag] = 1;
+      items.push({ tag: tag, start: pos, end: pos + size });
+      pos += size;
+    }
+    throw new SchemaError('Schema container has no FF terminator');
+  };
+  SchemaReader.prototype.one = function (items, tag) {
+    var found = items.filter(function (x) { return x.tag === tag; });
+    if (found.length !== 1) throw new SchemaError('Expected one schema TLV ' + tag + ', found ' + found.length);
+    return found[0];
+  };
+  SchemaReader.prototype.describe = function (items) {
+    return items.map(function (x) { return { tag: x.tag, offset: x.start, length: x.end - x.start }; });
+  };
+  SchemaReader.prototype.object = function (pos, end, label, version) {
+    version = version === undefined ? 1 : version;
+    var labelBytes = TE.encode(label);
+    var prefix = new Uint8Array(labelBytes.length + 1);
+    prefix[0] = labelBytes.length;
+    prefix.set(labelBytes, 1);
+    for (var i = 0; i < prefix.length; i++) if (this.d[pos + i] !== prefix[i]) throw new SchemaError('Missing schema object ' + label);
+    pos += prefix.length;
+    var actual = this.u32(pos, end);
+    if (actual !== version) throw new SchemaError('Unsupported schema version for ' + label);
+    var r = this.chunks(pos + 4, end);
+    return { items: r.items, pos: r.pos };
+  };
+  SchemaReader.prototype.field = function (pos, end, depth) {
+    if (depth > 16 || pos >= end) throw new SchemaError('Schema field truncated');
+    var kind = this.d[pos];
+    if (kind > 7) throw new SchemaError('Unsupported field kind ' + kind);
+    var r = this.chunks(pos + 1, end);
+    pos = r.pos;
+    var base = this.one(r.items, 2), cursor = base.start, attrs = [];
+    for (var k = 0; k < 6; k++) { var s = this.string(cursor, base.end); attrs.push(s.text); cursor = s.pos; }
+    if (!attrs[0] || cursor + 5 > base.end) throw new SchemaError('Missing field name/type');
+    var field = {
+      name: attrs[0], caption: attrs[2], kind: kind,
+      data_type: this.u32(cursor + 1, base.end), type_flag: this.d[cursor],
+      base_attributes: attrs.slice(1), schema_offset: base.start, chunks: this.describe(r.items)
+    };
+    this.fieldCount++;
+    if (this.fieldCount > 100000) throw new SchemaError('Field budget exceeded');
+    if (kind === 7) {
+      if ((field.data_type & 255) !== 12) throw new SchemaError('Nested field type mismatch');
+      var nested = this.one(r.items, 11);
+      var t = this.tableObject(nested.start, nested.end, null, depth + 1);
+      if (t.pos !== nested.end) throw new SchemaError('Trailing bytes after nested schema');
+      field.nested_fields = t.table.fields;
+      field.nested_table = t.table;
+    }
+    return { field: field, pos: pos };
+  };
+  SchemaReader.prototype.tableObject = function (pos, end, kind, depth) {
+    depth = depth || 0;
+    if (depth > 16) throw new SchemaError('Schema nesting too deep');
+    var o = this.object(pos, end, '_TABLE_SCHEMA_');
+    var base = this.one(o.items, 2);
+    var ns = this.string(base.start, base.end);
+    var name = this.string(ns.pos, base.end);
+    if (!name.text) throw new SchemaError('Empty table name');
+    var outer = this.one(o.items, 4);
+    var coll = this.chunks(outer.start, outer.end);
+    if (coll.pos !== outer.end) throw new SchemaError('Trailing bytes in field collection');
+    var fl = this.one(coll.items, 1);
+    var count = this.u32(fl.start, fl.end);
+    if (count > 100000 - this.fieldCount) throw new SchemaError('Schema field count exceeded');
+    var cursor = fl.start + 4, fields = [], names = {};
+    for (var i = 0; i < count; i++) {
+      var got = this.field(cursor, fl.end, depth);
+      if (names[got.field.name]) throw new SchemaError('Duplicate field name');
+      names[got.field.name] = 1;
+      got.field.ordinal = i;
+      fields.push(got.field);
+      cursor = got.pos;
+    }
+    if (cursor !== fl.end) throw new SchemaError('Field count mismatch');
+    return { table: { name: name.text, namespace: ns.text, kind: kind, fields: fields, schema_offset: base.start, chunks: this.describe(o.items) }, pos: o.pos };
+  };
+  SchemaReader.prototype.database = function () {
+    var o = this.object(0, this.d.length, '_DB_SCHEMA_');
+    if (o.pos !== this.d.length) throw new SchemaError('Trailing bytes after DB schema');
+    var tl = this.one(o.items, 1);
+    var count = this.u32(tl.start, tl.end);
+    if (count > 10000) throw new SchemaError('Table count exceeded');
+    var cursor = tl.start + 4, tables = [], names = {};
+    for (var i = 0; i < count; i++) {
+      if (cursor >= tl.end) throw new SchemaError('Truncated table kind');
+      var got = this.tableObject(cursor + 1, tl.end, this.d[cursor]);
+      var identity = got.table.namespace + ':' + got.table.name;
+      if (names[identity]) throw new SchemaError('Duplicate table identity');
+      names[identity] = 1;
+      got.table.ordinal = i;
+      tables.push(got.table);
+      cursor = got.pos;
+    }
+    if (cursor !== tl.end) throw new SchemaError('Table count does not consume extent');
+    return tables;
+  };
+  SchemaReader.prototype.modelInfo = function () {
+    var o = this.object(0, this.d.length, '_Model_SCHEMA_', 2);
+    if (o.pos !== this.d.length) throw new SchemaError('Trailing bytes after model info');
+    var dl = this.one(o.items, 1);
+    var count = this.u32(dl.start, dl.end);
+    if (count > 1000) throw new SchemaError('Database count exceeded');
+    var cursor = dl.start + 4, databases = [], dbNames = {}, allOffsets = {};
+    for (var d = 0; d < count; d++) {
+      var r = this.chunks(cursor, dl.end);
+      var base = this.one(r.items, 2);
+      var nm = this.string(base.start, base.end);
+      if (!nm.text || dbNames[nm.text] || base.end - nm.pos !== 16) throw new SchemaError('Invalid model database');
+      dbNames[nm.text] = 1;
+      var meta = [];
+      for (var m = 0; m < 4; m++) meta.push(u32at(this.d, nm.pos + m * 4));
+      var tl = this.one(r.items, 1);
+      var size = this.u32(tl.start, tl.end);
+      var off = tl.start + 4, tables = [], ords = {}, names2 = {};
+      for (var t = 0; t < size; t++) {
+        var fs = this.chunks(off, tl.end);
+        var oc = this.one(fs.items, 3);
+        if (oc.end - oc.start !== 4) throw new SchemaError('Invalid table ordinal extent');
+        var ordinal = u32at(this.d, oc.start);
+        var bs = this.one(fs.items, 2);
+        var qual = this.string(bs.start, bs.end);
+        if (bs.end - qual.pos !== 24 || !qual.text) throw new SchemaError('Invalid table metadata');
+        var ints = [];
+        for (m = 0; m < 6; m++) ints.push(u32at(this.d, qual.pos + m * 4));
+        var parts = qual.text.split(':');
+        var ns = parts.length > 1 ? parts.shift() : '';
+        var shortName = parts.join(':');
+        if (ords[ordinal] || names2[qual.text] || allOffsets[ints[3]]) throw new SchemaError('Duplicate model table');
+        ords[ordinal] = names2[qual.text] = allOffsets[ints[3]] = 1;
+        tables.push({ ordinal: ordinal, qualified_name: qual.text, namespace: ns, name: shortName,
+          raw_metadata: meta, record_count: ints[2], data_virtual_offset: ints[3] });
+        off = fs.pos;
+      }
+      if (off !== tl.end || Object.keys(ords).length !== size) throw new SchemaError('Model table count mismatch');
+      databases.push({ name: nm.text, ordinal: d, raw_metadata: meta, tables: tables });
+      cursor = r.pos;
+    }
+    if (cursor !== dl.end) throw new SchemaError('Model database count mismatch');
+    return databases;
+  };
+  function utf16Units(s) { return s.length; }
+
+  /* ---------- GSP record reader ---------- */
+  var DATA_SIG = new Uint8Array([6,95,68,65,84,65,95,2,0,0,0,2,3,0,0,0,1,0,1,4,8,0,0,0]);
+  var STREAM_PREFIX = new Uint8Array([0xff,0xff,0xff,0xff,0x0c,0x05,0x02,0x00,0xa8,0x03,0x00,0x00]);
+  var STREAM_NAME = new Uint8Array(26);
+  for (var si = 0; si < 13; si++) { STREAM_NAME[si * 2] = '_DATA_STREAM_'.charCodeAt(si); STREAM_NAME[si * 2 + 1] = 0; }
+  function hex(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0');
+    return s;
+  }
+  function RecordReader(data) {
+    this.d = data; this.pos = 0;
+  }
+  RecordReader.prototype.read = function (n) {
+    if (n < 0 || this.pos + n > this.d.length) throw new Error('Value exceeds DATA stream extent');
+    var v = this.d.subarray(this.pos, this.pos + n);
+    this.pos += n;
+    return v;
+  };
+  RecordReader.prototype.string = function () {
+    var n = u32at(this.d, this.pos); this.pos += 4;
+    if (n > 1000000) throw new Error('String budget exceeded');
+    return TD_UTF16.decode(this.read(n * 2));
+  };
+  RecordReader.prototype.rows = function (fields, depth, expected) {
+    depth = depth || 0;
+    if (depth > 16) throw new Error('Nested depth exceeded');
+    if (!eq(this.read(12), 0, STREAM_PREFIX)) throw new Error('Unsupported DATA stream signature');
+    var count = u32at(this.d, this.pos); this.pos += 4;
+    if (u32at(this.d, this.pos) !== 13) throw new Error('Unsupported DATA stream version');
+    this.pos += 4;
+    if (!eq(this.read(26), 0, STREAM_NAME)) throw new Error('Unsupported DATA stream name');
+    if (this.read(1)[0] !== 1) throw new Error('Unsupported DATA stream flags');
+    if (expected !== undefined && count !== expected) throw new Error('DATA row count differs from model');
+    var result = [];
+    for (var i = 0; i < count; i++) {
+      var row = {};
+      for (var f = 0; f < fields.length; f++) {
+        try { row[fields[f].name] = this.value(fields[f], depth); }
+        catch (e) { throw new Error('Row ' + i + ' field ' + fields[f].name + ' byte ' + this.pos + ': ' + e.message); }
+      }
+      result.push(row);
+    }
+    return result;
+  };
+  RecordReader.prototype.value = function (field, depth) {
+    var marker = this.read(1)[0];
+    var value;
+    if (marker === 9 || (marker === 1 && field.kind === 4)) {
+      value = null;
+    } else {
+      if (marker !== 0 && marker !== 3 && marker !== 8) throw new Error('Unsupported value marker ' + marker);
+      var dtype = field.data_type & 255;
+      if (dtype === 0 || dtype === 10) {
+        value = this.string();
+      } else if (dtype === 1) {
+        value = this.read(1)[0] === 1;
+      } else if (dtype === 2) {
+        value = (this.d[this.pos] | (this.d[this.pos + 1] << 8) | (this.d[this.pos + 2] << 16) | (this.d[this.pos + 3] << 24));
+        this.pos += 4;
+      } else if (dtype === 4) {
+        value = this.read(1)[0];
+      } else if (dtype === 7 || dtype === 8 || dtype === 9) {
+        var raw = this.read(8);
+        var view = new DataView(raw.buffer, raw.byteOffset, 8);
+        var num = view.getFloat64(0, true);
+        if (!isFinite(num)) {
+          value = { non_finite: isNaN(num) ? 'NaN' : (num > 0 ? 'Infinity' : '-Infinity'), ieee754_le_hex: hex(raw) };
+        } else value = num;
+      } else if (dtype === 11) {
+        var size = u32at(this.d, this.pos); this.pos += 4;
+        if (size > 32000000) throw new Error('Blob budget exceeded');
+        value = { blob: hex(this.read(size)) };
+      } else if (dtype === 12) {
+        if (!field.nested_fields) throw new Error('Nested table has no schema');
+        value = { rows: this.rows(field.nested_fields, depth + 1) };
+      } else throw new Error('Unsupported field data type ' + dtype);
+    }
+    if (field.kind === 4) return { value: value, expression: this.string() };
+    return value;
+  };
+
+  // GSP 模型版本差异：信封额外偏移随版本递增（v16→12、v19→15、v21→17，即 version-4）
+  // 已知版本先按表命中，未命中再按公式与逐个探测，兼容不同 GBQ6/GBQ7 小版本
+  var GSP_ENVELOPE_EXTRA = { 16: 12, 17: 13, 18: 14, 19: 15, 20: 16, 21: 17 };
+  async function parseGSP(data) {
+    var result = { tables: [], errors: [], coverage: {} };
+    if (!eq(data, 0, TE.encode('\rGSPModel File'))) throw new Error('Unsupported GSP file signature');
+    var version = u32at(data, 14);
+    if (!(version >= 10 && version <= 40)) throw new Error('Unrecognized GSP model version ' + version);
+    if (data.length < 148 || u32at(data, 18) !== data.length) throw new Error('GSP declared length mismatch');
+    var extras = [], pref = GSP_ENVELOPE_EXTRA[version];
+    if (pref !== undefined) extras.push(pref);
+    if (version - 4 >= 0 && extras.indexOf(version - 4) < 0) extras.push(version - 4);
+    for (var px = 0; px <= 64; px++) if (extras.indexOf(px) < 0) extras.push(px);
+    var modelInfo = null, databases = null, envErr = null;
+    for (var xi = 0; xi < extras.length && !modelInfo; xi++) {
+      try {
+        var cand = await decodeEnvelope(data.subarray(34), extras[xi], MASK_MODEL);
+        var dbs = new SchemaReader(cand.data).modelInfo();
+        if (dbs && dbs.length) { modelInfo = cand; databases = dbs; }
+      } catch (e) { envErr = e; }
+    }
+    if (!modelInfo) throw new Error('GSP 模型头解码失败（版本 ' + version + '）：' + (envErr && envErr.message ? envErr.message : '未知原因'));
+    var base = 34 + modelInfo.used;
+    var expected = databases.reduce(function (a, d) { return a + d.tables.length; }, 0);
+    var schemas = {}, ranges = [];
+    for (var i = 0; i < databases.length; i++) {
+      var db = databases[i], meta = db.raw_metadata;
+      var start = base + meta[2], end = base + meta[1];
+      if (!(start >= 0 && start + 8 < end && end <= data.length)) throw new Error('Database schema extent invalid');
+      for (var k = 0; k < ranges.length; k++) if (start < ranges[k][1] && ranges[k][0] < end) throw new Error('Schema extents overlap');
+      ranges.push([start, end]);
+      var decoded = await decodedPayload(data.subarray(start + 8, end));
+      var tables = new SchemaReader(decoded).database();
+      if (tables.length !== db.tables.length) throw new Error('Schema/model table count mismatch');
+      schemas[db.name] = tables;
+    }
+    // physical DATA blocks
+    var blocks = [], cursor = 0;
+    while (true) {
+      var found = findBytes(data, DATA_SIG, cursor);
+      if (found < 0) break;
+      var off = found + 1;
+      if (off + 44 > data.length) throw new Error('Truncated DATA header');
+      var size = u32at(data, off + 32), endb = off + 36 + size;
+      if (size < 8 || endb >= data.length || data[endb] !== 255) throw new Error('DATA block extent invalid');
+      blocks.push({ ordinal: blocks.length, offset: off, payload_start: off + 44, end: endb });
+      cursor = endb + 1;
+    }
+    var byOffset = {};
+    blocks.forEach(function (b) { byOffset[b.offset] = b; });
+    if (Object.keys(byOffset).length !== blocks.length || blocks.length !== expected) {
+      throw new Error('DATA block inventory differs from model table count');
+    }
+    var plans = [], selected = {};
+    for (i = 0; i < databases.length; i++) {
+      db = databases[i];
+      for (var t = 0; t < db.tables.length; t++) {
+        var info = db.tables[t], schema = schemas[db.name][info.ordinal];
+        if (schema.name !== info.name || schema.namespace !== info.namespace) throw new Error('Schema identity mismatch');
+        var nameUnits = utf16Units(info.qualified_name);
+        var target = info.data_virtual_offset + base + 1 - nameUnits;
+        var block = byOffset[target];
+        if (!block || selected[target]) throw new Error('Model DATA location invalid');
+        selected[target] = 1;
+        plans.push({ db: db.name, info: info, schema: schema, block: block });
+      }
+    }
+    result.coverage = { status: 'complete', model_version: version, expected_tables: expected,
+      parsed_tables: 0, failed_tables: 0 };
+    for (i = 0; i < plans.length; i++) {
+      var p = plans[i];
+      try {
+        var payload = await decodedPayload(data.subarray(p.block.payload_start, p.block.end));
+        var rr = new RecordReader(payload);
+        var rows = rr.rows(p.schema.fields, 0, p.info.record_count);
+        if (rr.pos !== payload.length) throw new Error('Table records leave trailing bytes');
+        result.tables.push({ database: p.db, namespace: p.schema.namespace, name: p.schema.name,
+          source_block: p.block.ordinal, source_offset: p.block.offset, schema: p.schema.fields, rows: rows });
+      } catch (e) {
+        result.errors.push({ stage: 'records', table: p.info.qualified_name,
+          source_block: p.block.ordinal, source_offset: p.block.offset, error: e.message });
+      }
+    }
+    result.coverage.parsed_tables = result.tables.length;
+    result.coverage.failed_tables = result.errors.length;
+    result.coverage.status = result.errors.length ? 'partial' : 'complete';
+    return result;
+  }
+
+  /* ---------- ZIP reader (native deflate via DecompressionStream) ---------- */
+  async function readZipEntries(buffer) {
+    var d = new Uint8Array(buffer), eocd = -1;
+    for (var i = d.length - 22; i >= Math.max(0, d.length - 66000); i--) {
+      if (u32at(d, i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('不是有效的 ZIP/GBQ 容器（未找到目录尾）');
+    var count = d[eocd + 10] | (d[eocd + 11] << 8);
+    var cdOff = u32at(d, eocd + 16);
+    var entries = [], p = cdOff;
+    for (var n = 0; n < count; n++) {
+      if (u32at(d, p) !== 0x02014b50) throw new Error('ZIP central directory damaged');
+      var method = d[p + 10] | (d[p + 11] << 8);
+      var csize = u32at(d, p + 20), usize = u32at(d, p + 24);
+      var nameLen = d[p + 28] | (d[p + 29] << 8);
+      var extraLen = d[p + 30] | (d[p + 31] << 8);
+      var commentLen = d[p + 32] | (d[p + 33] << 8);
+      var local = u32at(d, p + 42);
+      var name = TD_UTF8.decode(d.subarray(p + 46, p + 46 + nameLen));
+      entries.push({ name: name, method: method, csize: csize, usize: usize, local: local });
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return { data: d, entries: entries };
+  }
+  async function unzip(zip, entry) {
+    var d = zip.data, p = entry.local;
+    if (u32at(d, p) !== 0x04034b50) throw new Error('ZIP local header damaged: ' + entry.name);
+    var nameLen = d[p + 26] | (d[p + 27] << 8), extraLen = d[p + 28] | (d[p + 29] << 8);
+    var start = p + 30 + nameLen + extraLen;
+    var raw = d.subarray(start, start + entry.csize);
+    if (entry.method === 0) return u8(raw);
+    if (entry.method === 8) return inflateRaw(raw);
+    throw new Error('Unsupported ZIP compression method ' + entry.method);
+  }
+
+  /* ---------- business normalization ---------- */
+  function number(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object') return v;
+    return String(v);
+  }
+  function active(row) { return !(row.IsRealDel || row.IsPreDeleted); }
+  function validIdentity(row) { return !!(String(row.Code || '').trim() && String(row.Description || '').trim()); }
+  function isUnitPriceMeasure(row) {
+    return active(row) && validIdentity(row) && row.IsQuantifiableBill === true &&
+      row.EstiStyle === 2 && (row.MeasureItemEstiType === 0 || row.MeasureItemEstiType === 1);
+  }
+  function indexTables(parsed) {
+    var idx = {};
+    parsed.tables.forEach(function (t) { idx[t.database + '|' + t.namespace + '|' + t.name] = t; });
+    return idx;
+  }
+  function prov(member, table, i, id) {
+    return { member: member, database: table.database, namespace: table.namespace, table: table.name,
+      row_index: i, record_id: id, source_block: table.source_block, source_offset: table.source_offset };
+  }
+  function normalizeUnit(parsed, member, saved) {
+    var idx = indexTables(parsed);
+    function table(name, ns) {
+      return idx['BusinessDB|' + (ns || '') + '|' + name] || { database: 'BusinessDB', namespace: ns || '', name: name, rows: [] };
+    }
+    var info = {};
+    table('ProjectInfo').rows.forEach(function (r) { if (r.Code) info[r.Code] = r.Content; });
+    var name = info.ProjName;
+    if (!name) throw new Error(member + ' 缺少原生 ProjName');
+    var bills = [], measures = [], quotas = [], excludedQ = [], usages = [], resources = [], fees = [], excludedB = [];
+    var otherTitles = [], otherItems = [], resCats = [];
+    // 原生分部分项层级：BQItemTitle（整个项目 → 一级/二级/三级/四级分部）
+    var sections = [], st = table('BQItemTitle', 'FBFX');
+    st.rows.forEach(function (row, pos) {
+      sections.push({ id: row.BQItemTitleID, pid: row.PID, type: row.TitleType,
+        name: row.Description, code: row.Code, path: row.Path,
+        order: number(row.Order), amount: number(row.Amount),
+        source: prov(member, st, pos, row.BQItemTitleID) });
+    });
+    sections.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    // 定额模式（无清单）：层级在 NormItemTitle，定额行直接挂在分部下
+    var normSections = [], nst = table('NormItemTitle', 'FBFX');
+    nst.rows.forEach(function (row, pos) {
+      normSections.push({ id: row.NormItemTitleID, pid: row.PID, type: row.TitleType,
+        name: row.Description, code: row.Code, path: row.Path,
+        order: number(row.Order), amount: number(row.Amount),
+        source: prov(member, nst, pos, row.NormItemTitleID) });
+    });
+    normSections.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var quotaMode = !sections.length && normSections.length > 0;
+    var parentMaps = {};
+    [['FBFX', 'BQItem', 'BQItemID'], ['CSXM', 'MeasureItem', 'MeasureItemID']].forEach(function (cfg) {
+      var nt = table(cfg[1], cfg[0]);
+      parentMaps[cfg[0]] = {};
+      nt.rows.forEach(function (r) { parentMaps[cfg[0]][r[cfg[2]]] = r; });
+      nt.rows.forEach(function (row, pos) {
+        var ex = row.QuantityExpr;
+        var item = { unit_name: name, namespace: cfg[0], id: row[cfg[2]], section_id: row.BQItemTitleID,
+          code: row.Code, name: row.Description,
+          description: row.Spec, unit: row.Unit, qty: number(row.Quantity), price: number(row.Rate),
+          quantity_expression: ex && typeof ex === 'object' && 'expression' in ex ? { value: ex.value, expression: ex.expression } : ex,
+          amount: number(row.Amount), order: row.Order, is_deleted: !active(row),
+          source: prov(member, nt, pos, row[cfg[2]]) };
+        if (cfg[0] === 'CSXM') {
+          item.is_quantifiable_bill = row.IsQuantifiableBill;
+          item.esti_style = row.EstiStyle;
+          item.measure_item_esti_type = row.MeasureItemEstiType;
+          item.included_in_unit_price_bills = isUnitPriceMeasure(row);
+          measures.push(item);
+        }
+        if ((cfg[0] === 'FBFX' && active(row) && validIdentity(row)) ||
+            (cfg[0] === 'CSXM' && isUnitPriceMeasure(row))) bills.push(item);
+        else if (cfg[0] === 'FBFX') excludedB.push(item);
+      });
+    });
+    var rt = table('Resource'), resourceMap = {};
+    rt.rows.forEach(function (r) { resourceMap[r.ResID] = r; });
+    rt.rows.forEach(function (row, pos) {
+      resources.push({ unit_name: name, id: row.ResID, code: row.Code, name: row.Description, spec: row.Spec,
+        unit: row.Unit, qty: number(row.Quantity), market_rate: number(row.MarketRate), budget_rate: number(row.BudgetRate),
+        market_amount: number(row.MarketAmount), budget_amount: number(row.BudgetAmount), cost_type: row.CostTypeID,
+        price_source: row.PriceSource, supply_type: row.SupplyTypeID, swc_id: row.SWCID,
+        is_referred: row.IsRefered, is_deleted: !active(row),
+        source: prov(member, rt, pos, row.ResID) });
+    });
+    [['FBFX', 'BQItemID'], ['CSXM', 'MeasureItemID']].forEach(function (cfg) {
+      var nt = table('NormItem', cfg[0]), normMap = {};
+      nt.rows.forEach(function (r) { normMap[r.NormItemID] = r; });
+      nt.rows.forEach(function (row, pos) {
+        var parent = parentMaps[cfg[0]][row[cfg[1]]];
+        var ex = row.QuantityExpr;
+        var item = { unit_name: name, namespace: cfg[0], id: row.NormItemID, parent_id: row[cfg[1]],
+          bill_code: parent ? parent.Code : null, bill_name: parent ? parent.Description : null,
+          title_id: row.NormItemTitleID === undefined ? null : row.NormItemTitleID,
+          code: row.Code, name: row.Description, unit: row.Unit, qty: number(row.Quantity),
+          price: number(row.Rate), quantity_expression: ex && typeof ex === 'object' && 'expression' in ex ? { value: ex.value, expression: ex.expression } : ex,
+          amount: number(row.Amount), conversion_info: row.ConvInfo, order: row.Order,
+          is_deleted: !active(row), parent_deleted: parent ? !active(parent) : null,
+          source: prov(member, nt, pos, row.NormItemID) };
+        if (quotaMode && cfg[0] === 'FBFX' && !parent) item.section_id = item.title_id;
+        var hasParent = parent && active(parent) && validIdentity(parent);
+        if (active(row) && validIdentity(row) && (hasParent || (quotaMode && cfg[0] === 'FBFX' && !row[cfg[1]]))) quotas.push(item);
+        else {
+          var reasons = [];
+          if (!active(row)) reasons.push('deleted-row');
+          if (!validIdentity(row)) reasons.push('empty-row-identity');
+          if (!parent) reasons.push('parent-missing');
+          if (parent && !active(parent)) reasons.push('parent-deleted');
+          if (parent && !validIdentity(parent)) reasons.push('empty-parent-identity');
+          item.exclusion_reasons = reasons;
+          excludedQ.push(item);
+        }
+      });
+      var ut = table('LMMDetail', cfg[0]);
+      ut.rows.forEach(function (row, pos) {
+        var resource = resourceMap[row.ResID], norm = normMap[row.NormItemID];
+        usages.push({ unit_name: name, namespace: cfg[0], id: row.LMMDetailID, norm_id: row.NormItemID,
+          resource_id: row.ResID, norm_code: norm ? norm.Code : null, resource_code: resource ? resource.Code : null,
+          resource_name: resource ? resource.Description : null, resource_unit: resource ? resource.Unit : null,
+          usage: number(row.Usage), qty: number(row.Quantity), is_deleted: !active(row),
+          norm_found: !!norm, resource_found: !!resource, source: prov(member, ut, pos, row.LMMDetailID) });
+      });
+    });
+    var ft = table('Summary');
+    ft.rows.forEach(function (row, pos) {
+      var b = row.BaseAmount;
+      fees.push({ unit_name: name, id: row.SummaryID, pid: row.PID, code: row.CostCode, name: row.Description,
+        amount: number(row.Amount), base_amount: b && typeof b === 'object' && 'expression' in b ? { value: b.value, expression: b.expression } : b,
+        base_remark: row.ShowBaseAmountRemark || row.BaseAmountRemark || '',
+        cost_ratio: number(row.CostRatio), sequence: row.SequenceNo,
+        in_compete: !!row.InCompeteFlag, remark: row.Remark || '', output: !!row.Output,
+        is_deleted: !active(row),
+        source: prov(member, ft, pos, row.SummaryID) });
+    });
+    // 其他项目：OtherItemTitle（分组）+ OtherItem（明细），原生 PID/SequenceNo/NotSumToAmount
+    var oit = table('OtherItemTitle'), oi = table('OtherItem');
+    oit.rows.forEach(function (row, pos) {
+      otherTitles.push({ id: row.OtherItemTitleID, pid: row.PID, name: row.Description,
+        amount: number(row.Amount), remark: row.Remark || '', sequence: row.SequenceNo, order: number(row.Order) });
+    });
+    oi.rows.forEach(function (row, pos) {
+      var b = row.BaseAmount;
+      otherItems.push({ unit_name: name, id: row.OtherItemID, title_id: row.OtherItemTitleID,
+        item_type: row.OtherItemTypeID, sequence: row.SequenceNo, name: row.Description,
+        base_amount: b && typeof b === 'object' && 'expression' in b ? { value: b.value, expression: b.expression } : b,
+        cost_ratio: number(row.CostRatio), amount: number(row.Amount),
+        in_compete: !!row.InCompeteFlag, not_sum: !!row.NotSumToAmount, remark: row.Remark || '',
+        is_deleted: !active(row), source: prov(member, oi, pos, row.OtherItemID) });
+    });
+    // 资源分类树：ResClassify（人工表/材料表/机械表/设备表/主材表等）
+    var rct = table('ResClassify');
+    rct.rows.forEach(function (row, pos) {
+      var cts = [], mrs = [], ss = [];
+      ['CostTypeSelection', 'MixResTypeSelection', 'SupplyTypeSelection'].forEach(function (k) {
+        var rows = row[k] && row[k].rows ? row[k].rows : [];
+        rows.forEach(function (s) {
+          var target = k === 'CostTypeSelection' ? cts : k === 'MixResTypeSelection' ? mrs : ss;
+          if (s.Selected) target.push(k === 'SupplyTypeSelection' ? s.SupplyTypeID : k === 'MixResTypeSelection' ? s.MixResTypeID : s.CostTypeID);
+        });
+      });
+      resCats.push({ id: row.ResClassifyID, template: row.TemplateID, name: row.Description,
+        cost_types: cts, mix_types: mrs, supply_types: ss, calc_scope: number(row.CalcScope),
+        is_protected: !!row.IsProtected });
+    });
+    // 费用汇总行名随模板/地区版本变化：工程造价 / 含税工程造价合计 / 不含税工程造价合计
+    var AMOUNT_KEYS = ['工程造价', '含税工程造价合计', '含税工程造价', '不含税工程造价合计', '不含税工程造价'];
+    var amount, amountSource, basis, hitKey = '';
+    for (var ak = 0; ak < AMOUNT_KEYS.length && !hitKey; ak++) {
+      var rows4 = fees.filter(function (f) { return f.name === AMOUNT_KEYS[ak] && !f.is_deleted; });
+      if (rows4.length === 1 && rows4[0].amount !== null && rows4[0].amount !== undefined) {
+        amount = rows4[0].amount; amountSource = rows4[0].source; basis = 'Summary:' + AMOUNT_KEYS[ak]; hitKey = AMOUNT_KEYS[ak];
+      }
+    }
+    if (!hitKey) {
+      if (saved) { amount = saved.amount; amountSource = saved.source; basis = 'BidNode:saved-unit-amount'; }
+      else throw new Error(name + ' 无法确定保存金额');
+    }
+    return { name: name, source_member: member, amount: amount, amount_source: amountSource, amount_basis: basis,
+      mode: quotaMode ? 'quota' : 'bill',
+      sections: sections, norm_sections: normSections,
+      bill_items: bills, measure_items: measures, quota_items: quotas, excluded_quota_items: excludedQ,
+      excluded_bill_items: excludedB, resources: resources, resource_usage: usages, fees: fees,
+      other_titles: otherTitles, other_items: otherItems, resource_categories: resCats,
+      parser_errors: parsed.errors, counts: { bill_items: bills.length, measure_items_all: measures.length,
+        quota_items_active: quotas.length, quota_items_excluded: excludedQ.length,
+        resources: resources.length, resource_usage: usages.length, other_items: otherItems.length } };
+  }
+  function cents(v) {
+    var n = Number(v);
+    return isFinite(n) ? Math.round(n * 100) : null;
+  }
+  function normalizeProject(members, metadata) {
+    var bidMember = 'GSPFiles/Bid.GSP';
+    var bidParsed = members[bidMember] || null, nodes = [], bidResources = [];
+    // 单位工程另存为单独文件时，容器内可能没有 Bid.GSP，只有 GSPFiles/GBQ.GSP
+    if (bidParsed) bidParsed.tables.forEach(function (t, ti) {
+      if (t.name === 'BidNode') t.rows.forEach(function (row, pos) {
+        nodes.push({ id: row.BidNodeID, pid: row.PID, type: row.NodeType, name: row.NodeName,
+          code: row.NodeCode, amount: number(row.Amount), source: prov(bidMember, t, pos, row.BidNodeID) });
+      });
+      if (t.database === 'BusinessDB' && t.namespace === '' && t.name === 'Resource') t.rows.forEach(function (row, pos) {
+        bidResources.push({ context: 'bid', id: row.ResID, code: row.Code, name: row.Description, spec: row.Spec,
+          unit: row.Unit, qty: number(row.Quantity), market_rate: number(row.MarketRate), budget_rate: number(row.BudgetRate),
+          market_amount: number(row.MarketAmount), is_referred: row.IsRefered, is_deleted: !active(row),
+          source: prov(bidMember, t, pos, row.ResID) });
+      });
+    });
+    var roots = nodes.filter(function (n) { return n.pid === null && n.type === 0; });
+    if (bidParsed && (roots.length !== 1 || roots[0].amount === null)) throw new Error('BidNode 中未找到唯一项目根节点');
+    var savedById = {};
+    nodes.forEach(function (n) { if (n.type === 2) savedById[n.id] = { amount: n.amount, source: n.source }; });
+    var units = [], re = /^GSPFiles\/GBQ(_([0-9]+))?\.GSP$/i;
+    Object.keys(members).forEach(function (member) {
+      var m = re.exec(member);
+      if (m) {
+        var fid = m[2] ? parseInt(m[2], 10) : 0;
+        var unit = normalizeUnit(members[member], member, savedById[fid]);
+        unit.file_id = fid;
+        units.push(unit);
+      }
+    });
+    var order = {};
+    nodes.forEach(function (n, i) { order[n.id] = i; });
+    units.sort(function (a, b) { return (order[a.file_id] === undefined ? 1e9 : order[a.file_id]) - (order[b.file_id] === undefined ? 1e9 : order[b.file_id]); });
+    if (!units.length) throw new Error('没有可读取的单位工程');
+    ['bill_items', 'measure_items', 'quota_items'].forEach(function (g) {
+      units.forEach(function (u) {
+        u[g].sort(function (a, b) {
+          var ao = a.order === null || a.order === undefined, bo = b.order === null || b.order === undefined;
+          if (ao !== bo) return ao ? 1 : -1;
+          if ((a.order || 0) !== (b.order || 0)) return (a.order || 0) - (b.order || 0);
+          return (a.id || 0) - (b.id || 0);
+        });
+      });
+    });
+    var sum = 0, ok = true;
+    units.forEach(function (u) { var c = cents(u.amount); if (c === null) ok = false; else sum += c; });
+    // 无 Bid.GSP 时，工程名/金额取 Overview.ini 的原生 ProjectAmount
+    var projName = (roots.length && roots[0].name) || (metadata && metadata.Description) || (units[0] && units[0].name) || '工程';
+    var projAmount = roots.length ? roots[0].amount
+      : (metadata && metadata.ProjectAmount !== undefined && metadata.ProjectAmount !== '' ? number(metadata.ProjectAmount) : (ok ? sum / 100 : null));
+    if (!nodes.length) {
+      var pid0 = '__proj';
+      nodes.push({ id: pid0, pid: null, type: 0, name: projName, code: '', amount: projAmount });
+      units.forEach(function (u, k) {
+        nodes.push({ id: u.file_id === undefined ? 'u' + k : u.file_id, pid: pid0, type: 2, name: u.name, code: '', amount: u.amount });
+      });
+    }
+    var pc = cents(projAmount);
+    var check = { status: ok && pc !== null ? 'available' : 'unavailable-source-amount',
+      saved_project_amount: projAmount, unit_amount_sum: ok ? (sum / 100).toFixed(2) : null,
+      delta: ok && pc !== null ? ((sum - pc) / 100).toFixed(2) : null };
+    var oc = cents(metadata && metadata.ProjectAmount);
+    return {
+      project: { name: projName, amount: projAmount, hierarchy: nodes },
+      units: units, bid_resources: bidResources,
+      counts: { units: units.length,
+        bill_items: units.reduce(function (a, u) { return a + u.bill_items.length; }, 0),
+        quota_items: units.reduce(function (a, u) { return a + u.quota_items.length; }, 0),
+        unit_resources: units.reduce(function (a, u) { return a + u.resources.length; }, 0),
+        resource_usage: units.reduce(function (a, u) { return a + u.resource_usage.length; }, 0),
+        bid_resources: bidResources.length },
+      checks: { project_vs_unit_amounts: check,
+        overview_vs_project_amount: { overview_amount: metadata && metadata.ProjectAmount, project_amount: projAmount,
+          delta: oc !== null && pc !== null ? ((oc - pc) / 100).toFixed(2) : null } },
+      metadata: metadata || {}, reader_version: 'browser-1.0'
+    };
+  }
+  function parseIni(text) {
+    var out = {}, section = '';
+    text.split(/\r?\n/).forEach(function (line) {
+      line = line.trim();
+      if (!line || line[0] === ';' || line[0] === '#') return;
+      var m = /^\[(.+)\]$/.exec(line);
+      if (m) { section = m[1]; return; }
+      var kv = /^([^=]+)=(.*)$/.exec(line);
+      if (kv && section === 'General') out[kv[1].trim().replace(/^\ufeff/, '')] = kv[2].trim();
+    });
+    return out;
+  }
+
+  async function readGBQ(file, onProgress) {
+    var progress = onProgress || function () {};
+    if (file.size > 512 * 1024 * 1024) throw new Error('文件超过 512MB 上限');
+    progress('读取容器…', 0);
+    var stage = '读取文件';
+    try {
+    var buf = await file.arrayBuffer();
+    stage = '解析 ZIP 目录';
+    var zip = await readZipEntries(buf);
+    var lookup = {};
+    zip.entries.forEach(function (e) { if (e.name.charAt(e.name.length - 1) !== '/') lookup[e.name] = e; });
+    var overview = lookup['Overview.ini'];
+    if (!overview) throw new Error('容器内没有 Overview.ini，无法确认工程');
+    stage = '读取 Overview.ini';
+    var ovBytes = await unzip(zip, overview);
+    var text;
+    if (ovBytes[0] === 0xff && ovBytes[1] === 0xfe || ovBytes[0] === 0xfe && ovBytes[1] === 0xff) {
+      text = TD_UTF16.decode(ovBytes);
+    } else {
+      text = TD_UTF8.decode(ovBytes);
+      if (text.indexOf('\ufffd') >= 0) {
+        try { text = new TextDecoder('gb18030').decode(ovBytes); } catch (e) {}
+      }
+    }
+    stage = '解析工程元数据';
+    var metadata = parseIni(text);
+    var core = zip.entries.filter(function (e) {
+      return /^GSPFiles\/(Bid|GBQ(_[0-9]+)?)\.GSP$/i.test(e.name);
+    });
+    if (!core.length) throw new Error('容器内没有可识别的 Bid.GSP / GBQ_*.GSP');
+    var members = {}, errors = [];
+    for (var i = 0; i < core.length; i++) {
+      progress('解析 ' + core[i].name.replace('GSPFiles/', '') + '（' + (i + 1) + '/' + core.length + '）', (i + 1) / core.length * 90);
+      try {
+        var bytes = await unzip(zip, core[i]);
+        members[core[i].name] = await parseGSP(bytes);
+        (members[core[i].name].errors || []).forEach(function (e) {
+          errors.push({ member: core[i].name, error: e.error || String(e) });
+        });
+      } catch (e) {
+        errors.push({ member: core[i].name, error: e.message || String(e) });
+      }
+      await new Promise(function (r) { setTimeout(r, 0); });
+    }
+    progress('整理工程数据…', 92);
+    stage = '整理业务数据';
+    var result = normalizeProject(members, metadata);
+    result.errors = errors;
+    result.partial = errors.length > 0;
+    result.source = { name: file.name, size: file.size, core_members: core.length };
+    progress('完成', 100);
+    return result;
+    } catch (e) {
+      throw new Error('[' + stage + '] ' + (e && e.message ? e.message : String(e)));
+    }
+  }
+
+  /* ---------- 新点（Epoint）容器识别 ----------
+     新点造价把工程数据放在 xm.info 与若干 *.gc 中，这两类数据段是新点自有 AES 加密；
+     本工具只读识别容器外壳（ZIP 内 info / state.info / azfyMemory.info / Report.zip 等明文成员），
+     不解密、不改写，只把文件结构与可读元数据摊开，并说明为何读不到清单定额明细。 */
+  function epointKind(name) {
+    if (/\.eys[0-9]*$/i.test(name)) return { code: 'EYS', label: '新点工程包（EYS）' };
+    if (/\.emjyx$/i.test(name)) return { code: 'EMJYX', label: '新点电子标书（emjyx）' };
+    if (/\.gc$/i.test(name)) return { code: 'GC', label: '新点单位工程（gc）' };
+    return { code: 'EPOINT', label: '新点文件' };
+  }
+  function hexHead(u8, n) {
+    var s = [];
+    for (var i = 0; i < Math.min(n, u8.length); i++) s.push((u8[i] < 16 ? '0' : '') + u8[i].toString(16));
+    return s.join(' ');
+  }
+  function entropyOf(u8) {
+    var c = new Uint32Array(256), n = Math.min(u8.length, 65536);
+    for (var i = 0; i < n; i++) c[u8[i]]++;
+    var h = 0;
+    for (var k = 0; k < 256; k++) if (c[k]) { var p = c[k] / n; h -= p * Math.log2(p); }
+    return Math.round(h * 1000) / 1000;
+  }
+  function textOf(u8) {
+    if (!u8) return '';
+    if (u8[0] === 0xff && u8[1] === 0xfe) return TD_UTF16.decode(u8);
+    if (u8[0] === 0xef && u8[1] === 0xbb) return TD_UTF8.decode(u8.subarray(3));
+    return TD_UTF8.decode(u8);
+  }
+  async function readEpoint(file) {
+    var buf = await file.arrayBuffer(), u8 = new Uint8Array(buf);
+    var kind = epointKind(file.name);
+    var out = { kind: 'epoint', code: kind.code, label: kind.label, name: file.name, size: file.size,
+      members: [], stats: { units: 0, report_templates: 0, encrypted_members: 0, plain_members: 0, encrypted_bytes: 0 }, notes: [] };
+    var isZip = u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b && u8[2] === 0x03 && u8[3] === 0x04;
+    out.container = isZip ? 'zip' : 'binary';
+    out.head = hexHead(u8, 12);
+    out.entropy = entropyOf(u8.length > 65536 ? u8.subarray(0, 65536) : u8);
+    if (!isZip) {
+      out.stats.encrypted_bytes = u8.length;
+      out.stats.encrypted_members = 1;
+      out.members.push({ name: file.name, size: u8.length, state: 'encrypted', note: '新点加密数据段（无 ZIP 外壳）' });
+      out.notes.push('该文件整体为新点加密数据段，没有可读的容器外壳。');
+      return out;
+    }
+    var zip = await readZipEntries(buf);
+    var files = zip.entries.filter(function (e) { return e.name.charAt(e.name.length - 1) !== '/'; });
+    var byName = {};
+    files.forEach(function (e) { byName[e.name] = e; });
+    async function readMember(name) {
+      var e = byName[name];
+      if (!e) return null;
+      try { return await unzip(zip, e); } catch (err) { return null; }
+    }
+    for (var i = 0; i < files.length; i++) {
+      var e = files[i], lower = e.name.toLowerCase();
+      var fsize = e.usize === undefined ? (e.size || 0) : e.usize;
+      var rec = { name: e.name, size: fsize, state: 'plain', note: '明文元数据' };
+      if (/\.gc$/.test(lower)) {
+        rec.state = 'encrypted'; rec.note = '新点 AES 加密（单位工程）';
+        out.stats.encrypted_bytes += fsize;
+        out.stats.encrypted_members++;
+        out.stats.unit_files = (out.stats.unit_files || 0) + 1;
+      } else if (/(^|\/)xm\.info$/.test(lower)) {
+        rec.state = 'encrypted'; rec.note = '新点 AES 加密（工程主数据）';
+        out.stats.encrypted_bytes += fsize;
+        out.stats.encrypted_members++;
+      } else if (/\.zip$/.test(lower)) {
+        rec.state = 'zip'; rec.note = '嵌套压缩包';
+      } else {
+        out.stats.plain_members++;
+      }
+      out.members.push(rec);
+    }
+    // info：单位工程 GID 清单
+    var gids = {}, gidList = [];
+    var infoBytes = await readMember('info');
+    if (infoBytes) {
+      var infoText = textOf(infoBytes);
+      var m = infoText.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g) || [];
+      m.forEach(function (g) { var k = g.toLowerCase(); if (!gids[k]) { gids[k] = 1; gidList.push(k); } });
+    }
+    // state.info：工程 GID 与单位工程页签状态
+    var stateBytes = await readMember('state.info');
+    var stateText = stateBytes ? textOf(stateBytes) : '';
+    var pg = stateText.match(/projectGId="([^"]+)"/);
+    out.stats.project_gid = pg ? pg[1] : '';
+    var gcCount = (stateText.match(/<dicGcState/g) || []).length;
+    out.stats.units = out.stats.unit_files || 0;
+    out.stats.gid_count = gidList.length || gcCount;
+    // azfyMemory.info：单位工程安装费记忆条数
+    var memBytes = await readMember('azfyMemory.info');
+    if (memBytes) out.stats.memory_rows = (textOf(memBytes).match(/<dicGcMemory/g) || []).length;
+    // Report.zip：报表模板数量
+    var repBytes = await readMember('Report.zip');
+    if (repBytes) {
+      try {
+        var rz = await readZipEntries(repBytes.buffer.slice(repBytes.byteOffset, repBytes.byteOffset + repBytes.byteLength));
+        out.stats.report_templates = rz.entries.filter(function (x) { return /\.repcfg$/i.test(x.name); }).length;
+      } catch (err) {}
+    }
+    out.gids = gidList;
+    out.notes.push('xm.info 与 ' + out.stats.encrypted_members + ' 个数据段为新点 AES 加密，未解密。');
+    return out;
+  }
+
+  var api = { readGBQ: readGBQ, readEpoint: readEpoint, epointKind: epointKind, parseGSP: parseGSP, readZipEntries: readZipEntries, unzip: unzip,
+    Rijndael256: Rijndael256, decodeEnvelope: decodeEnvelope, MASK_MODEL: MASK_MODEL, inflate: inflate,
+    SchemaReader: SchemaReader, utf16Units: utf16Units, inflateRaw: inflateRaw };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  global.GBQReader = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* UI：仿广联达云计价分部分项界面，数据与展示分离，只读。 */
+(function () {
+  'use strict';
+  var S = { data: null, unit: 0, tab: 'fbfx', q: '', section: '', level: 'all',
+    collapsed: {}, picked: null, selKey: '', costCollapsed: {}, csCollapsed: {},
+    treeCol: {}, secCol: {}, qtItem: '', hjCat: -1, t0: 0, fileName: '', snapshot: false };
+  var LEVELS = { s1: 1, s2: 2, s3: 3, s4: 4, bill: 9, quota: 9, all: 9 };
+  var MAXROW = { s1: 0, s2: 0, s3: 0, s4: 0, bill: 1, quota: 2, all: 3 };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function money(v) {
+    if (v === null || v === undefined || v === '') return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    var n = Number(v);
+    return isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(v);
+  }
+  function unit() { return S.data && S.data.units[S.unit]; }
+  // 数据页才显示「层级/搜索/导出」，新点识别页与起始页隐藏
+  function chromeData(on) {
+    ['levelSel', 'search', 'exportBtn'].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      if (id === 'exportBtn') el.style.display = on && !S.snapshot ? '' : 'none';
+      else el.style.display = on ? '' : 'none';
+    });
+  }
+  function match(v) {
+    if (!S.q) return false;
+    return String(v === null || v === undefined ? '' : v).toLowerCase().indexOf(S.q.toLowerCase()) >= 0;
+  }
+  function cell(v, cls, title) {
+    var t = title === undefined ? v : title, raw = String(v === null || v === undefined ? '' : v);
+    var multi = raw.indexOf('\n') >= 0;
+    var text = esc(v);
+    if (multi) text = text.replace(/\r?\n/g, '<br>');
+    return '<td class="' + (cls || '') + (multi ? ' multi' : '') + (match(v) ? ' match' : '') +
+      '" title="' + esc(t) + '">' + text + '</td>';
+  }
+  function num(v) {
+    return '<td class="num' + (match(v) ? ' match' : '') + '">' + esc(v === null || v === undefined ? '' : money(v)) + '</td>';
+  }
+
+  var TABS = [
+    ['cost', '造价分析'], ['fbfx', '分部分项'], ['csxm', '措施项目'],
+    ['qt', '其他项目'], ['hj', '人材机汇总'], ['fee', '费用汇总']
+  ];
+
+  function start() {
+    chromeData(false);
+    if ($('levelSel')) $('levelSel').onchange = function () {
+      S.level = this.value; renderGrid();
+    };
+    initSplitter();
+    initCols();
+    bindTreeClicks();
+    $('pickBtn').onclick = function () { $('fileInput').click(); };
+    $('fileInput').onchange = function () { if (this.files && this.files[0]) load(this.files[0]); };
+    $('themeBtn').onclick = function () {
+      var cur = document.documentElement.getAttribute('data-theme');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      $('themeBtn').textContent = next === 'dark' ? '浅色' : '深色';
+      try { localStorage.setItem('gbqToolTheme', next); } catch (e) {}
+    };
+    try { if (localStorage.getItem('gbqToolTheme') === 'dark') $('themeBtn').click(); } catch (e) {}
+    document.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if ($('dropZone')) $('dropZone').classList.add('over');
+    });
+    document.addEventListener('dragleave', function (e) {
+      if ($('dropZone')) $('dropZone').classList.remove('over');
+    });
+    document.addEventListener('drop', function (e) {
+      e.preventDefault();
+      if ($('dropZone')) $('dropZone').classList.remove('over');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) load(f);
+    });
+    $('search').oninput = function () { S.q = this.value.trim(); renderGrid(); };
+    if ($('exportBtn')) $('exportBtn').onclick = exportHtml;
+  }
+
+  // 工料显示框：拖动分隔条上下调整高度，记住上次高度
+  function setDetailHeight(h) {
+    var d = $('detail'); if (!d) return;
+    var box = d.parentElement.getBoundingClientRect();
+    // 不按当前 top 反推上限（top 已含当前详情高度），只给主表保留 60px
+    if (box.height > 0) h = Math.max(80, Math.min(box.height - 60, h));
+    d.style.height = h + 'px';
+  }
+  function initSplitter() {
+    var sp = $('splitter'), d = $('detail');
+    if (!sp || !d) return;
+    function drag(e) {
+      var y0 = e.clientY, h0 = d.getBoundingClientRect().height, pid = e.pointerId;
+      try { sp.setPointerCapture(pid); } catch (err) {}
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+      function mv(ev) { setDetailHeight(h0 + y0 - ev.clientY); }
+      function up() {
+        sp.removeEventListener('pointermove', mv);
+        sp.removeEventListener('pointerup', up);
+        sp.removeEventListener('pointercancel', up);
+        try { sp.releasePointerCapture(pid); } catch (err) {}
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        try { localStorage.setItem('gbqDetailH', d.getBoundingClientRect().height); } catch (err) {}
+      }
+      sp.addEventListener('pointermove', mv);
+      sp.addEventListener('pointerup', up);
+      sp.addEventListener('pointercancel', up);
+      e.preventDefault();
+    }
+    sp.addEventListener('pointerdown', drag);
+    sp.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  }
+
+  /* ---------- 工程结构 / 分部专业 列宽拖动（记住上次宽度） ---------- */
+  var COL_DEF = { t1: 182, t2: 200 };
+  var COLW = { t1: COL_DEF.t1, t2: COL_DEF.t2 };
+  function colEl(k) { return $(k === 't1' ? 'tree1' : 'tree2'); }
+  function applyColW(k, w) {
+    var el = colEl(k);
+    if (!el) return;
+    w = Math.round(Math.max(120, Math.min(620, w)));
+    el.style.width = w + 'px';
+    COLW[k] = w;
+  }
+  function saveColW() {
+    try { localStorage.setItem('gbqColW', JSON.stringify({ t1: COLW.t1, t2: COLW.t2 })); } catch (e) {}
+  }
+  function syncColVis() {
+    var t2 = $('tree2'), s2 = $('hs2');
+    if (t2 && s2) s2.style.display = t2.style.display === 'none' ? 'none' : '';
+  }
+  function bindCol(spId, k) {
+    var sp = $(spId), el = colEl(k);
+    if (!sp || !el) return;
+    sp.addEventListener('dblclick', function () { applyColW(k, COL_DEF[k]); saveColW(); });
+    sp.addEventListener('pointerdown', function (e) {
+      var x0 = e.clientX, w0 = el.getBoundingClientRect().width, pid = e.pointerId;
+      try { sp.setPointerCapture(pid); } catch (err) {}
+      sp.classList.add('drag');
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      function mv(ev) { applyColW(k, w0 + ev.clientX - x0); }
+      function up() {
+        sp.removeEventListener('pointermove', mv);
+        sp.removeEventListener('pointerup', up);
+        sp.removeEventListener('pointercancel', up);
+        try { sp.releasePointerCapture(pid); } catch (err) {}
+        sp.classList.remove('drag');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        saveColW();
+      }
+      sp.addEventListener('pointermove', mv);
+      sp.addEventListener('pointerup', up);
+      sp.addEventListener('pointercancel', up);
+      e.preventDefault();
+    });
+  }
+  function initCols() {
+    try {
+      var s = JSON.parse(localStorage.getItem('gbqColW') || 'null');
+      if (s && s.t1) applyColW('t1', s.t1);
+      if (s && s.t2) applyColW('t2', s.t2);
+    } catch (e) {}
+    bindCol('hs1', 't1');
+    bindCol('hs2', 't2');
+    syncColVis();
+  }
+
+  /* ---------- 新点（Epoint）文件：只读识别容器外壳 ---------- */
+  function isEpointName(name) { return /\.(eys[0-9]*|emjyx|gc)$/i.test(String(name || '')); }
+  function loadEpoint(file) {
+    $('startView').style.display = 'none';
+    $('workView').style.display = 'none';
+    $('tabs').style.display = 'none';
+    $('convertView').style.display = 'flex';
+    showMsg('正在识别新点文件 ' + file.name + ' …');
+    setProgress(30);
+    window.GBQReader.readEpoint(file).then(function (info) {
+      setProgress(100);
+      renderEpoint(info);
+    }).catch(function (e) {
+      showMsg('读取失败：' + (e && e.message ? e.message : e), true);
+    });
+  }
+  function renderEpoint(info) {
+    function mb(n) { return (n / 1048576).toFixed(2) + ' MB'; }
+    var st = info.stats || {};
+    var h = '<div class="ep">';
+    h += '<div class="ep-hd"><span class="ep-badge">新点</span><div><b>' + esc(info.name) + '</b>' +
+      '<div class="hint">' + esc(info.label) + ' · ' + (info.container === 'zip' ? 'ZIP 容器（外壳可读）' : '单一加密数据段') +
+      ' · ' + mb(info.size) + '</div></div></div>';
+    h += '<div class="ep-warn"><b>数据段无法离线解密</b>：新点的 <code>xm.info</code> 与各单位工程 <code>*.gc</code> 是' +
+      '「分组密码 + 授权校验」两段结构 —— 密文由新点原生模块 <code>FileEncrypt.dll</code> 处理，密钥由授权模块 ' +
+      '<code>EP_WPF_ZJ（加密锁 / 云授权）</code> 通过 <code>SetKey</code> 下发，<b>密文文件里不含密钥</b>' +
+      '（首字节 <code>0x01</code>、尾部固定 <code>00 01 01</code>、熵值 ' + (info.entropy || '≈8.0') + '）。' +
+      '因此 <b>清单 / 定额 / 人材机 / 费用明细无法在本工具内显示</b>，这是文件本身的授权限制，不是解析失败。' +
+      '下面列出外壳里可读的全部结构。</div>';
+    h += '<div class="ep-cards">';
+    function card(k, v, note) { return '<div class="ep-card"><span>' + esc(k) + '</span><b>' + esc(v) + '</b>' + (note ? '<i>' + esc(note) + '</i>' : '') + '</div>'; }
+    if (info.container === 'zip') {
+      h += card('单位工程', st.units || 0, '*.gc 单位工程文件');
+      h += card('加密数据段', st.encrypted_members || 0, '含 xm.info 主数据 · ' + mb(st.encrypted_bytes || 0));
+      h += card('明文成员', st.plain_members || 0, '元数据 / 配置');
+      h += card('报表模板', st.report_templates || 0, 'Report.zip 内 .repcfg');
+    } else {
+      h += card('文件大小', mb(info.size), '整体加密');
+      h += card('文件头', info.head, 'hex');
+      h += card('熵值', info.entropy, '接近 8.0 即密文');
+    }
+    h += '</div>';
+    if (st.project_gid) h += '<div class="ep-line">工程 GID：<code>' + esc(st.project_gid) + '</code></div>';
+    if (info.members && info.members.length) {
+      h += '<div class="ep-tbl"><table><colgroup><col style="width:auto"><col style="width:110px"><col style="width:150px"></colgroup>' +
+        '<thead><tr><th>容器成员</th><th class="num">大小</th><th>状态</th></tr></thead><tbody>';
+      info.members.forEach(function (m) {
+        var cls = m.state === 'encrypted' ? 'ep-enc' : m.state === 'zip' ? 'ep-zip' : '';
+        h += '<tr class="' + cls + '"><td title="' + esc(m.name) + '">' + esc(m.name) + '</td>' +
+          '<td class="num">' + (m.size >= 1048576 ? mb(m.size) : (m.size / 1024).toFixed(1) + ' KB') + '</td>' +
+          '<td>' + esc(m.note) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    h += '<div class="ep-tip"><b>想核清单与定额，走导出通道即可。</b>新点自身支持「导出 Excel」与 XML 接口' +
+      '（其导入过滤器为 <code>*.xml;*.jstbx;*.jskzx</code>）：在新点里打开工程 → 导出分部分项 / 措施项目 / 人材机 / 费用汇总，' +
+      '把导出的表或 XML 给我，我给工具加一条导入通道，按现在的页签样式直接核量核价。' +
+      '加密数据段本身不做破解（密钥在加密锁/云授权里，绕过它属于破解软件授权）。</div>';
+    h += '<div class="ep-actions"><button class="btn primary" id="epAgain">选择其它文件</button></div>';
+    h += '</div>';
+    chromeData(false);
+    $('fileName').textContent = info.name;
+    $('fileName').title = info.name;
+    var box = $('epointView');
+    box.innerHTML = h;
+    box.style.display = 'flex';
+    $('convertView').style.display = 'none';
+    $('statusLeft').innerHTML = '已识别 <b>' + esc(info.name) + '</b> · ' + esc(info.label) + ' · 加密数据段仅识别不解析';
+    $('statusRight').textContent = '离线只读 · 未解密 · 未修改原文件';
+    var again = $('epAgain');
+    if (again) again.onclick = function () {
+      box.style.display = 'none';
+      chromeData(false);
+      $('fileName').textContent = '未打开工程';
+      $('fileName').title = '';
+      $('startView').style.display = 'flex';
+      $('statusLeft').textContent = '就绪 · 离线只读';
+      $('statusRight').textContent = '';
+    };
+  }
+
+  function load(file) {
+    if (isEpointName(file.name)) { loadEpoint(file); return; }
+    if (!/\.(gbq[0-9]?|zip)$/i.test(file.name)) {
+      showMsg('请选择广联达 .gbq7 / .gbq6，或新点 .EYS11 / .emjyx 计价文件', true);
+      return;
+    }
+    $('startView').style.display = 'none';
+    $('convertView').style.display = 'flex';
+    $('workView').style.display = 'none';
+    if ($('epointView')) $('epointView').style.display = 'none';
+    showMsg('正在读取 ' + file.name + ' …');
+    setProgress(2);
+    S.t0 = Date.now();
+    setTimeout(function () {
+      window.GBQReader.readGBQ(file, function (text, p) {
+        showMsg(text);
+        setProgress(p);
+      }).then(function (data) {
+        applyData(data, file.name, { secs: ((Date.now() - S.t0) / 1000).toFixed(1) });
+      }).catch(function (e) {
+        // 扩展名不是新点、但内容是新点容器（ZIP 内含 xm.info）时，转到新点识别页
+        window.GBQReader.readEpoint(file).then(function (info) {
+          var isEpointZip = info.container === 'zip' && info.members.some(function (m) { return /(^|\/)xm\.info$/i.test(m.name); });
+          if (isEpointZip) { renderEpoint(info); return; }
+          showMsg('读取失败：' + (e.message || e), true);
+          $('startView').style.display = 'flex';
+          $('convertView').style.display = 'none';
+        }).catch(function () {
+          showMsg('读取失败：' + (e.message || e), true);
+          $('startView').style.display = 'flex';
+          $('convertView').style.display = 'none';
+        });
+      });
+    }, 30);
+  }
+
+  // 解析完成 / 快照载入 共用：复位视图状态并渲染
+  function applyData(data, name, opt) {
+    opt = opt || {};
+    S.data = data;
+    S.fileName = name || data.project.name || '工程';
+    S.snapshot = !!opt.snapshot;
+    S.unit = 0;
+    S.tab = 'fbfx';
+    S.q = '';
+    S.section = '';
+    S.level = 'all';
+    S.collapsed = {};
+    S.picked = null; S.selKey = ''; S.costCollapsed = {}; S.csCollapsed = {};
+    S.qtItem = ''; S.hjCat = -1;
+    if ($('levelSel')) $('levelSel').value = 'all';
+    if ($('search')) $('search').value = '';
+    $('fileName').textContent = S.fileName + (opt.snapshot ? '（快照）' : '');
+    $('fileName').title = S.fileName;
+    chromeData(true);
+    $('convertView').style.display = 'none';
+    if ($('epointView')) $('epointView').style.display = 'none';
+    $('tabs').style.display = 'flex';
+    $('workView').style.display = 'flex';
+    try { var dh = Number(localStorage.getItem('gbqDetailH')); if (dh > 0) setDetailHeight(dh); } catch (e) {}
+    $('statusLeft').innerHTML = '已读取 <b>' + esc(data.project.name) + '</b> · ' + data.counts.units +
+      ' 个单位工程 · 造价 <b>¥' + money(data.project.amount) + '</b>' +
+      (data.partial ? ' · <span class="warn">部分表未解析</span>' : '');
+    $('statusRight').textContent = (opt.secs ? '解析 ' + opt.secs + ' 秒 · ' : '') +
+      (data.counts.bill_items ? '清单 ' + data.counts.bill_items + ' · 定额 ' + data.counts.quota_items
+        : '定额模式 · 定额 ' + data.counts.quota_items) +
+      ' · ' + (opt.snapshot ? '离线快照' : '离线只读') + (opt.time ? ' · ' + opt.time : '');
+    renderTabs(); renderTrees(); renderGrid();
+  }
+  function setProgress(p) { $('progressBar').style.width = Math.max(0, Math.min(100, p)) + '%'; }
+  function showMsg(text, err) {
+    ['msg1', 'msg2'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'msg' + (err ? ' err' : '');
+    });
+  }
+
+  /* ---------- 导出为独立 HTML 快照 ---------- */
+  var B64CH = 0x8000;
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function bytesToB64(u8) {
+    var s = '';
+    for (var i = 0; i < u8.length; i += B64CH) {
+      s += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + B64CH, u8.length)));
+    }
+    return btoa(s);
+  }
+  function b64ToBytes(b64) {
+    var bin = atob(b64), a = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+  function throughStream(u8, stream) {
+    var s = new Blob([u8]).stream().pipeThrough(stream);
+    return new Response(s).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+  function gzipBytes(u8) { return throughStream(u8, new CompressionStream('gzip')); }
+  function gunzipBytes(u8) { return throughStream(u8, new DecompressionStream('gzip')); }
+  function safeFileName(s) {
+    return String(s || '工程').replace(/[\\/:*?"<>|\r\n\t]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 60) || '工程';
+  }
+
+  // 用当前页面的克隆作外壳：清掉渲染结果，注入压缩数据，保持零外部依赖
+  function buildSnapshotHtml(payload) {
+    var root = document.documentElement.cloneNode(true);
+    function q(sel) { return root.querySelector(sel); }
+    var t = q('title');
+    if (t) t.textContent = (payload.project || payload.name) + ' · GBQ7 预览快照';
+    ['grid', 'detailBody', 'tree1', 'tree2', 'tabs'].forEach(function (id) {
+      var el = q('#' + id);
+      if (el) el.innerHTML = '';
+    });
+    var sv = q('#startView'); if (sv) sv.style.display = 'none';
+    var ep = q('#epointView'); if (ep) { ep.innerHTML = ''; ep.style.display = 'none'; }
+    var cv = q('#convertView'); if (cv) cv.style.display = 'flex';
+    var wv = q('#workView'); if (wv) wv.style.display = 'none';
+    var tb = q('#tabs'); if (tb) tb.style.display = 'none';
+    var fn = q('#fileName'); if (fn) { fn.textContent = S.fileName + '（快照）'; fn.title = S.fileName; }
+    // 快照是纯预览：不再保留「导出 HTML」入口
+    var eb = q('#exportBtn'); if (eb && eb.parentNode) eb.parentNode.removeChild(eb);
+    var m2 = q('#msg2'); if (m2) { m2.className = 'msg'; m2.textContent = '正在载入工程快照…'; }
+    var pb = q('#progressBar'); if (pb) { pb.style.display = 'block'; pb.style.width = '55%'; }
+    var sl = q('#statusLeft'); if (sl) sl.textContent = '本地快照 · 载入中…';
+    var sr = q('#statusRight'); if (sr) sr.textContent = '';
+    var olds = root.querySelectorAll('script[data-snapshot]');
+    for (var i = 0; i < olds.length; i++) olds[i].parentNode.removeChild(olds[i]);
+    var sc = document.createElement('script');
+    sc.setAttribute('data-snapshot', '1');
+    sc.textContent = 'window.__GBQ_SNAPSHOT__=' + JSON.stringify(payload).replace(/</g, '\\u003c') + ';';
+    var scripts = root.querySelectorAll('script');
+    var last = scripts[scripts.length - 1];
+    last.parentNode.insertBefore(sc, last);
+    return '<!DOCTYPE html>\n' + root.outerHTML;
+  }
+
+  function exportHtml() {
+    if (!S.data) { $('statusRight').textContent = '请先打开一个 GBQ7 工程再导出'; return; }
+    var btn = $('exportBtn');
+    if (!btn || btn.disabled) return;
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '生成中…';
+    $('statusRight').textContent = '正在压缩工程数据…';
+    var json = JSON.stringify(S.data);
+    gzipBytes(new TextEncoder().encode(json)).then(function (gz) {
+      var d = new Date();
+      var payload = {
+        v: 1,
+        name: S.fileName,
+        project: S.data.project.name || S.fileName,
+        amount: S.data.project.amount,
+        units: S.data.units.length,
+        time: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+          ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()),
+        gz: bytesToB64(gz)
+      };
+      var html = buildSnapshotHtml(payload);
+      var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = safeFileName(payload.project) + '-预览快照.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 5000);
+      btn.disabled = false;
+      btn.textContent = label;
+      $('statusLeft').innerHTML = '已导出快照 <b>' + esc(a.download) + '</b> · ' + (blob.size / 1048576).toFixed(2) + ' MB';
+      $('statusRight').textContent = '双击该文件即可离线查看，无需再选 GBQ7';
+    }).catch(function (e) {
+      btn.disabled = false;
+      btn.textContent = label;
+      $('statusRight').textContent = '导出失败：' + (e.message || e);
+    });
+  }
+
+  // 快照文件启动：直接解压内嵌数据并进入工作界面
+  function bootSnapshot() {
+    var snap = window.__GBQ_SNAPSHOT__;
+    if (!snap || !snap.gz) return false;
+    $('startView').style.display = 'none';
+    $('convertView').style.display = 'flex';
+    $('workView').style.display = 'none';
+    showMsg('正在载入工程快照…');
+    setProgress(45);
+    gunzipBytes(b64ToBytes(snap.gz)).then(function (u8) {
+      var data = JSON.parse(new TextDecoder().decode(u8));
+      setProgress(100);
+      applyData(data, snap.name || data.project.name, { snapshot: true, time: snap.time });
+    }).catch(function (e) {
+      showMsg('快照载入失败：' + (e.message || e) + '，可点下方重新选择 GBQ7 文件。', true);
+      $('startView').style.display = 'flex';
+      $('convertView').style.display = 'none';
+    });
+    return true;
+  }
+
+  function renderTabs() {
+    var h = '';
+    TABS.forEach(function (t) {
+      h += '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>';
+    });
+    $('tabs').innerHTML = h;
+    var bs = $('tabs').querySelectorAll('button');
+    for (var i = 0; i < bs.length; i++) (function (b) {
+      b.onclick = function () {
+        S.tab = b.getAttribute('data-t');
+        S.q = ''; if ($('search')) $('search').value = '';
+        S.qtItem = ''; S.hjCat = -1;
+        renderTabs(); renderTrees(); renderGrid();
+      };
+    })(bs[i]);
+  }
+
+  /* ---------- 目录树：图标 / 折角连接线 / 展开收起 ---------- */
+  var TSTEP = 15;
+  var ICON_SVG = {
+    bld: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M2.4 10.3V2.4h4.3v7.9"/><path d="M6.7 5.4h2.9v4.9"/><path d="M1.1 10.3h9.8"/><path d="M3.7 4.4h1.2M3.7 6.2h1.2M3.7 8h1.2M7.6 7.1h1.1M7.6 8.7h1.1"/></svg>',
+    house: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M1.5 6.2 6 2.1l4.5 4.1"/><path d="M2.7 6.1v4.2h6.6V6.1"/><path d="M5 10.3V7.8h2v2.5"/><circle cx="10.3" cy="9.7" r="1.1" fill="#e08a1e" stroke="none"/></svg>',
+    doc: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M3 1.6h3.9l2.1 2.1v6.7H3z"/><path d="M6.9 1.6v2.2h2.1"/><path d="M4.3 6h3.4M4.3 7.5h3.4M4.3 9h2.2"/></svg>',
+    list: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M2.4 1.6h7.2v8.8H2.4z"/><path d="M4 4.1h1M6.1 4.1h2M4 6h1M6.1 6h2M4 7.9h1M6.1 7.9h2"/></svg>'
+  };
+  function expSvg(exp, box) {
+    if (exp === undefined || exp === '') return '';
+    if (box) {
+      return '<svg viewBox="0 0 11 11" width="10" height="10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="10" height="10" rx="1.5"/>' +
+        (exp === 'open' ? '<path d="M3 5.5h5"/>' : '<path d="M3 5.5h5M5.5 3v5"/>') + '</svg>';
+    }
+    return exp === 'open'
+      ? '<svg viewBox="0 0 10 10" width="9" height="9"><path d="M2 3.4h6L5 7.3z" fill="currentColor"/></svg>'
+      : '<svg viewBox="0 0 10 10" width="9" height="9"><path d="M3.6 2l2.9 3-2.9 3z" fill="currentColor"/></svg>';
+  }
+  // 一行树节点：左侧橙色折角连接线（竖线 + 圆角横线），后接展开符 / 图标 / 名称
+  function treeRow(o) {
+    var depth = o.depth || 0, pad = 6 + depth * TSTEP, x = pad - 8, h = '';
+    if (depth > 0) {
+      // 来自父级的主干：末位只画到本行中线，其余贯通
+      h += '<i class="tv" style="left:' + x + 'px;' + (o.last ? 'top:0;height:calc(50% + 1px)' : 'top:0;bottom:0') + '"></i>';
+      // 本行接入线：有展开符时只连到方框左边，叶子连到图标左边
+      h += '<i class="tj" style="left:' + x + 'px;width:' + (o.exp ? 8 : 22) + 'px"></i>';
+    }
+    h += '<span class="tg' + (o.box ? ' box' : '') + '"' + (o.tg ? ' data-tg="' + esc(o.tg) + '"' : '') + '>' + expSvg(o.exp, o.box) + '</span>';
+    h += '<span class="ic ' + (o.iconCls || 'd') + '">' + (ICON_SVG[o.icon] || ICON_SVG.doc) + '</span>';
+    h += '<span class="nm">' + esc(o.name) + '</span>';
+    if (o.count !== undefined && o.count !== null && o.count !== '' && o.count !== 0) h += '<span class="ct">(' + esc(o.count) + ')</span>';
+    if (o.exp) h += '<i class="tv" style="left:' + (pad + 7) + 'px;top:calc(50% + 6px);bottom:0"></i>';
+    return '<div class="tn' + (o.on ? ' on' : '') + '" style="padding-left:' + pad + 'px"' + (o.attrs || '') + ' title="' +
+      esc(o.title === undefined ? o.name : o.title) + '">' + h + '</div>';
+  }
+  function toggleTree(k) {
+    if (!k) return;
+    if (k === 'root') S.secCol.root = !S.secCol.root;
+    else if (k.charAt(0) === 's') S.secCol[k] = !S.secCol[k];
+    else S.treeCol[k] = !S.treeCol[k];
+    renderTrees();
+  }
+  function selectUnit(idx) {
+    S.unit = idx; S.section = ''; S.picked = null; S.collapsed = {};
+    renderTrees(); renderGrid();
+  }
+  function bindTreeClicks() {
+    ['tree1', 'tree2'].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('click', function (e) {
+        var t = e.target;
+        var tg = t.closest ? t.closest('.tg') : null;
+        var row = t.closest ? t.closest('.tn') : null;
+        if (tg && tg.getAttribute('data-tg')) { toggleTree(tg.getAttribute('data-tg')); return; }
+        if (!row) return;
+        if (row.hasAttribute('data-u')) return selectUnit(Number(row.getAttribute('data-u')));
+        if (row.hasAttribute('data-s')) { S.section = row.getAttribute('data-s'); renderTrees(); renderGrid(); return; }
+        if (row.hasAttribute('data-q')) { S.qtItem = row.getAttribute('data-q'); renderTrees(); renderGrid(); return; }
+        if (row.hasAttribute('data-h')) { S.hjCat = Number(row.getAttribute('data-h')); renderTrees(); renderGrid(); return; }
+        var g = row.querySelector('.tg[data-tg]');
+        if (g) toggleTree(g.getAttribute('data-tg'));
+      });
+    });
+  }
+
+  function renderTrees() {
+    var d = S.data;
+    var h = '<div class="tree-hd"><span>工程结构</span><span>' + d.counts.units + '</span></div>';
+    var nodes = d.project.hierarchy, children = {};
+    nodes.forEach(function (n) { var k = String(n.pid); (children[k] = children[k] || []).push(n); });
+    function walk(pid, depth) {
+      var arr = children[String(pid)] || [];
+      arr.forEach(function (n, i) {
+        var isUnit = n.type === 2, idx = -1;
+        if (isUnit) {
+          for (var j = 0; j < d.units.length; j++) if (String(d.units[j].file_id) === String(n.id)) { idx = j; break; }
+        }
+        var kids = isUnit ? [] : (children[String(n.id)] || []);
+        var key = 'h' + n.id, open = !S.treeCol[key];
+        h += treeRow({
+          depth: depth, last: i === arr.length - 1,
+          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '', box: false,
+          icon: isUnit ? 'house' : 'bld', iconCls: 'k', name: n.name,
+          on: isUnit && idx === S.unit,
+          attrs: idx >= 0 ? ' data-u="' + idx + '"' : '',
+          title: n.name + (n.code ? ' · ' + n.code : '')
+        });
+        if (kids.length && open) walk(n.id, depth + 1);
+      });
+    }
+    walk(null, 0);
+    $('tree1').innerHTML = h;
+
+    var show2 = S.tab === 'fbfx' || S.tab === 'qt' || S.tab === 'hj';
+    $('tree2').style.display = show2 ? '' : 'none';
+    syncColVis();
+    if (!show2) return;
+    var u = unit();
+    if (S.tab === 'qt') { renderOtherTree(u); return; }
+    if (S.tab === 'hj') { renderResCatTree(u); return; }
+
+    var qMode = u && (u.mode === 'quota' || (!((u.sections || []).length) && (u.norm_sections || []).length));
+    var secs = u ? ((qMode ? u.norm_sections : u.sections) || []) : [];
+    var byId = {}, billsBySec = {};
+    secs.forEach(function (s) { byId[s.id] = s; });
+    if (u && qMode) u.quota_items.forEach(function (q) {
+      if (q.namespace !== 'FBFX') return;
+      var sid = q.section_id === null || q.section_id === undefined ? 0 : q.section_id;
+      (billsBySec[sid] = billsBySec[sid] || []).push(q);
+    });
+    else if (u) u.bill_items.forEach(function (b) {
+      if (b.namespace !== 'FBFX') return;
+      var sid = b.section_id === null || b.section_id === undefined ? 0 : b.section_id;
+      (billsBySec[sid] = billsBySec[sid] || []).push(b);
+    });
+    function subtreeCount(id) {
+      var n = (billsBySec[id] || []).length;
+      secs.forEach(function (s) {
+        if (String(s.path || '').indexOf(String(byId[id] ? byId[id].path : '') + '\\') === 0 && s.id !== id) n += (billsBySec[s.id] || []).length;
+      });
+      return n;
+    }
+    var total = u ? (qMode ? u.quota_items.filter(function (q) { return q.namespace === 'FBFX'; })
+      : u.bill_items.filter(function (b) { return b.namespace === 'FBFX'; })).length : 0;
+    var h2 = '<div class="tree-hd"><span>分部 / 专业</span><span>' + total + '</span></div>';
+    var childMap = {};
+    secs.forEach(function (s) {
+      var k = String(s.pid === null || s.pid === undefined ? -1 : s.pid);
+      (childMap[k] = childMap[k] || []).push(s);
+    });
+    var rootOpen = !S.secCol.root;
+    h2 += treeRow({
+      depth: 0, last: true, exp: secs.length ? (rootOpen ? 'open' : 'closed') : undefined,
+      tg: secs.length ? 'root' : '', box: true, icon: 'list', iconCls: 'd',
+      name: '全部分部分项', count: total, on: S.section === '',
+      attrs: ' data-s=""', title: '全部分部分项'
+    });
+    function walkSec(pid, depth) {
+      var arr = childMap[String(pid)] || [];
+      arr.forEach(function (s, i) {
+        if (s.id === 0 && pid === -1) return; // 根节点另作“全部分部分项”
+        var kids = childMap[String(s.id)] || [], key = 's' + s.id, open = !S.secCol[key];
+        h2 += treeRow({
+          depth: depth, last: i === arr.length - 1,
+          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '', box: true,
+          icon: 'doc', iconCls: 'd', name: s.name, count: subtreeCount(s.id) || '',
+          on: S.section === String(s.id), attrs: ' data-s="' + esc(s.id) + '"', title: s.name
+        });
+        if (kids.length && open) walkSec(s.id, depth + 1);
+      });
+    }
+    if (rootOpen) walkSec(0, 1);
+    $('tree2').innerHTML = h2;
+  }
+
+  // 其他项目树：OtherItemTitle 分组 + OtherItem 明细（按原生分类）
+  function renderOtherTree(u) {
+    var titles = u ? (u.other_titles || []) : [], items = u ? (u.other_items || []) : [];
+    var h = '<div class="tree-hd"><span>其他项目</span><span>' + items.length + '</span></div>';
+    h += treeRow({ depth: 0, last: true, icon: 'list', iconCls: 'd', name: '全部', count: items.length,
+      on: S.qtItem === '', attrs: ' data-q=""', title: '全部' });
+    var childMap = {};
+    titles.forEach(function (t) {
+      var k = String(t.pid === null || t.pid === undefined ? -1 : t.pid);
+      (childMap[k] = childMap[k] || []).push(t);
+    });
+    function walk(pid, depth) {
+      var arr = childMap[String(pid)] || [];
+      arr.forEach(function (t, i) {
+        h += treeRow({ depth: depth, last: i === arr.length - 1, icon: 'doc', iconCls: 'd', name: t.name,
+          on: S.qtItem === 't' + t.id, attrs: ' data-q="t' + esc(t.id) + '"', title: t.name });
+        items.forEach(function (it) {
+          if (String(it.title_id) !== String(t.id)) return;
+          h += treeRow({ depth: depth + 1, last: false, icon: 'doc', iconCls: 'd', name: it.name,
+            on: S.qtItem === 'i' + it.id, attrs: ' data-q="i' + esc(it.id) + '"', title: it.name });
+        });
+        walk(t.id, depth + 1);
+      });
+    }
+    walk(-1, 1);
+    // 无标题归属的明细
+    items.forEach(function (it) {
+      if (titles.some(function (t) { return String(t.id) === String(it.title_id); })) return;
+      h += treeRow({ depth: 1, last: false, icon: 'doc', iconCls: 'd', name: it.name,
+        on: S.qtItem === 'i' + it.id, attrs: ' data-q="i' + esc(it.id) + '"', title: it.name });
+    });
+    $('tree2').innerHTML = h;
+  }
+
+  // 人材机汇总：只保留 人工表/材料表/机械表/设备表/主材表 五张原生表
+  var RES_TABLES = [
+    { id: 1, name: '人工表', cost: 1 },
+    { id: 2, name: '材料表', cost: 2 },
+    { id: 3, name: '机械表', cost: 3 },
+    { id: 4, name: '设备表', cost: 4 },
+    { id: 5, name: '主材表', cost: 5 }
+  ];
+  function resTableOf(c) {
+    if (!c) return null;
+    for (var i = 0; i < RES_TABLES.length; i++) if (String(RES_TABLES[i].id) === String(c.id)) return RES_TABLES[i];
+    return null;
+  }
+  function resInTable(tbl, r) { return Number(r.cost_type) === tbl.cost; }
+  function renderResCatTree(u) {
+    var cats = u ? (u.resource_categories || []) : [];
+    var all = u ? u.resources.length : 0;
+    var h = '<div class="tree-hd"><span>人材机分类</span><span>' + all + '</span></div>';
+    h += treeRow({ depth: 0, last: true, icon: 'list', iconCls: 'd', name: '所有人材机', count: all,
+      on: S.hjCat === -1, attrs: ' data-h="-1"', title: '所有人材机' });
+    RES_TABLES.forEach(function (t, i) {
+      var c = cats.filter(function (x) { return String(x.id) === String(t.id); })[0];
+      var n = u ? u.resources.filter(function (r) { return resInTable(t, r); }).length : 0;
+      h += treeRow({ depth: 1, last: i === RES_TABLES.length - 1, icon: 'doc', iconCls: 'd',
+        name: c && c.name ? c.name : t.name, count: n,
+        on: String(S.hjCat) === String(t.id), attrs: ' data-h="' + t.id + '"', title: t.name });
+    });
+    $('tree2').innerHTML = h;
+  }
+  function catMatch(c, r) {
+    if (!c) return true;
+    if (c.cost_types && c.cost_types.length && c.cost_types.indexOf(Number(r.cost_type)) < 0) return false;
+    if (c.mix_types && c.mix_types.length && c.mix_types.indexOf(Number(r.swc_id)) < 0) return false;
+    if (c.supply_types && c.supply_types.length && c.supply_types.indexOf(Number(r.supply_type)) < 0) return false;
+    return true;
+  }
+
+  function tableHead(cols) {
+    var h = '<thead><tr>';
+    cols.forEach(function (c) { h += '<th class="' + (c[2] === 'n' ? 'num' : '') + '">' + esc(c[0]) + '</th>'; });
+    return h + '</tr></thead>';
+  }
+
+  // 按原生层级展开：整个项目 → 一/二/三/四级分部 → 清单 → 定额 → 主材
+  // 定额模式（无清单）用 NormItemTitle 作分部，定额行直接挂在分部下
+  function buildFbfx() {
+    var u = unit(), out = [];
+    if (!u) return out;
+    var quotaMode = u.mode === 'quota' || (!((u.sections || []).length) && (u.norm_sections || []).length);
+    var secs = (quotaMode ? u.norm_sections : u.sections) || [], map = {};
+    secs.forEach(function (s) { map[s.id] = s; });
+    var qBy = {}, rBy = {}, uBy = {};
+    u.quota_items.forEach(function (q) { (qBy[q.parent_id] = qBy[q.parent_id] || []).push(q); });
+    u.resources.forEach(function (r) { rBy[r.id] = r; });
+    u.resource_usage.forEach(function (x) { (uBy[x.norm_id] = uBy[x.norm_id] || []).push(x); });
+    var maxSec = LEVELS[S.level] || 9, maxRow = MAXROW[S.level] === undefined ? 3 : MAXROW[S.level];
+    var filterId = S.section === '' ? null : Number(S.section), allowed = null;
+    if (filterId !== null) {
+      allowed = {};
+      var fpath = map[filterId] ? String(map[filterId].path || '') : '';
+      secs.forEach(function (s) {
+        if (s.id === filterId || (fpath && String(s.path || '').indexOf(fpath + '\\') === 0)) allowed[s.id] = 1;
+      });
+    }
+    var ql = S.q ? S.q.toLowerCase() : '';
+    function has(v) { return ql && String(v === null || v === undefined ? '' : v).toLowerCase().indexOf(ql) >= 0; }
+    function billText(b) { return String(b.code || '') + ' ' + String(b.name || '') + ' ' + String(b.description || ''); }
+    function quotaText(q) { return String(q.code || '') + ' ' + String(q.name || ''); }
+    function matText(r) { return String(r.code || '') + ' ' + String(r.name || '') + ' ' + String(r.spec || ''); }
+    function matsOf(q) {
+      var a = [];
+      (uBy[q.id] || []).forEach(function (x) {
+        var r = rBy[x.resource_id] || {};
+        if (Number(r.cost_type) === 5) a.push({ x: x, r: r }); // 5 = 主材
+      });
+      return a;
+    }
+    var serial = 0;
+    function emitSection(s, depth) {
+      if (allowed && !allowed[s.id]) return;
+      out.push({ kind: 'section', row: s, depth: depth, code: depth === 0 ? '' : 'B' + depth });
+      if (S.collapsed['s' + s.id]) return;
+      if (depth < maxSec) secs.forEach(function (child) { if (child.pid === s.id) emitSection(child, depth + 1); });
+      if (maxRow < 1) return;
+      if (quotaMode) {
+        u.quota_items.forEach(function (q) {
+          if (q.namespace !== 'FBFX') return;
+          var qsid = q.section_id === null || q.section_id === undefined ? 0 : q.section_id;
+          if (String(qsid) !== String(s.id)) return;
+          var ms = matsOf(q), qh = ql && has(quotaText(q)), mh = false;
+          ms.forEach(function (m) { if (has(matText(m.r))) mh = true; });
+          if (ql && !qh && !mh) return;
+          out.push({ kind: 'quota', row: q, bill: null, flat: true, no: ++serial });
+          if (maxRow < 2 || S.collapsed['q' + q.id]) return;
+          ms.forEach(function (m) {
+            if (ql && !qh && !has(matText(m.r))) return;
+            out.push({ kind: 'material', row: m.x, res: m.r, quota: q, no: ++serial });
+          });
+        });
+        return;
+      }
+      u.bill_items.forEach(function (b) {
+        if (b.namespace !== 'FBFX') return; // 单价措施单列在“措施项目”页签
+        var sid = b.section_id === null || b.section_id === undefined ? 0 : b.section_id;
+        if (sid !== s.id) return;
+        var billHit = !ql || has(billText(b)), quotaHit = false, qList = [];
+        (qBy[b.id] || []).forEach(function (q) {
+          var ms = matsOf(q), qh = ql && has(quotaText(q)), mh = false;
+          ms.forEach(function (m) { if (has(matText(m.r))) mh = true; });
+          if (qh || mh) quotaHit = true;
+          qList.push({ q: q, ms: ms, qh: qh, mh: mh });
+        });
+        if (ql && !billHit && !quotaHit) return;
+        out.push({ kind: 'bill', row: b, no: ++serial });
+        if (S.collapsed['b' + b.id] || maxRow < 2) return;
+        qList.forEach(function (it) {
+          if (ql && !billHit && !it.qh && !it.mh) return;
+          out.push({ kind: 'quota', row: it.q, bill: b, no: ++serial });
+          if (maxRow < 3 || S.collapsed['q' + it.q.id]) return;
+          it.ms.forEach(function (m) {
+            if (ql && !billHit && !it.qh && !has(matText(m.r))) return;
+            out.push({ kind: 'material', row: m.x, res: m.r, quota: it.q, no: ++serial });
+          });
+        });
+      });
+    }
+    var root = null;
+    secs.forEach(function (s) {
+      if (s.pid === null || s.pid === undefined || s.id === 0) { if (!root || s.id === 0) root = s; }
+    });
+    var startNode = root, startDepth = 0;
+    if (filterId !== null && map[filterId]) {
+      startNode = map[filterId];
+      startDepth = 1;
+      var cur = startNode, guard = 0;
+      while (cur && cur.pid !== null && cur.pid !== undefined && cur.pid !== 0 && guard++ < 20) {
+        startDepth++; cur = map[cur.pid];
+      }
+    }
+    if (startNode) emitSection(startNode, startDepth);
+    if (!out.length) { // 无原生分部表时回退
+      if (quotaMode) {
+        u.quota_items.forEach(function (q) {
+          if (q.namespace !== 'FBFX') return;
+          if (ql && !has(quotaText(q))) return;
+          out.push({ kind: 'quota', row: q, bill: null, flat: true, no: ++serial });
+        });
+      } else u.bill_items.forEach(function (b) {
+        if (b.namespace !== 'FBFX') return;
+        if (ql && !has(billText(b))) return;
+        out.push({ kind: 'bill', row: b, no: ++serial });
+      });
+    }
+    return out;
+  }
+
+  function renderFbfx() {
+    var cols = [
+      ['序号', 'no'], ['编码', 'code'], ['类别', 'cat'], ['名称', 'name'], ['项目特征', 'feature'],
+      ['是否需要评审', 'review'], ['单位', 'unit'], ['工程量表达式', 'expr'],
+      ['含量', 'ratio'], ['工程量', 'qty', 'n'], ['单价', 'price', 'n'], ['合价', 'amount', 'n']
+    ];
+    var rows = buildFbfx();
+    var widths = [36, 112, 40, 190, 210, 52, 48, 92, 58, 82, 82, 92];
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') + '</colgroup>' +
+      tableHead(cols) + '<tbody>';
+    rows.forEach(function (r, i) {
+      var k = r.kind, b = r.row;
+      if (k === 'section') {
+        var tw = '<span class="tw" data-exp="s' + b.id + '">' + (S.collapsed['s' + b.id] ? '▸' : '▾') + '</span>';
+        h += '<tr class="section sec' + r.depth + '" data-i="' + i + '">' +
+          '<td class="seq"></td><td title="' + esc(r.code) + '">' + tw + esc(r.code) + '</td>' +
+          cell('部', 'cat') + cell(b.name, 'secname', b.name) +
+          cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + '</tr>';
+        return;
+      }
+      var ind = k === 'bill' ? '' : k === 'quota' ? (r.flat ? '' : ' indent1') : ' indent2';
+      var code = k === 'material' ? (r.res.code || r.row.resource_code) : b.code;
+      var cat = k === 'bill' ? '项' : k === 'quota' ? '定' : '主';
+      var name = k === 'material' ? (r.res.name || r.row.resource_name) : b.name;
+      var feat = k === 'bill' ? b.description : k === 'material' ? (r.res.spec || '') : '';
+      var unitName = k === 'material' ? (r.res.unit || r.row.resource_unit) : b.unit;
+      var expr = (b.quantity_expression && b.quantity_expression.expression) || '';
+      var ratio = k === 'material' ? r.row.usage : '';
+      var qty = k === 'material' ? r.row.qty : b.qty;
+      var price = k === 'material' ? r.res.market_rate : b.price;
+      var amount = k === 'material' ? product(r.row.qty, r.res.market_rate) : b.amount;
+      var tw = k === 'bill' ? '<span class="tw" data-exp="b' + b.id + '">' + (S.collapsed['b' + b.id] ? '▸' : '▾') + '</span>' :
+        k === 'quota' ? '<span class="tw" data-exp="q' + b.id + '">' + (S.collapsed['q' + b.id] ? '▸' : '▾') + '</span>' : '';
+      var selKey = k === 'quota' ? 'q' + b.id : k === 'material' ? 'm' + r.row.id : '';
+      h += '<tr class="' + k + (selKey && S.selKey === selKey ? ' picked' : '') + '" data-i="' + i + '">' +
+        '<td class="seq">' + (r.no || '') + '</td>' +
+        '<td class="' + ind + '" title="' + esc(code) + '"' + (match(code) ? ' style="background:#fff3c4"' : '') + '>' + tw + esc(code || '') + '</td>' +
+        cell(cat, 'cat') + cell(name, ind, name) +
+        cell(feat, 'feature', feat) + cell('') + cell(unitName) + cell(expr) + cell(ratio) +
+        num(qty) + num(price) + num(amount) + '</tr>';
+    });
+    h += '</tbody></table>';
+    $('grid').innerHTML = h;
+    var trs = $('grid').querySelectorAll('tr[data-i]');
+    for (var i = 0; i < trs.length; i++) (function (el) {
+      el.onclick = function (e) {
+        var idx = Number(el.getAttribute('data-i')), item = rows[idx];
+        if (!item) return;
+        if (e.target && e.target.getAttribute && e.target.getAttribute('data-exp') !== null) {
+          S.collapsed[e.target.getAttribute('data-exp')] = !S.collapsed[e.target.getAttribute('data-exp')];
+          renderFbfx(); return;
+        }
+        if (item.kind === 'section') { S.section = String(item.row.id); S.picked = null; S.selKey = ''; renderTrees(); renderGrid(); }
+        else if (item.kind === 'quota') { S.picked = item.row; S.selKey = 'q' + item.row.id; renderFbfx(); renderDetail(item.row); }
+        else if (item.kind === 'material' && item.quota) { S.picked = item.quota; S.selKey = 'm' + item.row.id; renderFbfx(); renderDetail(item.quota); }
+        else if (item.kind === 'bill') { S.picked = null; S.selKey = ''; renderFbfx(); }
+      };
+    })(trs[i]);
+    $('detail').style.display = '';
+    if ($('splitter')) $('splitter').style.display = '';
+    if (S.picked) renderDetail(S.picked); else renderDetail(null);
+  }
+
+  function product(a, b) {
+    var x = Number(a), y = Number(b);
+    return isFinite(x) && isFinite(y) ? (x * y).toFixed(2) : '';
+  }
+  function kindOf(res) {
+    if (Number(res.cost_type) === 5) return '主';
+    var code = String(res.code || '');
+    if (code.slice(0, 2) === '00') return '人';
+    if (/机|机械|设备/.test(String(res.name || ''))) return '机';
+    return '材';
+  }
+  function renderDetail(q) {
+    if (!q) {
+      $('detailBody').innerHTML = '<div class="empty">选中定额行后，在此显示人材机明细</div>';
+      return;
+    }
+    var u = unit();
+    var resMap = {}, usages = [];
+    u.resources.forEach(function (r) { resMap[r.id] = r; });
+    u.resource_usage.forEach(function (x) { if (x.norm_id === q.id) usages.push(x); });
+    // 项目级资源兜底
+    S.data.bid_resources.forEach(function (r) { resMap['bid_' + r.id] = r; });
+    var cols = ['编码', '类别', '名称', '规格及型号', '单位', '特征率', '含量', '数量', '定额价', '市场价', '合价', '是否暂估', '锁定数量', '是否计价', '原始含量'];
+    var widths = [85, 38, 130, 110, 48, 48, 52, 66, 66, 66, 82, 58, 58, 58, 58];
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') + '</colgroup>' +
+      tableHead(cols.map(function (c) { return [c, '']; })) + '<tbody>';
+    usages.forEach(function (x) {
+      var r = resMap[x.resource_id] || {};
+      var isMain = Number(r.cost_type) === 5;
+      h += '<tr' + (isMain ? ' class="material"' : '') + '>' + cell(r.code) + cell(kindOf(r), 'cat') + cell(r.name) + cell(r.spec) + cell(r.unit) + cell('') +
+        cell(x.usage) + cell(x.qty) + cell(r.budget_rate) + cell(r.market_rate) + cell(product(x.qty, r.market_rate)) +
+        cell('') + cell('') + cell(r.is_referred ? '是' : '') + cell(x.usage) + '</tr>';
+    });
+    h += '</tbody></table>';
+    $('detailBody').innerHTML = h;
+    $('detailTitle').textContent = '工料显示 — 定额 ' + (q.code || '') + ' ' + (q.name || '') + '（' + usages.length + ' 条）';
+  }
+
+  function simpleGrid(cols, rows) {
+    var h = '<table>' + tableHead(cols) + '<tbody>';
+    rows.forEach(function (r) {
+      h += '<tr>';
+      cols.forEach(function (c) {
+        var v = r[c[1]];
+        h += c[2] === 'n' ? num(v) : cell(v);
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+    $('grid').innerHTML = h;
+    $('detail').style.display = 'none';
+    if ($('splitter')) $('splitter').style.display = 'none';
+  }
+  function filtered(rows, keys) {
+    if (!S.q) return rows;
+    var q = S.q.toLowerCase();
+    return rows.filter(function (r) {
+      return keys.some(function (k) { return String(r[k] === null || r[k] === undefined ? '' : r[k]).toLowerCase().indexOf(q) >= 0; });
+    });
+  }
+
+  // 造价分析：按参考图的多级造价汇总表 + 三材汇总总表
+  function renderCost() {
+    var d = S.data, total = Number(d.project.amount) || 0;
+    var nodes = d.project.hierarchy || [], kids = {};
+    nodes.forEach(function (n) {
+      var k = String(n.pid === null || n.pid === undefined ? -1 : n.pid);
+      (kids[k] = kids[k] || []).push(n);
+    });
+    var unitByFid = {};
+    d.units.forEach(function (u) { unitByFid[u.file_id] = u; });
+    function feeSum(u, re) {
+      if (!u) return 0;
+      var s = 0;
+      u.fees.forEach(function (f) { if (re.test(String(f.name || ''))) s += Number(f.amount || 0); });
+      return s;
+    }
+    function feesOf(n, memo) {
+      if (memo[n.id]) return memo[n.id];
+      var f = { fbfx: 0, cs: 0, aqw: 0, other: 0, gui: 0, tax: 0 }, child = kids[String(n.id)] || [];
+      if (child.length) {
+        child.forEach(function (c) {
+          var x = feesOf(c, memo);
+          Object.keys(f).forEach(function (k) { f[k] += x[k]; });
+        });
+      } else {
+        var u = unitByFid[n.id];
+        if (u) {
+          f.fbfx = feeSum(u, /^分部分项工程$/);
+          f.cs = feeSum(u, /^措施项目$/);
+          f.aqw = feeSum(u, /安全文明施工费/);
+          f.other = feeSum(u, /^其他项目$/);
+          f.gui = feeSum(u, /^规费$/);
+          f.tax = feeSum(u, /^增值税$/);
+        }
+      }
+      memo[n.id] = f;
+      return f;
+    }
+    var memo = {}, widths = [40, 176, 100, 168, 94, 118, 90, 82, 78, 80, 90, 92, 112];
+    var h = '<div class="cost-wrap"><table class="cost"><colgroup>' +
+      widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
+      '</colgroup><thead><tr>' +
+      '<th rowspan="2">序号</th><th rowspan="2">名称</th><th rowspan="2">金额</th>' +
+      '<th rowspan="2">评标报价<br>（不含规费、税金、安全文明费、<br>暂列金额与专业工程暂估价）</th>' +
+      '<th colspan="1">分部分项</th><th colspan="2">措施项目</th><th colspan="1">其他项目</th>' +
+      '<th rowspan="2">规费</th><th rowspan="2">增值税</th><th rowspan="2">占造价比例(%)</th>' +
+      '<th rowspan="2">工程规模<br>(m2或m)</th><th rowspan="2">单位造价<br>(元/m2或元/m)</th></tr><tr>' +
+      '<th>分部分项工程费</th><th>措施费(不含安全文明措施费)</th><th>措施项目费</th><th>其他项目费</th>' +
+      '</tr></thead><tbody>';
+    // 合计取项目根节点（父节点金额已含子节点，不能逐行累加）
+    var rootNode = null;
+    nodes.forEach(function (n) { if (n.type === 0 && (n.pid === null || n.pid === undefined)) rootNode = n; });
+    var rf = rootNode ? feesOf(rootNode, memo) : { fbfx: 0, cs: 0, aqw: 0, other: 0, gui: 0, tax: 0 };
+    var tot = { amount: total, evalBid: total - rf.gui - rf.tax - rf.aqw, fbfx: rf.fbfx,
+      csNo: rf.cs - rf.aqw, cs: rf.cs, other: rf.other, gui: rf.gui, tax: rf.tax };
+    function walk(n, depth, seq) {
+      var f = feesOf(n, memo), amt = Number(n.amount || 0);
+      var evalBid = amt - f.gui - f.tax - f.aqw;
+      var child = kids[String(n.id)] || [];
+      var caret = child.length ? '<span class="tw" data-cost="' + n.id + '">' + (S.costCollapsed[n.id] ? '▸' : '▾') + '</span>' : '';
+      h += '<tr class="cost-row"><td class="seq">' + caret + (depth ? '<span class="ord">' + seq + '</span>' : '') + '</td>' +
+        '<td class="nm" style="padding-left:' + (6 + depth * 16) + 'px">' + esc(n.name) + '</td>' +
+        '<td class="num">' + money(amt) + '</td><td class="num">' + money(evalBid) + '</td>' +
+        '<td class="num">' + money(f.fbfx) + '</td><td class="num">' + money(f.cs - f.aqw) + '</td>' +
+        '<td class="num">' + money(f.cs) + '</td><td class="num">' + money(f.other) + '</td>' +
+        '<td class="num">' + money(f.gui) + '</td><td class="num">' + money(f.tax) + '</td>' +
+        '<td class="num">' + (total ? (amt / total * 100).toFixed(2) : '0.00') + '</td>' +
+        '<td class="num">—</td><td class="num">—</td></tr>';
+      if (!S.costCollapsed[n.id]) child.forEach(function (c, i) {
+        walk(c, depth + 1, depth === 0 ? String(i + 1) : seq + '.' + (i + 1));
+      });
+    }
+    (kids['0'] || []).forEach(function (r, i) { if (r.type !== 0) walk(r, 0, String(i + 1)); });
+    h += '<tr class="total"><td></td><td class="nm">合计</td><td class="num">' + money(tot.amount) + '</td>' +
+      '<td class="num">' + money(tot.evalBid) + '</td><td class="num">' + money(tot.fbfx) + '</td>' +
+      '<td class="num">' + money(tot.csNo) + '</td><td class="num">' + money(tot.cs) + '</td>' +
+      '<td class="num">' + money(tot.other) + '</td><td class="num">' + money(tot.gui) + '</td>' +
+      '<td class="num">' + money(tot.tax) + '</td><td class="num">100.00</td><td class="num">—</td><td class="num">—</td></tr>';
+    h += '</tbody></table></div>';
+    var steel = 0, cement = 0, wood = 0;
+    d.units.forEach(function (u) {
+      u.resources.forEach(function (r) {
+        var nm = String(r.name || ''), un = String(r.unit || ''), q = Number(r.qty || 0);
+        if (/钢筋|螺纹钢/.test(nm)) steel += (un === 't' ? q : q / 1000);
+        else if (nm === '水泥') cement += (un === 't' ? q : q / 1000);
+        else if (/木材|木方/.test(nm)) wood += q;
+      });
+    });
+    h += '<div class="cost-3cai"><div class="cost-3cai-hd">三材汇总总表</div>' +
+      '<table><thead><tr><th>序号</th><th>材料</th><th>名称</th><th>单位</th><th>数量</th></tr></thead><tbody>' +
+      '<tr><td>1</td><td>钢材</td><td>钢筋</td><td>t</td><td class="num">' + money(steel) + '</td></tr>' +
+      '<tr><td>2</td><td>水泥</td><td>水泥</td><td>t</td><td class="num">' + money(cement) + '</td></tr>' +
+      '<tr><td>3</td><td>木材</td><td>木材</td><td>m3</td><td class="num">' + money(wood) + '</td></tr>' +
+      '</tbody></table><div class="hint">三材按各单位工程资源汇总，钢筋/水泥由 kg 折算为 t；工程规模与原文件图纸信息关联，此处留空。</div></div>';
+    $('grid').innerHTML = h;
+    var ct = $('grid').querySelectorAll('[data-cost]');
+    for (var i = 0; i < ct.length; i++) (function (el) {
+      el.onclick = function (e) {
+        e.stopPropagation();
+        var id = Number(el.getAttribute('data-cost'));
+        S.costCollapsed[id] = !S.costCollapsed[id];
+        renderCost();
+      };
+    })(ct[i]);
+  }
+
+  function renderOverview(kind) {
+    var d = S.data, m = d.metadata, ck = d.checks;
+    if (kind === 'cost') {
+      renderCost();
+    } else {
+      var rows = d.project.hierarchy.map(function (n) {
+        return { id: n.id, pid: n.pid === null ? '' : n.pid, type: n.type, name: n.name, code: n.code, amount: n.amount };
+      });
+      var cols = [['节点ID', 'id'], ['上级ID', 'pid'], ['类型', 'type'], ['名称', 'name'], ['编码', 'code'], ['保存金额', 'amount', 'n']];
+      simpleGrid(cols, filtered(rows, ['name', 'code']));
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<div class="kv"><div>版本：<b>' + esc(m.Version || '') + ' ' + esc(m.SP || '') + '</b></div>' +
+        '<div>地区：<b>' + esc(m.Region || '') + '</b></div><div>文件类型：<b>' + esc(m.GBQFileType || '') + '</b></div>' +
+        '<div>描述：<b>' + esc(m.Description || '') + '</b></div></div>';
+      $('grid').insertBefore(card, $('grid').firstChild);
+    }
+  }
+
+  // 措施项目：总价措施费 / 单价措施费两级，单价措施下可展开定额
+  function renderCsxm() {
+    var u = unit(), ESTI = { 1: '计算公式组价', 2: '可计量清单', 5: '子项组合组价' };
+    var qBy = {};
+    if (u) u.quota_items.forEach(function (q) {
+      if (q.namespace === 'CSXM') (qBy[q.parent_id] = qBy[q.parent_id] || []).push(q);
+    });
+    var cols = ['序号', '类别', '名称', '单位', '工程量', '组价方式', '计算基数', '费率(%)', '综合单价', '合价'];
+    var widths = [72, 44, 200, 62, 72, 100, 156, 68, 88, 92];
+    function td(v, cls) { return '<td class="' + (cls || '') + '">' + esc(v === null || v === undefined ? '' : v) + '</td>'; }
+    function nd(v) { return '<td class="num">' + esc(money(v)) + '</td>'; }
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
+      '</colgroup>' + tableHead(cols.map(function (c) { return [c, '']; })) + '<tbody>';
+    var ms = u ? u.measure_items.filter(function (m) {
+      return !S.q || [m.code, m.name, m.description].join(' ').toLowerCase().indexOf(S.q.toLowerCase()) >= 0;
+    }) : [];
+    var groups = [
+      { key: 'total', name: '总价措施费', items: ms.filter(function (m) { return !m.is_quantifiable_bill; }) },
+      { key: 'unit', name: '单价措施费', items: ms.filter(function (m) { return m.is_quantifiable_bill; }) }
+    ];
+    groups.forEach(function (g, gi) {
+      var sum = g.items.reduce(function (a, m) { return a + Number(m.amount || 0); }, 0);
+      var open = !S.csCollapsed[g.key];
+      h += '<tr class="section sec1"><td class="seq"><span class="tw" data-cs="' + g.key + '">' + (open ? '▾' : '▸') + '</span>' +
+        (gi === 0 ? '一' : '二') + '</td>' + td('') + td(g.name, 'nm') + td('') + td('') + td('') + td('') + td('') + td('') + nd(sum) + '</tr>';
+      if (!open) return;
+      g.items.forEach(function (m, i) {
+        var subs = qBy[m.id] || [], mOpen = !S.csCollapsed['m' + m.id];
+        var caret = subs.length ? '<span class="tw" data-cs="m' + m.id + '">' + (mOpen ? '▾' : '▸') + '</span>' : '';
+        var base = (m.quantity_expression && m.quantity_expression.expression) || '';
+        h += '<tr class="bill"><td class="seq">' + caret + esc(m.code || (i + 1)) + '</td>' + td('项', 'cat') +
+          td(m.name) + td(m.unit) + nd(m.qty) + td(ESTI[m.esti_style] || (m.esti_style ? '方式' + m.esti_style : '')) +
+          td(base) + td('0') + nd(m.price) + nd(m.amount) + '</tr>';
+        if (!mOpen) return;
+        subs.forEach(function (q) {
+          h += '<tr class="quota"><td class="seq indent1">' + esc(q.code) + '</td>' + td('定', 'cat') +
+            td(q.name) + td(q.unit) + nd(q.qty) + td('') + td('') + td('') + nd(q.price) + nd(q.amount) + '</tr>';
+        });
+      });
+    });
+    h += '</tbody></table>';
+    $('grid').innerHTML = h;
+    var ts = $('grid').querySelectorAll('[data-cs]');
+    for (var i = 0; i < ts.length; i++) (function (el) {
+      el.onclick = function (e) {
+        e.stopPropagation();
+        var k = el.getAttribute('data-cs');
+        S.csCollapsed[k] = !S.csCollapsed[k];
+        renderCsxm();
+      };
+    })(ts[i]);
+    $('detail').style.display = 'none';
+    if ($('splitter')) $('splitter').style.display = 'none';
+  }
+
+  // 其他项目：OtherItemTitle 分组 + OtherItem 明细，原生层级/勾选
+  function renderQt() {
+    var u = unit(), titles = u ? (u.other_titles || []) : [], items = u ? (u.other_items || []) : [];
+    var cols = ['序号', '名称', '计算基数', '费率(%)', '金额', '费用类别', '不可竞争费', '不计入含价', '备注'];
+    var widths = [70, 210, 180, 78, 96, 104, 88, 88, 130];
+    function td(v, cls) { return '<td class="' + (cls || '') + '">' + (v === null || v === undefined ? '' : String(v)) + '</td>'; }
+    function nd(v) { return '<td class="num">' + money(v) + '</td>'; }
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
+      '</colgroup>' + tableHead(cols.map(function (c) { return [c, '']; })) + '<tbody>';
+    function emitTitle(t, depth) {
+      var hit = S.qtItem === 't' + t.id;
+      h += '<tr class="section sec' + Math.min(depth + 1, 4) + '"><td class="seq">' + esc(t.sequence || '') + '</td>' +
+        td(esc(t.name), 'nm') + td('') + td('') + nd(t.amount) + td('') + td('') + td('') +
+        td(esc(t.remark), 'feature') + '</tr>';
+      items.forEach(function (it) {
+        if (String(it.title_id) !== String(t.id) || it.is_deleted) return;
+        if (S.qtItem && !hit && S.qtItem !== 'i' + it.id) return;
+        if (S.q && [it.name, it.base_amount && it.base_amount.expression].join(' ').toLowerCase().indexOf(S.q.toLowerCase()) < 0) return;
+        h += '<tr class="bill"><td class="seq indent1">' + esc(it.sequence || '') + '</td>' +
+          td(esc(it.name)) + td(esc(it.base_amount && it.base_amount.expression), 'feature') +
+          td(it.cost_ratio === null ? '' : it.cost_ratio) + nd(it.amount) +
+          td(esc(feeCatOf(it.name)), 'cat') +
+          td(it.in_compete ? '√' : '', 'cat') + td(it.not_sum ? '√' : '', 'cat') + td(esc(it.remark), 'feature') + '</tr>';
+      });
+    }
+    titles.forEach(function (t) {
+      if (t.pid === null || t.pid === undefined) emitTitle(t, 0);
+    });
+    // 无标题归属的明细
+    items.forEach(function (it) {
+      if (titles.some(function (t) { return String(t.id) === String(it.title_id); })) return;
+      if (S.qtItem && S.qtItem !== 'i' + it.id) return;
+      h += '<tr class="bill"><td class="seq">' + esc(it.sequence || '') + '</td>' + td(esc(it.name)) +
+        td(esc(it.base_amount && it.base_amount.expression), 'feature') +
+        td(it.cost_ratio === null ? '' : it.cost_ratio) + nd(it.amount) +
+        td(esc(feeCatOf(it.name)), 'cat') + td(it.in_compete ? '√' : '', 'cat') +
+        td(it.not_sum ? '√' : '', 'cat') + td(esc(it.remark), 'feature') + '</tr>';
+    });
+    h += '</tbody></table>';
+    $('grid').innerHTML = h;
+    $('detail').style.display = 'none';
+    if ($('splitter')) $('splitter').style.display = 'none';
+  }
+  function feeCategory(n) {
+    n = String(n || '');
+    if (/分部分项/.test(n)) return '分部分项工程费';
+    if (/安全文明/.test(n)) return '安全文明施工费';
+    if (/单价措施/.test(n)) return '单价措施费';
+    if (/其他措施/.test(n)) return '其他措施费';
+    if (/措施项目/.test(n)) return '措施项目费';
+    if (/暂列/.test(n)) return '暂列金额';
+    if (/专业工程暂估/.test(n)) return '专业工程暂估价';
+    if (/计日工/.test(n)) return '计日工';
+    if (/总承包/.test(n)) return '总承包服务费';
+    if (/其他项目/.test(n)) return '其他项目费';
+    if (/规费/.test(n)) return '规费';
+    if (/优惠/.test(n)) return '优惠';
+    if (/增值税|税金/.test(n)) return '增值税';
+    return '';
+  }
+  function feeCatOf(name) {
+    var n = String(name || '');
+    if (/暂列/.test(n)) return '暂列金额';
+    if (/专业工程暂估/.test(n)) return '专业工程暂估价';
+    if (/材料.*暂估/.test(n)) return '材料暂估价';
+    if (/暂估/.test(n)) return '暂估价';
+    if (/计日工/.test(n)) return '计日工';
+    if (/总承包/.test(n)) return '总承包服务费';
+    return '';
+  }
+
+  // 人材机汇总：原生分类树 + 市场价/预算价/价差列，市场价橙色表头
+  function renderHj() {
+    var u = unit(), all = u ? u.resources : [];
+    var cat = S.hjCat === -1 ? null : (u ? u.resource_categories.filter(function (c) { return Number(c.id) === S.hjCat; })[0] : null);
+    var tbl = resTableOf(cat) || (S.hjCat === -1 ? null : { cost: S.hjCat });
+    var rows = all.filter(function (r) {
+      if (tbl && !resInTable(tbl, r)) return false;
+      if (S.q && [r.code, r.name, r.spec].join(' ').toLowerCase().indexOf(S.q.toLowerCase()) < 0) return false;
+      return true;
+    });
+    var cols = ['编码', '类别', '名称', '规格型号', '单位', '数量', '预算价', '市场价', '价格来源', '市场价合计', '价差', '价差合计', '供货方式'];
+    var widths = [110, 44, 190, 130, 56, 96, 82, 82, 96, 110, 78, 100, 92];
+    function td(v, cls) { return '<td class="' + (cls || '') + '">' + esc(v) + '</td>'; }
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
+      '</colgroup><thead><tr>';
+    cols.forEach(function (c) {
+      var cl = [];
+      if (c === '市场价') cl.push('mk');
+      if (c === '市场价合计') cl.push('mktotal');
+      if (c === '价差' || c === '价差合计') cl.push('diffcol');
+      if (['数量','预算价','市场价','市场价合计','价差','价差合计'].indexOf(c) >= 0) cl.push('num');
+      h += '<th class="' + cl.join(' ') + '">' + esc(c) + '</th>';
+    });
+    h += '</tr></thead><tbody>';
+    var tQty = 0, tMkt = 0, tDiff = 0;
+    rows.forEach(function (r) {
+      var diff = (Number(r.market_rate) || 0) - (Number(r.budget_rate) || 0);
+      var dsum = diff * (Number(r.qty) || 0);
+      tQty += Number(r.qty) || 0; tMkt += Number(r.market_amount) || 0; tDiff += dsum;
+      var cls = Number(r.cost_type) === 5 ? ' class="material"' : '';
+      h += '<tr' + cls + '><td>' + esc(r.code) + '</td>' + td(kindOf(r), 'cat') + td(r.name) + td(r.spec) + td(r.unit) +
+        '<td class="num">' + money(r.qty) + '</td><td class="num">' + money(r.budget_rate) + '</td>' +
+        '<td class="num mkcol">' + money(r.market_rate) + '</td>' + td(r.price_source) +
+        '<td class="num mktotal">' + money(r.market_amount) + '</td><td class="num diffcol">' + (diff ? money(diff) : '') + '</td>' +
+        '<td class="num diffcol">' + (dsum ? money(dsum) : '') + '</td>' +
+        td(r.supply_type === 1 ? '自行采购' : r.supply_type === 2 ? '甲方供应' : r.supply_type ? '供货' + r.supply_type : '') + '</tr>';
+    });
+    h += '</tbody></table>';
+    var bar = '<div class="hjbar"><label><input type="checkbox" checked> 市场价合计：<b>' + money(tMkt) + '</b></label>' +
+      '<label><input type="checkbox" checked> 价差合计：<b>' + money(tDiff) + '</b></label>' +
+      '<span class="hint">共 ' + rows.length + ' 条 · 数量合计 ' + money(tQty) + '</span></div>';
+    $('grid').innerHTML = bar + h;
+    var boxes = $('grid').querySelectorAll('.hjbar input');
+    for (var i = 0; i < boxes.length; i++) (function (b, col) {
+      b.onchange = function () {
+        var tds = $('grid').querySelectorAll('td.' + col);
+        for (var j = 0; j < tds.length; j++) tds[j].style.display = b.checked ? '' : 'none';
+        var ths = $('grid').querySelectorAll('th.' + col);
+        for (var k = 0; k < ths.length; k++) ths[k].style.display = b.checked ? '' : 'none';
+      };
+    })(boxes[i], i === 0 ? 'mktotal' : 'diffcol');
+    $('detail').style.display = 'none';
+    if ($('splitter')) $('splitter').style.display = 'none';
+  }
+
+  // 费用汇总：Summary 原生 PID 层级 + 全部费用列
+  function renderFee() {
+    var u = unit(), fs = u ? (u.fees || []) : [];
+    var cols = ['序号', '费用代号', '名称', '计算基数', '基数说明', '费率(%)', '金额', '费用类别', '备注', '输出'];
+    var widths = [64, 84, 230, 190, 260, 74, 116, 116, 150, 60];
+    var byId = {}, kids = {};
+    fs.forEach(function (f) { byId[f.id] = f; });
+    fs.forEach(function (f) {
+      var k = f.pid === null || f.pid === undefined ? -1 : f.pid;
+      (kids[k] = kids[k] || []).push(f);
+    });
+    var shown = {};
+    if (S.q) {
+      fs.forEach(function (f) {
+        if ([f.name, f.code, f.base_remark, f.base_amount && f.base_amount.expression].join(' ').toLowerCase().indexOf(S.q.toLowerCase()) >= 0) {
+          shown[f.id] = 1;
+          var p = f.pid;
+          while (p !== null && p !== undefined) { shown[p] = 1; p = byId[p] ? byId[p].pid : null; }
+        }
+      });
+    }
+    function td(v, cls) { return '<td class="' + (cls || '') + '">' + esc(v) + '</td>'; }
+    var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
+      '</colgroup>' + tableHead(cols.map(function (c) { return [c, '']; })) + '<tbody>';
+    function walk(f, depth) {
+      if (S.q && !shown[f.id]) return;
+      var rowCls = depth === 0 ? 'section sec' + Math.min(depth + 1, 4) : 'bill';
+      h += '<tr class="' + rowCls + '">' +
+        td(f.sequence || '', 'seq') + td(f.code) +
+        '<td style="padding-left:' + (7 + depth * 14) + 'px"' + (depth ? '' : ' class="nm"') + '>' + esc(f.name) + '</td>' +
+        td(f.base_amount && f.base_amount.expression, 'feature') + td(f.base_remark, 'feature') +
+        '<td class="num">' + (f.cost_ratio === null || f.cost_ratio === undefined ? '' : f.cost_ratio) + '</td>' +
+        '<td class="num">' + money(f.amount) + '</td>' +
+        td(feeCategory(f.name)) + td(f.remark, 'feature') +
+        td(f.output ? '√' : '', 'cat') + '</tr>';
+      (kids[String(f.id)] || []).forEach(function (c) { walk(c, depth + 1); });
+    }
+    (kids['-1'] || []).forEach(function (f) { walk(f, 0); });
+    h += '</tbody></table>';
+    $('grid').innerHTML = h;
+    $('detail').style.display = 'none';
+    if ($('splitter')) $('splitter').style.display = 'none';
+  }
+
+  function renderGrid() {
+    if (!S.data) return;
+    var show2 = S.tab === 'fbfx' || S.tab === 'qt' || S.tab === 'hj';
+    if ($('tree2')) $('tree2').style.display = show2 ? '' : 'none';
+    syncColVis();
+    if (S.tab === 'cost') {
+      renderOverview(S.tab);
+      $('detail').style.display = 'none';
+      if ($('splitter')) $('splitter').style.display = 'none';
+      return;
+    }
+    if (S.tab === 'fbfx') { renderFbfx(); return; }
+    if (S.tab === 'csxm') { renderCsxm(); return; }
+    if (S.tab === 'qt') { renderQt(); return; }
+    if (S.tab === 'hj') { renderHj(); return; }
+    if (S.tab === 'fee') { renderFee(); return; }
+  }
+
+  start();
+  bootSnapshot();
+  // 便于自动化验证：导出 html 字符串而不触发下载
+  window.GBQUI = {
+    buildSnapshot: function () {
+      return gzipBytes(new TextEncoder().encode(JSON.stringify(S.data))).then(function (gz) {
+        return buildSnapshotHtml({ v: 1, name: S.fileName, project: S.data.project.name,
+          amount: S.data.project.amount, units: S.data.units.length, time: '2026-11-21 09:56',
+          gz: bytesToB64(gz) });
+      });
+    },
+    state: function () { return S; }
+  };
+})();
+
+</script>
+</body>
+</html>
