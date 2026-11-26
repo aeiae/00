@@ -338,6 +338,9 @@
   tr.section.flash td{background:var(--yellow-bg)!important;color:var(--yellow-tx)!important;}
 
   /* ==================== 清单对比工具 · 追加样式 ==================== */
+  /* 单位工程汇总行专用底色：中性浅灰（不影响一级分部等其他层级） */
+  :root{--sum-bg:#f1f2f4;}
+  [data-theme="dark"]{--sum-bg:#282c33;}
   table{min-width:100%;}
   .summary-pills{display:flex;align-items:center;flex-wrap:nowrap;white-space:nowrap;
     gap:14px;margin-left:auto;min-width:0;}
@@ -347,6 +350,13 @@
   .summary-pills .pill{font-size:11px;line-height:1.7;white-space:nowrap;}
   .summary-pills .pill b{font-size:13px;font-weight:600;margin-left:2px;}
   .summary-pills .scope-pill{color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  /* 顶栏全局展开级别下拉框：与 .btn 同高同字号，克制配色 */
+  #globalExpand{border:1px solid var(--line);background:var(--surface);color:var(--text);
+    border-radius:7px;padding:6px 8px;font-size:12px;cursor:pointer;white-space:nowrap;
+    transition:background .12s,border-color .12s;max-width:150px;}
+  #globalExpand:hover{background:var(--primary-soft);border-color:var(--primary);}
+  /* 单位工程汇总行序号列的展开/折叠按钮：与分部箭头同款 */
+  tr.div-sum .unit-toggle{margin:0;}
 
   /* 对比信息条 */
   .cmp-card{padding:8px 10px;margin-bottom:8px;}
@@ -397,22 +407,24 @@
   td.v-note{color:var(--text);font-size:11px;}
   [data-theme="dark"] td.bg-red{background:rgba(255,138,122,.16);}
   [data-theme="dark"] td.bg-blue{background:rgba(91,134,255,.18);}
-  /* 单位工程首行分部汇总 */
-  tr.div-sum td{background:var(--sec-l0);font-weight:600;color:var(--text);}
+  /* 单位工程首行分部汇总：底色与一级分部区分（浅灰蓝），并去掉与标题行之间的突兀分隔线 */
+  tr.div-sum td{background:var(--sum-bg);font-weight:600;color:var(--text);border-top:none;}
+  thead tr.col-head th{border-bottom:none;}
+  tbody.div-block + tbody.div-block tr.div-sum:first-child td{border-top:none;}
   /* 汇总行：工程名放「项目名称」列，左对齐；超出列宽时只向右侧溢出显示（不截断、不省略）。
      不设 position/z-index：避免该格脱离表格常规绘制顺序而遮住相邻单元格的背景色，
      表格本身按「所有单元格背景 → 所有单元格内容」绘制，溢出文字依然显示在相邻列之上。 */
   tr.div-sum td.div-sum-name{text-align:left;white-space:nowrap;overflow:visible;
-    text-overflow:clip;max-width:none;background:var(--sec-l0);}
+    text-overflow:clip;max-width:none;background:var(--sum-bg);}
   tr.div-sum td.div-sum-amt{font-weight:700;}
   /* 分部行名称：与汇总行一致，允许向右侧溢出直接显示，不做省略号截断 */
   tbody tr.section td.name{overflow:visible;text-overflow:clip;white-space:nowrap;
     max-width:none;position:relative;z-index:2;}
   /* 汇总行：增减金额格不按正负着色，背景与本行其他单元格保持一致；
      正负只通过文字颜色（v-blue / v-red）区分 */
-  tr.div-sum td.bg-red,tr.div-sum td.bg-blue{background:var(--sec-l0);}
+  tr.div-sum td.bg-red,tr.div-sum td.bg-blue{background:var(--sum-bg);}
   [data-theme="dark"] tr.div-sum td.bg-red,
-  [data-theme="dark"] tr.div-sum td.bg-blue{background:var(--sec-l0);}
+  [data-theme="dark"] tr.div-sum td.bg-blue{background:var(--sum-bg);}
   td.feat{white-space:normal;overflow:hidden;word-break:break-all;line-height:1.45;vertical-align:middle;}
   tr.item.cmp-del td[data-key="code"],tr.item.cmp-del td[data-key="name"]{color:var(--red-tx);}
   tr.item.cmp-add td[data-key="code"],tr.item.cmp-add td[data-key="name"]{color:var(--primary);}
@@ -507,6 +519,13 @@
   <button class="btn ghost tree-toggle-btn" id="btnTreeToggle" title="项目树：单击=展开/收起（选项目后自动收起）；双击=展开/收起（选项目后保持展开）">☰</button>
   <div class="spacer"></div>
   <div class="summary-pills" id="summaryPills"></div>
+  <select id="globalExpand" title="全局展开级别（最高优先级）：对所有项目 / 单位工程统一查看层级；选中后仍可手动点箭头单独展开或折叠某个分部">
+    <option value="all">全部展开</option>
+    <option value="unit">展开到单位工程</option>
+    <option value="l1">展开到一级分部</option>
+    <option value="l2">展开到二级分部</option>
+    <option value="l3">展开到三级分部</option>
+  </select>
   <button class="btn" id="btnImportSend" title="导入送审清单（.xlsx / .xls / .csv，可勾选多个工作表批量导入）">📥 导入送审清单</button>
   <button class="btn" id="btnImportAudit" title="导入审定清单；每个工作表可对应到已有的送审单位工程">📥 导入审定清单</button>
   <button class="btn" id="btnExport" title="导出对比表（每个单位工程一个工作表）">📤 导出对比表</button>
@@ -738,7 +757,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function defaultState(){return {projects:[],activeProjectId:null,activeDivisionId:null,activeNode:null,
     colWidths:{},hiddenCols:[],selection:[],collapsed:{},secCollapsed:{},secTreeFold:{},
     secTreeFilter:null,secTreeScope:null,activeSection:null,treeOn:true,secTreeOn:true,
-    treeWidth:280,secTreeWidth:220,onlyDiff:false,hideMeasure:true,treePinned:false};}
+    treeWidth:280,secTreeWidth:220,onlyDiff:false,hideMeasure:true,treePinned:false,
+    globalExpand:'all',unitFold:{}};}
   var state=defaultState();
   var undoStack=[],redoStack=[],histLast=null,histBase=null,histTimer=null;
   var pendingSide='send',importMode='batch',batchItems=null,treeImportTarget=null;
@@ -762,11 +782,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function save(){try{noteHist();var s=clone(state);s.selection=[];localStorage.setItem(STORE_KEY,JSON.stringify(s));}catch(e){}}
   function normalizeState(){
     if(!state.projects)state.projects=[];
-    ['colWidths','collapsed','secCollapsed','secTreeFold'].forEach(function(k){if(!state[k])state[k]={};});
+    ['colWidths','collapsed','secCollapsed','secTreeFold','unitFold'].forEach(function(k){if(!state[k])state[k]={};});
     if(!state.hiddenCols)state.hiddenCols=[];
     if(!state.selection)state.selection=[];
     if(typeof state.hideMeasure!=='boolean')state.hideMeasure=true;
     if(typeof state.treePinned!=='boolean')state.treePinned=false;
+    /* 旧版全局展开值迁移：0→l1、1→l2、2→l3（depth 语义整体下移一级）；
+       新版用 unit 表示「只显示单位工程汇总行」，all 表示全部展开 */
+    if(!state.globalExpand)state.globalExpand='all';
+    if({0:1,1:1,2:1}[state.globalExpand])state.globalExpand='l'+state.globalExpand;
+    if(state.globalExpand!=='all'&&state.globalExpand!=='unit'&&
+      state.globalExpand!=='l1'&&state.globalExpand!=='l2'&&state.globalExpand!=='l3')state.globalExpand='all';
     if(!state.projects.some(function(p){return p.id===state.activeProjectId;}))
       state.activeProjectId=state.projects.length?state.projects[0].id:null;
     var p=activeProj();
@@ -979,7 +1005,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
      depth=N 表示展开 lvl 0..N-1、折叠 lvl>=N；depth=0 全折叠，depth>=99 全展开。
      与旧「各管一级」不同，一次点击即设定所有层级的折叠状态。
      覆盖送审 + 审定两侧分部（按名称去重），确保审定独有分部一并处理。 */
-  function setSecDepth(div,depth){
+  function setSecDepth(div,depth,onlyWithSections){
     state.secCollapsed=state.secCollapsed||{};
     var secs=[];
     if(div.rows&&div.rows.length)buildSecTree(div);
@@ -989,10 +1015,51 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       (div.auditRows||[]).forEach(function(r){
         if(r.type==='section'&&!secs.some(function(x){return x.name===r.name;}))secs.push(r);});
     }
+    /* 「展开到二级/三级分部」时：没有下级分部的分部保持折叠，避免露出其下清单行。
+       子分部可能只存在于审定侧，故按名称汇总两侧父子关系（送审/审定同名视为同一分部）。 */
+    var childNames={};
+    if(onlyWithSections){
+      var nameById={};
+      [].concat(div.rows||[],div.auditRows||[]).forEach(function(r){
+        if(r.type==='section')nameById[r.id]=r.name;});
+      [].concat(div.rows||[],div.auditRows||[]).forEach(function(r){
+        if(r.type==='section'&&r._parent&&nameById[r._parent])childNames[nameById[r._parent]]=true;});
+    }
     secs.forEach(function(s){
-      if((s._lvl||0)<depth)delete state.secCollapsed[s.id];
+      var canOpen=(s._lvl||0)<depth&&(!onlyWithSections||!!childNames[s.name]);
+      if(canOpen)delete state.secCollapsed[s.id];
       else state.secCollapsed[s.id]=true;
     });
+  }
+  /* 顶栏「全局展开级别」：只作为「一次性层级查看」的默认视图（最高优先级），
+     对所有项目、所有单位工程统一应用；此后手动点任意箭头仍可单独展开/折叠下级。
+     语义与截图一致：
+       unit = 只显示单位工程汇总行（第一行），下方分部整段隐藏 → unitFold[div]=true
+       l1   = 展开到一级分部：一级分部行可见且折叠（depth=0）
+       l2   = 展开到二级分部：有二级子分部的一级展开、二级折叠（depth=1）；
+              一级分部下没有二级分部时保持折叠，不露出其清单行
+       l3   = 展开到三级分部：有下级子分部的一/二级展开、三级折叠（depth=2）；
+              同级分部若无更深子分部同样保持折叠
+       all  = 全部展开（depth=99，含清单行） */
+  var GLOBAL_DEPTH={all:99,l1:0,l2:1,l3:2};
+  function applyGlobalExpand(){
+    var v=state.globalExpand||'all';
+    var depth=(v==='unit')?0:(GLOBAL_DEPTH[v]!==undefined?GLOBAL_DEPTH[v]:99);
+    var onlyWithSections=(v==='l2'||v==='l3');
+    state.secCollapsed=state.secCollapsed||{};
+    state.unitFold=state.unitFold||{};
+    state.projects.forEach(function(p){(p.divisions||[]).forEach(function(div){
+      setSecDepth(div,depth,onlyWithSections);
+      if(v==='unit')state.unitFold[div.id]=true;else delete state.unitFold[div.id];
+    });});
+    var sel=$('globalExpand');if(sel)sel.value=v;
+  }
+  /* 单位工程汇总行序号列的展开/折叠按钮：只切换本单位的分部整段显隐，
+     不影响 secCollapsed（各分部自身的展开状态保留，便于再次展开时沿用）。 */
+  function toggleUnitFold(divId){
+    state.unitFold=state.unitFold||{};
+    if(state.unitFold[divId])delete state.unitFold[divId];else state.unitFold[divId]=true;
+    save();render();
   }
   function secItemCount(rows,row){rows=rows||[];var i=rows.indexOf(row);if(i<0)return 0;
     var lvl=row._lvl||0,n=0;for(var k=i+1;k<rows.length;k++){var r=rows[k];
@@ -1192,11 +1259,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var adds=[];B.forEach(function(b,j){
       if(pairB[j])return;
       adds.push({b:b,j:j,sec:secOfB[j]});});
-    /* 新增项插入位置：严格参照审定清单里的相对顺序——
+    /* 新增项插入位置：排序时「送审清单优先，审定清单次之」——
+       送审已有行的相对顺序一律不动（out 已按送审铺好），只把审定独有行插进去：
        ① 同一分部内，紧跟其前面最近的一个匹配项之后；
        ② 前面没有匹配项时，插到其后第一个匹配项之前；
        ③ 整个分部都是新增（无匹配项）时，插到该分部块开头，行序即审定顺序。
-       同一位置的多条新增项按审定行序排列（adds 本身按 B 顺序生成）。 */
+       同一位置的多条新增项按审定行序排列（adds 本身按 B 顺序生成）。
+       冲突场景（审定把 A/B 顺序对调）：送审仍是 A→B，新增行按审定前邻落到 B 之后。 */
     var byPos={};
     function secBlock(name){
       for(var i=0;i<out.length;i++){
@@ -1474,6 +1543,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       /* 不合并单元格：单位工程名只放在「项目名称」列并居中显示，
          文字允许溢出到左右两侧（overflow:visible），不做截断；其余列留空。 */
       C.forEach(function(c){
+        if(c.key==='seq'){
+          var uf=!!(state.unitFold&&state.unitFold[div.id]);
+          var ut='<span class="sec-toggle unit-toggle" data-unitfold="'+div.id+'" title="'+
+            (uf?'展开本单位工程分部':'收起本单位工程分部')+'">'+(uf?'▶':'▼')+'</span>';
+          hd+=td(c,ut);return;
+        }
         if(c.key==='name'){
           hd+=td(c,escapeHtml(o.name),'name div-sum-name',' title="'+escapeHtml(o.name)+'"');
           return;
@@ -1566,7 +1641,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           parts:totals.parts},div,C,mode);
       }
       var open=[];
-      view.forEach(function(o){
+      /* 单位工程汇总行折叠：整段分部 / 清单行不渲染，只留第一行汇总行 */
+      var unitFolded=!!(state.unitFold&&state.unitFold[div.id]);
+      if(!unitFolded)view.forEach(function(o){
         if(o.kind==='section'){
           var lvl=o.lvl||0;while(open.length&&open[open.length-1].lvl>=lvl)open.pop();
           var hidden=open.some(function(x){return x.folded;});
@@ -1614,6 +1691,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();
         var sid=el.getAttribute('data-sectoggle'),tr=el.closest('tr.section');
         manualToggleSec(sid,tr?findDivById(tr.getAttribute('data-div')):null);});});
+    wrap.querySelectorAll('.unit-toggle[data-unitfold]').forEach(function(el){
+      el.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();
+        toggleUnitFold(el.getAttribute('data-unitfold'));});});
     wrap.querySelectorAll('tr.section td[data-key="name"]').forEach(function(td){
       td.addEventListener('dblclick',function(e){if(e.target.closest&&e.target.closest('.sec-toggle'))return;e.stopPropagation();
         var tr=td.parentNode,sid=tr.getAttribute('data-rid');if(!sid)return;
@@ -2339,6 +2419,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       state.activeDivisionId=first.divisions.length?first.divisions[0].id:null;
       state.activeNode={type:'proj',id:first.id};state.secTreeScope=null;}
     state.selection=[];state.secTreeFilter=null;
+    applyGlobalExpand();
     save();render();closeBatchModal();
     toast((pendingSide==='send'?'已导入送审清单':'已导入审定清单')+'：'+cnt+' 个单位工程'+
       (pendingSide==='audit'?'，已按 编码+名称+特征 生成对比':''));
@@ -2954,6 +3035,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function startImport(side,mode){pendingSide=side;importMode=mode||'batch';treeImportTarget=null;pickFile();}
   $('btnImportSend').addEventListener('click',function(){startImport('send','batch');});
   $('btnImportAudit').addEventListener('click',function(){startImport('audit','batch');});
+  $('globalExpand').addEventListener('change',function(){state.globalExpand=this.value||'all';applyGlobalExpand();save();render();
+    toast(this.value==='all'?'已全部展开':('已展开到'+this.options[this.selectedIndex].text));});
   $('btnExport').addEventListener('click',openExportModal);
   $('expSearch').addEventListener('input',renderExpList);
   $('expAll').addEventListener('click',function(){
@@ -3108,7 +3191,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}
   });
   try{var th=localStorage.getItem('boq_theme');if(th)document.documentElement.setAttribute('data-theme',th);}catch(e){}
-  initBatchModalDrag();load();render();
+  initBatchModalDrag();load();applyGlobalExpand();render();
 })();
 
 </script>

@@ -3,136 +3,235 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>计价文件无锁预览工具</title>
+<title>计价无锁预览</title>
 <style>
 :root{
-  --bg:#f4f6f8; --panel:#ffffff; --bar:#eef1f4; --line:#d9dfe6; --tx:#252b33; --tx2:#68737f;
-  --accent:#1f6fb2; --accent-bg:#e6f0fa; --green:#eaf6e4; --green-line:#c9e6b8;
-  --blue:#e2effa; --blue-line:#b9d8ef; --mauve:#a5449b; --orange:#e08a1e;
-  --hover:#f3f8fd; --sel:#d9e9f7; --warn:#b26a19; --shadow:0 1px 3px rgba(20,30,40,.06);
-  --tl:#e0a155;
+  --bg:#eef1f5; --panel:#ffffff; --bar:#f7f9fb; --line:#e2e7ed; --line2:#eef1f5;
+  --tx:#1d2530; --tx2:#68758a; --tx3:#9aa6b6;
+  --accent:#2563a8; --accent-bg:#eaf2fb; --sel:#e8f1fb; --hover:#f4f7fb; --selrow:#d7e7f8;
+  --green:#f2f9ee; --green-line:#d6e9c9; --blue:#eef5fd; --blue-line:#cfe1f4;
+  --mauve:#9d3f95; --orange:#c67c12; --warn:#a8620f;
+  --chip:rgba(18,28,42,.05); --guide:rgba(18,28,42,.11); --shadow:0 1px 2px rgba(16,24,40,.06);
 }
 html[data-theme="dark"]{
-  --bg:#15191e; --panel:#1d2229; --bar:#252b33; --line:#39414b; --tx:#d7dee6; --tx2:#96a1ae;
-  --accent:#6eabe3; --accent-bg:#24384b; --green:#25382a; --green-line:#3e5e44;
-  --blue:#223547; --blue-line:#365773; --mauve:#d98fce; --orange:#e5a651;
-  --hover:#28313b; --sel:#2b455d; --warn:#d7a167; --shadow:0 1px 3px rgba(0,0,0,.25);
-  --tl:#9d7434;
+  --bg:#0f1419; --panel:#161c23; --bar:#1c232b; --line:#2a333d; --line2:#222a33;
+  --tx:#dce4ee; --tx2:#98a5b4; --tx3:#6d7a8a;
+  --accent:#74b0e4; --accent-bg:#1d3244; --sel:#1b2b3b; --hover:#1e262f; --selrow:#22415c;
+  --green:#1d2b22; --green-line:#2f4a37; --blue:#1a2836; --blue-line:#2c465f;
+  --mauve:#e2a0d8; --orange:#e0a85c; --warn:#dda96b;
+  --chip:rgba(255,255,255,.07); --guide:rgba(255,255,255,.13); --shadow:0 1px 2px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--tx);font:12px/1.45 "Segoe UI","Microsoft YaHei",sans-serif;overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--tx);font:12px/1.45 "Segoe UI","Microsoft YaHei",sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}
+input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);vertical-align:-2px;cursor:pointer}
 button{cursor:pointer}
 .app{display:flex;flex-direction:column;height:100vh}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(18,28,42,.18);border:3px solid transparent;border-radius:8px;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(18,28,42,.32);border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);background-clip:padding-box}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3);background-clip:padding-box}
 
 /* title bar */
-.title{height:32px;flex:none;display:flex;align-items:center;gap:9px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line)}
-.title .logo{font-weight:600;color:var(--accent);font-size:12px;white-space:nowrap}
-.title .file{color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw}
-.btn{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:3px 10px;white-space:nowrap}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{opacity:.9;color:#fff}
-.btn.mini{padding:1px 7px;font-size:11px}
+.title{height:38px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.title .logo{flex:none;display:flex;align-items:center;gap:8px;font-weight:600;color:var(--tx);font-size:12.5px;letter-spacing:.01em;white-space:nowrap}
+.title .logo .mark{width:20px;height:20px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:6px;
+  background:linear-gradient(140deg,#3f86c9,#1f5c99);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 1px 2px rgba(16,40,70,.25)}
+.title .file{flex:0 1 auto;min-width:0;display:inline-flex;align-items:center;height:22px;padding:0 9px;
+  color:var(--tx2);font-size:11.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--chip);border-radius:7px}
+.btn{display:inline-flex;flex:none;align-items:center;justify-content:center;gap:4px;height:26px;background:var(--panel);border:1px solid var(--line);border-radius:7px;
+  padding:0 11px;line-height:1;white-space:nowrap;font-size:11.5px;color:var(--tx2);transition:background .15s,border-color .15s,color .15s}
+.btn svg{flex:none}
+.btn:hover{background:var(--hover);color:var(--tx)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(37,99,168,.28)}
+.btn.primary:hover{filter:brightness(1.07);color:#fff}
+.btn.mini{height:26px;padding:0 10px;font-size:11.5px}
+#detailBtn.on{background:var(--accent-bg);border-color:rgba(37,99,168,.32);color:var(--accent);font-weight:600}
+#detailBtn.on:hover{background:var(--accent-bg);color:var(--accent)}
+html[data-theme="dark"] #detailBtn.on{border-color:rgba(116,176,228,.4)}
 .spacer{flex:1}
-#search{width:190px;border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:3px 8px;outline:none}
-#search:focus{border-color:var(--accent)}
-#levelSel{border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:2px 4px;outline:none}
+.searchbox{position:relative;flex:0 1 198px;min-width:118px;display:flex;align-items:center}
+.searchbox .si{position:absolute;left:8px;display:flex;color:var(--tx3);pointer-events:none}
+#search{width:100%;height:26px;line-height:24px;border:1px solid var(--line);border-radius:7px;background:var(--panel);
+  padding:0 9px 0 26px;outline:none;font-size:11.5px;transition:border-color .15s,box-shadow .15s}
+#search::placeholder{color:var(--tx3)}
+#search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+/* 显示层级：自定义下拉（原生 select 的标签在部分浏览器无法保证文字水平/垂直居中） */
+.lvwrap{position:relative;flex:none;display:inline-flex}
+#levelSel{position:relative;display:inline-flex;align-items:center;justify-content:center;height:26px;min-width:76px;
+  padding:0 15px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--tx2);
+  font-size:11.5px;line-height:1;white-space:nowrap;outline:none;
+  transition:background .15s,border-color .15s,box-shadow .15s,color .15s}
+#levelSel .tx{display:block;line-height:1;text-align:center}
+#levelSel .car{position:absolute;right:4px;top:50%;transform:translateY(-50%);color:var(--tx3);transition:transform .15s,color .15s}
+#levelSel:hover{background:var(--hover);color:var(--tx)}
+#levelSel[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg);color:var(--accent)}
+#levelSel[aria-expanded="true"] .car{transform:translateY(-50%) rotate(180deg);color:var(--accent)}
+.lvmenu{position:absolute;top:31px;right:0;z-index:90;min-width:100%;padding:4px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 26px rgba(16,24,40,.18)}
+.lvmenu button{display:flex;align-items:center;gap:5px;width:100%;height:26px;padding:0 8px;border:0;border-radius:5px;
+  background:none;color:var(--tx2);font-size:11.5px;line-height:1;white-space:nowrap;text-align:left}
+.lvmenu button:hover{background:var(--hover);color:var(--tx)}
+.lvmenu button.on{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.lvmenu button::before{content:'✓';flex:none;width:9px;font-size:10px;line-height:1;color:var(--accent);visibility:hidden}
+.lvmenu button.on::before{visibility:visible}
 
 /* tabs */
-.tabs{height:29px;flex:none;display:flex;align-items:flex-end;gap:3px;padding:0 10px;background:var(--bar);border-bottom:1px solid var(--line)}
-.tabs button{height:26px;min-width:86px;padding:0 12px;background:var(--panel);border:1px solid var(--line);border-bottom:none;border-radius:4px 4px 0 0;color:var(--tx2)}
-.tabs button.on{height:28px;color:#fff;background:var(--accent);border-color:var(--accent);font-weight:600}
+.tabs{height:36px;flex:none;display:flex;align-items:stretch;gap:2px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden}
+.tabs button{position:relative;height:36px;padding:0 12px;background:none;border:0;color:var(--tx2);font-size:12px;white-space:nowrap;transition:color .15s}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{color:var(--accent);font-weight:600}
+.tabs button.on::after{content:'';position:absolute;left:9px;right:9px;bottom:0;height:2px;border-radius:2px 2px 0 0;background:var(--accent)}
+
 
 /* main split + 可拖动列宽 */
-.main{flex:1;min-height:0;display:flex}
-.tree1{width:182px;flex:none;background:var(--panel);overflow:auto;overflow-x:hidden}
-.tree2{width:200px;flex:none;background:var(--panel);overflow:auto;overflow-x:hidden}
-.hsplit{width:5px;flex:none;cursor:ew-resize;background:var(--panel);border-right:1px solid var(--line);position:relative;touch-action:none;z-index:2}
-.hsplit::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:transparent}
+.main{flex:1;min-height:0;display:flex;background:var(--panel)}
+.tree1,.tree2{flex:none;background:var(--panel);overflow:auto;overflow-x:hidden;padding-bottom:10px}
+.tree1{width:216px}
+.tree2{width:214px}
+.hsplit{width:6px;flex:none;cursor:ew-resize;position:relative;touch-action:none;z-index:2;background:var(--panel)}
+.hsplit::before{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--line);transition:background .12s}
 .hsplit:hover,.hsplit.drag{background:var(--accent-bg)}
-.hsplit:hover::after,.hsplit.drag::after{background:var(--accent)}
-.tree-hd{position:sticky;top:0;background:var(--bar);color:var(--tx2);padding:5px 9px;border-bottom:1px solid var(--line);font-size:11px;z-index:1;display:flex;justify-content:space-between}
-/* 目录树：橙色折角连接线 + 节点图标（参照广联达树样式） */
-.tn{position:relative;display:flex;align-items:center;height:21px;padding-right:8px;white-space:nowrap;cursor:pointer;user-select:none}
+.hsplit:hover::before,.hsplit.drag::before{background:var(--accent)}
+.tree-hd{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  padding:8px 10px 7px;background:var(--panel);border-bottom:1px solid var(--line2);
+  font-size:11px;font-weight:600;color:var(--tx2);letter-spacing:.02em}
+.tree-hd .cnt{flex:none;font-weight:500;font-size:10.5px;color:var(--tx2);background:var(--chip);
+  border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+/* 目录树：层级导引线 + 展开箭头 + 类型图标 + 计数胶囊 */
+.tn{position:relative;display:flex;align-items:center;height:27px;margin:1px 6px 0 5px;padding-right:6px;
+  border-radius:6px;white-space:nowrap;cursor:pointer;user-select:none;color:var(--tx)}
 .tn:hover{background:var(--hover)}
 .tn.on{background:var(--sel)}
+.tn.on::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--accent)}
 .tn.on .nm{color:var(--accent);font-weight:600}
-.tn .tv{position:absolute;width:1px;background:var(--tl);pointer-events:none}
-.tn .tj{position:absolute;top:calc(50% - 6px);height:7px;border-left:1px solid var(--tl);border-bottom:1px solid var(--tl);border-bottom-left-radius:4px;pointer-events:none}
-.tn .tg{flex:none;width:14px;height:14px;display:flex;align-items:center;justify-content:center;color:#8d96a1}
-.tn .tg.box{color:#2f6091}
-.tn.on .tg{color:var(--accent)}
-html[data-theme="dark"] .tn .tg{color:#8e99a5}
-html[data-theme="dark"] .tn .tg.box{color:#9ec4e6}
-.tn .ic{flex:none;width:15px;height:14px;display:flex;align-items:center;justify-content:center;margin-right:4px;color:#77828f}
-.tn .ic.k{color:#2f6fa8}
-html[data-theme="dark"] .tn .ic.k{color:#7fb1dc}
-html[data-theme="dark"] .tn .ic{color:#9aa6b3}
+.tn .gd{position:absolute;top:0;bottom:0;width:1px;background:var(--guide);pointer-events:none}
+.tn .tg{flex:none;width:16px;height:16px;margin-right:1px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;color:var(--tx3);transition:background .12s,color .12s}
+.tn .tg svg{transition:transform .14s ease}
+.tn .tg.open svg{transform:rotate(90deg)}
+.tn .tg[data-tg]{cursor:pointer}
+.tn .tg[data-tg]:hover{background:var(--chip);color:var(--tx)}
+.tn .ic{flex:none;width:19px;height:19px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  margin:0 7px 0 1px;color:var(--tx3);background:var(--chip)}
+.tn .ic.k{color:#2f6fa8;background:rgba(47,111,168,.10)}
+.tn .ic.u{color:#b57a1c;background:rgba(181,122,28,.12)}
+.tn .ic.s{color:#4a5f76;background:rgba(74,95,118,.11)}
+html[data-theme="dark"] .tn .ic.k{color:#88b7e3;background:rgba(136,183,227,.13)}
+html[data-theme="dark"] .tn .ic.u{color:#e3b274;background:rgba(227,178,116,.13)}
+html[data-theme="dark"] .tn .ic.s{color:#a9b9c9;background:rgba(255,255,255,.06)}
+.tn.on .ic{background:rgba(37,99,168,.13);color:var(--accent)}
+html[data-theme="dark"] .tn.on .ic{background:rgba(116,176,228,.16);color:#a8cdea}
+.tn .ic.d{color:var(--tx3);background:transparent;margin-right:6px}
 .tn .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.tn .ct{flex:none;color:var(--tx2);font-size:11px;margin-left:5px}
+.tn .ct{flex:none;margin-left:auto;font-size:10px;line-height:14px;color:var(--tx2);background:var(--chip);
+  border-radius:99px;padding:0 6px;font-variant-numeric:tabular-nums}
+.tn.on .ct{background:rgba(37,99,168,.14);color:var(--accent)}
+html[data-theme="dark"] .tn.on .ct{background:rgba(116,176,228,.18)}
 
 .content{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel)}
-.grid-wrap{flex:1;min-height:0;overflow:auto;position:relative}
+.grid-wrap{flex:1;min-height:0;overflow:auto;position:relative;background:var(--panel)}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
-th{position:sticky;top:0;z-index:3;background:var(--bar);color:var(--tx);font-weight:600;text-align:left;padding:5px 7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:3px 7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px;background:var(--panel)}
-tr.section td{background:var(--bar);font-weight:600;color:var(--tx)}
-tr.section.sec1 td{background:#d8e3ef}
-tr.section.sec2 td{background:#e6ecf3}
-tr.section.sec3 td{background:#eef2f7}
-tr.section.sec4 td{background:#f4f7fa}
-html[data-theme="dark"] tr.section.sec1 td{background:#2b3d50}
-html[data-theme="dark"] tr.section.sec2 td{background:#28323d}
-html[data-theme="dark"] tr.section.sec3 td{background:#232c35}
-html[data-theme="dark"] tr.section.sec4 td{background:#20272e}
-tr.bill td{background:var(--green)}
-tr.quota td{background:var(--blue)}
+th{position:sticky;top:0;z-index:3;background:var(--panel);color:var(--tx2);font-size:11px;font-weight:600;letter-spacing:.02em;
+  text-align:center;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:4px 8px;border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px;background:var(--panel)}
+tr.section td{background:#f3f7fb;font-weight:600;color:var(--tx)}
+tr.section.sec1 td{background:#eef4fa}
+tr.section.sec2 td{background:#f4f8fb}
+tr.section.sec3 td{background:#f8fafc}
+tr.section.sec4 td{background:#fbfcfe}
+tr.section.sec1 td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+html[data-theme="dark"] tr.section td{background:#1b232c}
+html[data-theme="dark"] tr.section.sec1 td{background:#1c2733}
+html[data-theme="dark"] tr.section.sec2 td{background:#19212a}
+html[data-theme="dark"] tr.section.sec3 td{background:#171e26}
+html[data-theme="dark"] tr.section.sec4 td{background:#161c23}
+tr.bill td{background:var(--rowbill,var(--green))}
+tr.quota td{background:var(--rowquota,var(--blue))}
+/* 自定义行底色时，按亮度统一该行文字色（含项目特征），保证对比度 */
+html[data-rowc-bill] tr.bill td{color:var(--rowbill-tx)}
+html[data-rowc-quota] tr.quota td{color:var(--rowquota-tx)}
 tr.material td{background:var(--panel);color:var(--mauve)}
-td.seq{text-align:center;color:var(--tx2);padding-left:2px;padding-right:2px}
+td.seq{text-align:center;color:var(--tx3);padding-left:2px;padding-right:2px;font-variant-numeric:tabular-nums}
 td.secname{font-weight:600}
 td.multi{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;vertical-align:top}
-tbody tr:hover td{filter:brightness(.97)}
-tbody tr.picked td{box-shadow:inset 0 0 0 1px var(--accent)}
+tbody tr.hide{display:none}
+tbody tr:hover td{filter:brightness(.975)}
+/* 选中行整行一块高亮：外框 + 左强调条，内部不再画单元格分割线 */
+tbody tr.picked td{background:var(--selrow);box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent)}
+tbody tr.picked td:first-child{box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent),inset 2px 0 0 var(--accent)}
+tbody tr.picked td:last-child{box-shadow:inset 0 1px 0 var(--accent),inset 0 -1px 0 var(--accent),inset -1px 0 0 var(--accent)}
 th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
-td.indent1{padding-left:24px}
-td.indent2{padding-left:42px}
 td.cat{text-align:center;color:var(--tx2)}
 td.match{background:#fff3c4;color:#7a4a00}
 html[data-theme="dark"] td.match{background:#4c3f1c;color:#f0d38a}
-.tw{display:inline-block;width:11px;color:var(--tx2);cursor:pointer;text-align:center}
-.feature{color:var(--tx2);font-size:11px}
+.tw{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-right:3px;border-radius:4px;
+  color:var(--tx2);cursor:pointer;vertical-align:-2px;transition:background .1s,color .1s,transform .1s}
+.tw svg{display:block;pointer-events:none}
+.tw:hover{background:var(--chip);color:var(--tx)}
+.tw:active{transform:scale(.86)}
+.tw.ph{visibility:hidden;cursor:inherit}
+.tw.ph:hover{background:transparent}
+.feature{color:#141a21;font-size:11px}
+html[data-theme="dark"] .feature{color:#dbe4ef}
+tr.section td{cursor:default}
 
 /* detail pane */
-.splitter{height:7px;flex:none;cursor:ns-resize;touch-action:none;background:var(--bar);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.splitter{height:8px;flex:none;cursor:ns-resize;touch-action:none;position:relative;background:var(--panel)}
+.splitter::before{content:'';position:absolute;left:0;right:0;top:3px;height:1px;background:var(--line);transition:background .12s}
+.splitter:hover::before{background:var(--accent)}
 .splitter:hover{background:var(--accent-bg)}
 .detail{height:41%;min-height:80px;flex:none;display:flex;flex-direction:column;background:var(--panel)}
-.detail-hd{height:25px;flex:none;display:flex;align-items:center;gap:2px;background:var(--bar);border-bottom:1px solid var(--line);padding:0 6px}
-.detail-hd button{border:1px solid transparent;background:none;color:var(--tx2);padding:2px 8px;font-size:11px}
-.detail-hd button.on{background:var(--panel);border-color:var(--line);border-bottom-color:var(--panel);color:var(--accent);font-weight:600}
+.detail-hd{height:31px;flex:none;display:flex;align-items:center;gap:8px;background:var(--panel);border-bottom:1px solid var(--line2);padding:0 10px}
+.detail-hd button{flex:0 1 auto;min-width:0;border:0;background:var(--accent-bg);color:var(--accent);padding:4px 10px;border-radius:6px;
+  font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+.detail-hd .hint{flex:none;white-space:nowrap;color:var(--tx3);font-size:10.5px}
+.detail-hd button.on{background:var(--accent-bg);color:var(--accent);font-weight:600}
+/* 一个清单下有多个定额时，用标签切换 */
+.dq-tabs{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:4px;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;padding:2px 0}
+.dq-tabs::-webkit-scrollbar{height:0}
+.dq .t{max-width:148px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dq{flex:none;display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;border:1px solid var(--line);
+  border-radius:6px;background:var(--panel);color:var(--tx2);font-size:10.5px;white-space:nowrap;transition:all .12s}
+.dq:hover{background:var(--hover);color:var(--tx)}
+.dq.on{background:var(--accent-bg);border-color:rgba(37,99,168,.32);color:var(--accent);font-weight:600}
+html[data-theme="dark"] .dq.on{border-color:rgba(116,176,228,.4)}
+.dq .n{font-size:9.5px;line-height:13px;padding:0 5px;border-radius:9px;background:var(--chip);color:inherit;font-variant-numeric:tabular-nums}
+.dq.on .n{background:rgba(37,99,168,.16)}
+html[data-theme="dark"] .dq.on .n{background:rgba(116,176,228,.2)}
 .detail-body{flex:1;min-height:0;overflow:auto}
 .detail-body table{font-size:11px}
 .detail-body th{top:0}
-.detail-body td{padding:2px 7px}
-.detail-body tr.material td{color:var(--mauve);background:rgba(165,68,155,.07)}
-html[data-theme="dark"] .detail-body tr.material td{background:rgba(217,143,206,.12)}
-.empty{padding:18px;color:var(--tx2);text-align:center}
+.detail-body td{padding:3px 8px}
+.detail-body tr.material td{color:var(--mauve);background:rgba(157,63,149,.05)}
+html[data-theme="dark"] .detail-body tr.material td{background:rgba(226,160,216,.10)}
+.empty{padding:22px;color:var(--tx3);text-align:center;font-size:11.5px}
 
 /* status */
-.status{height:22px;flex:none;display:flex;align-items:center;gap:10px;padding:0 9px;background:var(--bar);border-top:1px solid var(--line);color:var(--tx2);font-size:11px;white-space:nowrap;overflow:hidden}
+.status{height:26px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);
+  border-top:1px solid var(--line);color:var(--tx2);font-size:11px;white-space:nowrap;overflow:hidden}
 .status b{font-weight:600;color:var(--tx)}
 
 /* drop / start */
-.start{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.drop{width:min(620px,80vw);border:2px dashed var(--line);border-radius:12px;background:var(--panel);padding:44px 30px;text-align:center;box-shadow:var(--shadow)}
-.drop.over{border-color:var(--accent);background:var(--accent-bg)}
-.drop h2{margin:0 0 8px;font-size:16px}
-.drop p{color:var(--tx2);margin:5px 0}
-.drop .big{margin-top:20px;padding:8px 22px;font-size:13px}
-.bar-progress{height:5px;background:var(--bar);border-radius:3px;overflow:hidden;margin-top:18px;display:none}
+.start{flex:1;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(900px 380px at 50% -10%,var(--accent-bg),var(--bg) 72%)}
+.drop{width:min(640px,84vw);border:1px solid var(--line);border-radius:16px;background:var(--panel);
+  padding:38px 34px;text-align:center;box-shadow:0 14px 36px -16px rgba(16,24,40,.22),0 1px 2px rgba(16,24,40,.05)}
+.drop.over{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-bg),0 14px 36px -16px rgba(16,24,40,.22)}
+.drop .di{width:46px;height:46px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border-radius:13px;
+  background:linear-gradient(140deg,#3f86c9,#1f5c99);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 16px -6px rgba(31,92,153,.55)}
+.drop h2{margin:0 0 8px;font-size:17px;letter-spacing:.01em;font-weight:600}
+.drop p{color:var(--tx2);margin:6px 0;line-height:1.7;font-size:11.5px}
+.drop .big{margin-top:22px;height:34px;padding:0 24px;font-size:12.5px;border-radius:8px}
+.drop .hint{font-size:11px}
+.bar-progress{height:5px;background:var(--chip);border-radius:99px;overflow:hidden;margin-top:18px;display:none}
 .bar-progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .18s}
-.msg{margin-top:10px;color:var(--tx2);min-height:16px}
+.msg{margin-top:10px;color:var(--tx2);min-height:16px;font-size:11.5px}
 .msg.err{color:#c0392b}
 .convert{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:10px}
 .convert .bar-progress{display:block;width:340px}
@@ -140,14 +239,19 @@ html[data-theme="dark"] .detail-body tr.material td{background:rgba(217,143,206,
 /* cost analysis */
 .cost-wrap{min-width:100%;width:max-content}
 table.cost{font-size:11px;width:max-content}
-table.cost th{background:#fde9cf;text-align:center;font-size:11px;line-height:1.3;padding:4px 5px;white-space:normal;color:var(--tx)}
-html[data-theme="dark"] table.cost th{background:#4a3b2a}
-table.cost td{padding:2px 6px;font-size:11px}
+table.cost th{background:var(--bar);text-align:center;font-size:11px;line-height:1.35;padding:6px;white-space:normal;color:var(--tx2);font-weight:600}
+table.cost td{padding:3px 7px;font-size:11px}
 table.cost td.nm{font-weight:600;color:var(--tx)}
-table.cost tr.cost-row:nth-child(even) td{background:#fffcf4}
-html[data-theme="dark"] table.cost tr.cost-row:nth-child(even) td{background:#20242a}
-table.cost tr.total td{background:#c9e3f3;font-weight:600}
-html[data-theme="dark"] table.cost tr.total td{background:#27455a}
+table.cost tr.cost-row:nth-child(even) td:not(.evalb){background:#fafbfd}
+html[data-theme="dark"] table.cost tr.cost-row:nth-child(even) td:not(.evalb){background:#1a2028}
+table.cost th.evalb{background:var(--accent-bg);color:var(--accent)}
+table.cost td.evalb{background:rgba(37,99,168,.05)}
+table.cost tr.total td.evalb{background:rgba(37,99,168,.12)}
+html[data-theme="dark"] table.cost th.evalb{background:#1d3244;color:#9cc6e9}
+html[data-theme="dark"] table.cost td.evalb{background:rgba(116,176,228,.07)}
+html[data-theme="dark"] table.cost tr.total td.evalb{background:rgba(116,176,228,.15)}
+table.cost tr.total td{background:var(--accent-bg);font-weight:600;color:var(--tx)}
+html[data-theme="dark"] table.cost tr.total td{background:#1d3244}
 table.cost td.seq{width:40px}
 table.cost .ord{color:var(--tx2)}
 .cost-3cai{padding:10px 12px 16px;width:max-content;min-width:520px}
@@ -158,19 +262,20 @@ table.cost .ord{color:var(--tx2)}
 .cost-3cai .hint{margin-top:5px}
 
 /* other items / resource summary / fee summary */
-.hjbar{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:18px;padding:4px 9px;background:var(--bar);border-bottom:1px solid var(--line);font-size:11px;color:var(--tx2);white-space:nowrap}
-.hjbar label{cursor:pointer}
+.hjbar{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:16px;height:31px;padding:0 10px;
+  background:var(--bar);border-bottom:1px solid var(--line);font-size:11px;color:var(--tx2);white-space:nowrap}
+.hjbar label{cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .hjbar b{color:var(--tx);font-weight:600}
 .hjbar .hint{margin-left:auto}
-th.mk{background:#fde9cf}
-html[data-theme="dark"] th.mk{background:#4a3b2a}
-td.mkcol{background:#fffdf7}
-html[data-theme="dark"] td.mkcol{background:#242821}
+th.mk{background:var(--accent-bg);color:var(--accent)}
+html[data-theme="dark"] th.mk{background:#1d3244;color:#9cc6e9}
+td.mkcol{background:rgba(37,99,168,.03)}
+html[data-theme="dark"] td.mkcol{background:rgba(116,176,228,.05)}
 td.material{color:var(--mauve)}
 
 /* overview pages */
 .cards{padding:12px;overflow:auto;flex:1}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .card h3{font-size:12px;margin:0 0 9px}
 .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:5px 16px;color:var(--tx2)}
 .kv b{color:var(--tx);font-weight:600}
@@ -182,57 +287,98 @@ td.material{color:var(--mauve)}
 
 /* 新点（Epoint）加密容器识别面板 */
 .epoint{flex:1;display:none;flex-direction:column;overflow:auto;padding:16px;gap:12px;background:var(--bg)}
-.ep-hd{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;box-shadow:var(--shadow)}
+.ep-hd{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px;box-shadow:var(--shadow)}
 .ep-hd b{font-size:13px}
-.ep-badge{flex:none;background:#e8f0fe;color:#1a4fa0;border:1px solid #bcd0f0;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
-html[data-theme="dark"] .ep-badge{background:#243449;color:#a9c6ee;border-color:#38506e}
-.ep-warn{background:#fff7e0;border:1px solid #f0d79a;color:#7a5a13;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.7}
+.ep-badge{flex:none;background:var(--accent-bg);color:var(--accent);border:1px solid transparent;border-radius:99px;padding:2px 9px;font-size:10.5px;font-weight:600;letter-spacing:.02em}
+html[data-theme="dark"] .ep-badge{background:#1d3244;color:#9cc6e9}
+.ep-warn{background:#fdf8ec;border:1px solid #eee0bd;color:#6f5714;border-radius:10px;padding:11px 13px;font-size:11.5px;line-height:1.75}
 html[data-theme="dark"] .ep-warn{background:#3a3020;border-color:#5c4a25;color:#e6cd92}
 .ep-warn code{font-family:Consolas,Monaco,monospace;background:rgba(0,0,0,.05);border-radius:3px;padding:0 3px}
 html[data-theme="dark"] .ep-warn code{background:rgba(255,255,255,.08)}
 .ep-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
-.ep-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow)}
+.ep-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;box-shadow:var(--shadow)}
 .ep-card span{display:block;color:var(--tx2);font-size:11px}
 .ep-card b{display:block;font-size:18px;font-weight:600;margin-top:4px;color:var(--accent)}
 .ep-card i{display:block;font-style:normal;color:var(--tx2);font-size:10.5px;margin-top:3px}
 .ep-line{font-size:11.5px;color:var(--tx2)}
 .ep-line code{font-family:Consolas,Monaco,monospace;color:var(--tx)}
-.ep-tbl{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;box-shadow:var(--shadow)}
+.ep-tbl{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:46vh;box-shadow:var(--shadow)}
 .ep-tbl table{font-size:11.5px}
 .ep-tbl th{position:sticky;top:0;background:var(--bar)}
 .ep-tbl tr.ep-enc td{color:#9a5b12}
 html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
 .ep-tbl tr.ep-zip td{color:var(--tx2)}
-.ep-tip{font-size:11.5px;color:var(--tx2);line-height:1.7;background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.ep-tip{font-size:11.5px;color:var(--tx2);line-height:1.75;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:11px 13px}
 .ep-actions{display:flex;gap:8px;padding-bottom:8px}
+
+/* 导出清单弹窗 */
+.mask{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(15,22,32,.26)}
+.dlg{width:max-content;min-width:min(560px,94vw);max-width:min(920px,94vw);max-height:80vh;display:flex;flex-direction:column;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 64px -26px rgba(16,24,40,.5),0 2px 6px rgba(16,24,40,.08)}
+.dlg-hd{display:flex;align-items:baseline;gap:9px;padding:12px 14px 11px;border-bottom:1px solid var(--line2);min-width:0}
+.dlg-hd b{font-size:12.5px;font-weight:600;flex:none}
+.dlg-tip{font-size:11px;color:var(--tx3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlg-bar{display:flex;align-items:center;gap:10px;padding:7px 14px;background:var(--bar);
+  border-bottom:1px solid var(--line2);font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;min-width:0}
+.dlg-bar label{display:inline-flex;align-items:center;gap:5px;cursor:pointer;flex:none}
+.dlg-bar .hint{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dlg-body{flex:1;min-height:0;overflow:auto;padding:5px 8px 8px}
+.dlg-ft{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--line2);min-width:0}
+.dlg-ft .msg{margin:0;font-size:11px;min-height:0;flex:1 1 auto;width:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlg-ft .btn{flex:none}
+.unit-row{display:flex;align-items:center;gap:8px;min-height:29px;padding:4px 6px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--tx)}
+.unit-row:hover{background:var(--hover)}
+.unit-row input{flex:none;margin:0}
+.unit-row .un{flex:1 1 auto;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.unit-row .uc{flex:none;font-size:10.5px;color:var(--tx2);background:var(--chip);border-radius:99px;padding:1px 7px}
+.unit-row .um{flex:none;width:104px;text-align:right;font-size:11px;color:var(--tx2);font-variant-numeric:tabular-nums}
+
+/* 右键「深色 / 浅色」按钮：行背景色设置 */
+.cmenu{position:fixed;z-index:70;min-width:186px;display:none;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;padding:6px;box-shadow:0 18px 44px -20px rgba(16,24,40,.5),0 2px 6px rgba(16,24,40,.1)}
+.cmenu-hd{padding:3px 7px 6px;font-size:10.5px;color:var(--tx3)}
+.crow{display:flex;align-items:center;gap:8px;height:30px;padding:0 7px;border-radius:7px;font-size:11.5px;color:var(--tx);cursor:pointer}
+.crow:hover{background:var(--hover)}
+.crow span{flex:1}
+.crow input[type=color]{flex:none;width:26px;height:20px;padding:0;border:1px solid var(--line);border-radius:5px;background:none;cursor:pointer}
+.crow input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
+.crow input[type=color]::-webkit-color-swatch{border:0;border-radius:3px}
+.cmenu-ft{display:flex;gap:6px;padding:4px 7px 2px;border-top:1px solid var(--line2);margin-top:4px}
+.cmenu-ft .btn{height:24px;font-size:11px;flex:1}
 
 </style>
 </head>
 <body>
 <div class="app">
   <div class="title">
-    <span class="logo">计价无锁预览</span>
+    <span class="logo"><i class="mark"><svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.1" y="7.3" width="9.8" height="6.5" rx="1.7"/><path d="M5.6 7.3V5.2a2.4 2.4 0 0 1 4.7-.6"/></svg></i>计价无锁预览</span>
     <span class="file" id="fileName">未打开工程</span>
     <span class="spacer"></span>
-    <select id="levelSel" title="显示层级">
-      <option value="s1">一级分部</option>
-      <option value="s2">二级分部</option>
-      <option value="s3">三级分部</option>
-      <option value="s4">四级分部</option>
-      <option value="bill">清单</option>
-      <option value="quota">定额</option>
-      <option value="all" selected>全部</option>
-    </select>
-    <input id="search" placeholder="搜索清单 / 定额 / 人材机…">
+    <span class="lvwrap" id="levelWrap"><button type="button" id="levelSel" title="显示层级：默认展开到该级，箭头可随时手动展开 / 折叠" aria-haspopup="true" aria-expanded="false"><span class="tx" id="levelTx">全部</span><svg class="car" viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.3 4 5 6.7 7.7 4"/></svg></button>
+      <div class="lvmenu" id="levelMenu" style="display:none">
+        <button type="button" data-v="s1">一级分部</button>
+        <button type="button" data-v="s2">二级分部</button>
+        <button type="button" data-v="s3">三级分部</button>
+        <button type="button" data-v="s4">四级分部</button>
+        <button type="button" data-v="bill">清单</button>
+        <button type="button" data-v="quota">定额</button>
+        <button type="button" data-v="all">全部</button>
+      </div></span>
+    <span class="searchbox"><span class="si"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7.1" cy="7.1" r="4.3"/><path d="m10.4 10.4 3 3"/></svg></span>
+      <input id="search" placeholder="搜索清单 / 定额 / 人材机…"></span>
+    <button class="btn mini" id="detailBtn" aria-pressed="true" title="显示 / 隐藏工料机窗口"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2" y="2.6" width="12" height="10.8" rx="2"/><path d="M2 9.5h12"/><path d="M4.5 11.9h3"/></svg>工料机</button>
     <button class="btn mini" id="exportBtn" title="把当前工程打包成可单独双击打开的快照 HTML">导出 HTML</button>
+    <button class="btn mini" id="xlsxBtn" title="勾选需要的单位工程，导出 Excel 清单（每个单位工程一个工作表）">导出清单</button>
     <button class="btn mini" id="themeBtn">深色</button>
   </div>
   <div class="tabs" id="tabs" style="display:none"></div>
   <div class="start" id="startView">
     <div class="drop" id="dropZone">
+      <div class="di"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.1" y="7.3" width="9.8" height="6.5" rx="1.7"/><path d="M5.6 7.3V5.2a2.4 2.4 0 0 1 4.7-.6"/></svg></div>
       <h2>选择或拖入计价文件</h2>
       <p>全程在本机浏览器内只读解析，不启动计价软件、不占用原文件、不上传任何数据。</p>
-      <p class="hint">广联达：.gbq7 / .gbq6（清单与定额模式均可读）&nbsp;·&nbsp;新点：.EYS11 / .emjyx（识别容器结构，加密数据段不破解）</p>
+      <p class="hint">广联达：.GBQ7 / .GBQ6（清单与定额模式均可读）&nbsp;·&nbsp;新点：.EYS11 / .emjyx（开发中......）</p>
       <button class="btn primary big" id="pickBtn">选择计价文件</button>
       <input type="file" id="fileInput" accept=".gbq7,.gbq6,.gbq,.eys,.eys11,.een,.emjyx,.gc" hidden>
       <div class="msg" id="msg1"></div>
@@ -256,8 +402,9 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       <div class="detail" id="detail">
         <div class="detail-hd">
           <button class="on" id="detailTitle">工料显示</button>
+          <div class="dq-tabs" id="detailTabs"></div>
           <span class="spacer"></span>
-          <span class="hint">点击定额行查看人材机组成</span>
+          <span class="hint" id="detailHint">点击清单 / 定额行查看人材机组成</span>
         </div>
         <div class="detail-body" id="detailBody"><div class="empty">选中定额行后，在此显示人材机明细</div></div>
       </div>
@@ -267,6 +414,31 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     <span id="statusLeft">就绪 · 离线只读</span>
     <span class="spacer"></span>
     <span id="statusRight"></span>
+  </div>
+  <div class="cmenu" id="themeMenu">
+    <div class="cmenu-hd">行背景色（右键「深色 / 浅色」按钮）</div>
+    <label class="crow"><span>清单行底色</span><input type="color" id="colBill"></label>
+    <label class="crow"><span>定额行底色</span><input type="color" id="colQuota"></label>
+    <div class="cmenu-ft"><button class="btn mini" id="colReset">恢复默认</button></div>
+  </div>
+  <div class="mask" id="xlsxMask" style="display:none">
+    <div class="dlg" role="dialog" aria-label="导出清单">
+      <div class="dlg-hd"><b>导出清单</b><span class="dlg-tip" id="xlsxTip">勾选需要的单位工程，每个单位工程一个工作表</span></div>
+      <div class="dlg-bar">
+        <label><input type="checkbox" id="xlsxAll" checked>全选</label>
+        <label title="勾选后，列表与导出标题使用「单项工程名称-单位工程名称」"><input type="checkbox" id="xlsxPre">含单项工程名</label>
+        <span class="hint" id="xlsxCnt"></span>
+        <span class="spacer"></span>
+        <span class="hint">列：序号 / 分部 / 编码 / 名称 / 特征 / 单位 / 工程量 / 单价 / 合价</span>
+      </div>
+      <div class="dlg-body" id="xlsxList"></div>
+      <div class="dlg-ft">
+        <span class="msg" id="xlsxMsg"></span>
+        <span class="spacer"></span>
+        <button class="btn mini" id="xlsxCancel">取消</button>
+        <button class="btn mini primary" id="xlsxGo">导出 Excel</button>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -944,7 +1116,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     return { member: member, database: table.database, namespace: table.namespace, table: table.name,
       row_index: i, record_id: id, source_block: table.source_block, source_offset: table.source_offset };
   }
-  function normalizeUnit(parsed, member, saved) {
+  function normalizeUnit(parsed, member, saved, metadata) {
     var idx = indexTables(parsed);
     function table(name, ns) {
       return idx['BusinessDB|' + (ns || '') + '|' + name] || { database: 'BusinessDB', namespace: ns || '', name: name, rows: [] };
@@ -1088,8 +1260,9 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         cost_types: cts, mix_types: mrs, supply_types: ss, calc_scope: number(row.CalcScope),
         is_protected: !!row.IsProtected });
     });
-    // 费用汇总行名随模板/地区版本变化：工程造价 / 含税工程造价合计 / 不含税工程造价合计
-    var AMOUNT_KEYS = ['工程造价', '含税工程造价合计', '含税工程造价', '不含税工程造价合计', '不含税工程造价'];
+    // 费用汇总行名随模板/地区版本变化：工程造价 / 工程造价合计 / 含税工程造价合计 / 不含税工程造价合计
+    var AMOUNT_KEYS = ['工程造价', '工程造价合计', '含税工程造价合计', '含税工程造价',
+      '不含税工程造价合计', '不含税工程造价'];
     var amount, amountSource, basis, hitKey = '';
     for (var ak = 0; ak < AMOUNT_KEYS.length && !hitKey; ak++) {
       var rows4 = fees.filter(function (f) { return f.name === AMOUNT_KEYS[ak] && !f.is_deleted; });
@@ -1097,9 +1270,25 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         amount = rows4[0].amount; amountSource = rows4[0].source; basis = 'Summary:' + AMOUNT_KEYS[ak]; hitKey = AMOUNT_KEYS[ak];
       }
     }
+    // 兜底一：名称模糊匹配（如「含税工程造价合计(元)」），排除「其中：」子项，取序号最靠后的合计行
     if (!hitKey) {
-      if (saved) { amount = saved.amount; amountSource = saved.source; basis = 'BidNode:saved-unit-amount'; }
-      else throw new Error(name + ' 无法确定保存金额');
+      var fuzzy = fees.filter(function (f) {
+        return !f.is_deleted && typeof f.name === 'string' && f.amount !== null && f.amount !== undefined &&
+          /工程造价(合计)?$/.test(f.name.replace(/\s|\(.*?\)|（.*?）/g, '')) && f.name.indexOf('其中') < 0;
+      });
+      if (fuzzy.length) {
+        var pick = fuzzy[fuzzy.length - 1];
+        amount = pick.amount; amountSource = pick.source; basis = 'Summary:' + pick.name; hitKey = pick.name;
+      }
+    }
+    // 兜底二：BidNode 保存值；兜底三：Overview.ini 的 ProjectAmount
+    if (!hitKey) {
+      if (saved && saved.amount !== null && saved.amount !== undefined) {
+        amount = saved.amount; amountSource = saved.source; basis = 'BidNode:saved-unit-amount';
+      } else if (metadata && metadata.ProjectAmount !== null && metadata.ProjectAmount !== undefined && isFinite(Number(metadata.ProjectAmount))) {
+        amount = Number(metadata.ProjectAmount); amountSource = 'Overview.ini:ProjectAmount';
+        basis = 'Overview:ProjectAmount';
+      } else throw new Error(name + ' 无法确定保存金额');
     }
     return { name: name, source_member: member, amount: amount, amount_source: amountSource, amount_basis: basis,
       mode: quotaMode ? 'quota' : 'bill',
@@ -1140,7 +1329,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       var m = re.exec(member);
       if (m) {
         var fid = m[2] ? parseInt(m[2], 10) : 0;
-        var unit = normalizeUnit(members[member], member, savedById[fid]);
+        var unit = normalizeUnit(members[member], member, savedById[fid], metadata);
         unit.file_id = fid;
         units.push(unit);
       }
@@ -1380,10 +1569,16 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
 (function () {
   'use strict';
   var S = { data: null, unit: 0, tab: 'fbfx', q: '', section: '', level: 'all',
-    collapsed: {}, picked: null, selKey: '', costCollapsed: {}, csCollapsed: {},
-    treeCol: {}, secCol: {}, qtItem: '', hjCat: -1, t0: 0, fileName: '', snapshot: false };
-  var LEVELS = { s1: 1, s2: 2, s3: 3, s4: 4, bill: 9, quota: 9, all: 9 };
-  var MAXROW = { s1: 0, s2: 0, s3: 0, s4: 0, bill: 1, quota: 2, all: 3 };
+    collapsed: {}, picked: null, pickBill: null, selKey: '', costCollapsed: {}, csCollapsed: {},
+    treeCol: {}, secCol: {}, qtItem: '', hjCat: -1, t0: 0, fileName: '', snapshot: false, detailOn: true };
+  // 层级只决定「默认展开到哪一级」，不再裁剪数据：箭头始终可手动展开 / 折叠
+  // sec = 允许直接显示的分部最深 depth；row = 允许直接显示的明细行（清单 1 / 定额 2 / 主材 3）
+  var LVCAP = {
+    s1: { sec: 1, row: 0 }, s2: { sec: 2, row: 0 }, s3: { sec: 3, row: 0 }, s4: { sec: 4, row: 0 },
+    bill: { sec: 9, row: 1 }, quota: { sec: 9, row: 2 }, all: { sec: 9, row: 3 }
+  };
+  var LV_OPTS = [['s1', '一级分部'], ['s2', '二级分部'], ['s3', '三级分部'], ['s4', '四级分部'],
+    ['bill', '清单'], ['quota', '定额'], ['all', '全部']];
   var $ = function (id) { return document.getElementById(id); };
   function esc(v) {
     return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -1397,10 +1592,11 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     return isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(v);
   }
   function unit() { return S.data && S.data.units[S.unit]; }
-  // 数据页才显示「层级/搜索/导出」，新点识别页与起始页隐藏
+  // 数据页才显示「层级/搜索/工料机/导出」，新点识别页与起始页隐藏
   function chromeData(on) {
-    ['levelSel', 'search', 'exportBtn'].forEach(function (id) {
+    ['levelSel', 'search', 'exportBtn', 'detailBtn', 'xlsxBtn'].forEach(function (id) {
       var el = $(id); if (!el) return;
+      if (id === 'levelSel' && $('levelWrap')) { $('levelWrap').style.display = on ? '' : 'none'; return; }
       if (id === 'exportBtn') el.style.display = on && !S.snapshot ? '' : 'none';
       else el.style.display = on ? '' : 'none';
     });
@@ -1426,14 +1622,75 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     ['qt', '其他项目'], ['hj', '人材机汇总'], ['fee', '费用汇总']
   ];
 
+  // 「显示层级」下拉：宽度按最长选项的文字实测值撑开，文字在框内水平 + 垂直居中，箭头跟在文字右侧
+  function fitLevelSel() {
+    var sel = $('levelSel');
+    if (!sel) return;
+    var cs = getComputedStyle(sel);
+    var cv = fitLevelSel._cv || (fitLevelSel._cv = document.createElement('canvas'));
+    var ctx = cv.getContext('2d');
+    ctx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    var w = 0;
+    for (var i = 0; i < LV_OPTS.length; i++) w = Math.max(w, ctx.measureText(LV_OPTS[i][1]).width);
+    // 文字严格居中：左右内边距对称 15 + 边框 2 + 余量 8；箭头绝对定位在右侧，不占文字位置
+    sel.style.width = Math.max(76, Math.ceil(w) + 40) + 'px';
+  }
+  function lvLabel(v) {
+    for (var i = 0; i < LV_OPTS.length; i++) if (LV_OPTS[i][0] === v) return LV_OPTS[i][1];
+    return '全部';
+  }
+  function setLevel(v, quiet) {
+    // 切换层级时清掉手工展开 / 折叠的痕迹：新层级始终按自己的默认深度重新展开，
+    // 否则之前手动折叠过的分部会「卡」在折叠态（选「清单」却看不到清单）。
+    if (!quiet && S.level !== v) S.collapsed = {};
+    S.level = v;
+    if ($('levelTx')) $('levelTx').textContent = lvLabel(v);
+    var menu = $('levelMenu');
+    if (menu) {
+      var bs = menu.querySelectorAll('button[data-v]');
+      for (var i = 0; i < bs.length; i++) bs[i].classList.toggle('on', bs[i].getAttribute('data-v') === v);
+    }
+    if (!quiet) renderGrid();
+  }
+  function closeLevelMenu() {
+    var menu = $('levelMenu'), btn = $('levelSel');
+    if (menu) menu.style.display = 'none';
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  function toggleLevelMenu() {
+    var menu = $('levelMenu'), btn = $('levelSel');
+    if (!menu) return;
+    var open = menu.style.display !== 'none';
+    menu.style.display = open ? 'none' : '';
+    if (btn) btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  }
+
   function start() {
     chromeData(false);
-    if ($('levelSel')) $('levelSel').onchange = function () {
-      S.level = this.value; renderGrid();
+    fitLevelSel();
+    window.addEventListener('resize', fitLevelSel);
+    if ($('levelSel')) {
+      $('levelSel').onclick = function (e) { e.stopPropagation(); toggleLevelMenu(); };
+    }
+    if ($('levelMenu')) $('levelMenu').onclick = function (e) {
+      var b = e.target.closest ? e.target.closest('button[data-v]') : null;
+      if (!b) return;
+      setLevel(b.getAttribute('data-v'));
+      closeLevelMenu();
     };
+    document.addEventListener('click', function (e) {
+      var menu = $('levelMenu');
+      if (!menu || menu.style.display === 'none') return;
+      if ($('levelWrap') && $('levelWrap').contains(e.target)) return;
+      closeLevelMenu();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLevelMenu(); });
     initSplitter();
     initCols();
     bindTreeClicks();
+    try { S.detailOn = localStorage.getItem('gbqDetailOn') !== '0'; } catch (e) {}
+    if ($('grid')) $('grid').onclick = onGridClick;
+    if ($('detailBtn')) $('detailBtn').onclick = toggleDetail;
     $('pickBtn').onclick = function () { $('fileInput').click(); };
     $('fileInput').onchange = function () { if (this.files && this.files[0]) load(this.files[0]); };
     $('themeBtn').onclick = function () {
@@ -1457,8 +1714,30 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (f) load(f);
     });
-    $('search').oninput = function () { S.q = this.value.trim(); renderGrid(); };
+    $('search').oninput = function () {
+      var q = this.value.trim();
+      // 筛选条件变化时清空折叠状态：命中行不会被之前折叠的父级藏起来，箭头也照常可点
+      if (q !== S.q) S.collapsed = {};
+      S.q = q; renderGrid();
+    };
     if ($('exportBtn')) $('exportBtn').onclick = exportHtml;
+    // 导出清单弹窗
+    if ($('xlsxBtn')) $('xlsxBtn').onclick = openXlsxDlg;
+    if ($('xlsxCancel')) $('xlsxCancel').onclick = closeXlsxDlg;
+    if ($('xlsxGo')) $('xlsxGo').onclick = doExportXlsx;
+    if ($('xlsxMask')) $('xlsxMask').onclick = function (e) { if (e.target === this) closeXlsxDlg(); };
+    if ($('xlsxPre')) {
+      $('xlsxPre').checked = XL.pre;
+      $('xlsxPre').onchange = function () { XL.pre = this.checked; renderXlsxList(); };
+    }
+    if ($('xlsxAll')) $('xlsxAll').onchange = function () {
+      var on = this.checked, units = (S.data && S.data.units) || [];
+      units.forEach(function (u, i) { XL.sel[i] = on; });
+      renderXlsxList();
+    };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('xlsxMask') && $('xlsxMask').style.display !== 'none') closeXlsxDlg();
+    });
   }
 
   // 工料显示框：拖动分隔条上下调整高度，记住上次高度
@@ -1497,7 +1776,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
   }
 
   /* ---------- 工程结构 / 分部专业 列宽拖动（记住上次宽度） ---------- */
-  var COL_DEF = { t1: 182, t2: 200 };
+  var COL_DEF = { t1: 216, t2: 214 };
   var COLW = { t1: COL_DEF.t1, t2: COL_DEF.t2 };
   function colEl(k) { return $(k === 't1' ? 'tree1' : 'tree2'); }
   function applyColW(k, w) {
@@ -1683,7 +1962,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     S.collapsed = {};
     S.picked = null; S.selKey = ''; S.costCollapsed = {}; S.csCollapsed = {};
     S.qtItem = ''; S.hjCat = -1;
-    if ($('levelSel')) $('levelSel').value = 'all';
+    setLevel('all', true);
     if ($('search')) $('search').value = '';
     $('fileName').textContent = S.fileName + (opt.snapshot ? '（快照）' : '');
     $('fileName').title = S.fileName;
@@ -1748,6 +2027,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       if (el) el.innerHTML = '';
     });
     var sv = q('#startView'); if (sv) sv.style.display = 'none';
+    var xm = q('#xlsxMask'); if (xm) xm.style.display = 'none';
     var ep = q('#epointView'); if (ep) { ep.innerHTML = ''; ep.style.display = 'none'; }
     var cv = q('#convertView'); if (cv) cv.style.display = 'flex';
     var wv = q('#workView'); if (wv) wv.style.display = 'none';
@@ -1850,38 +2130,33 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     })(bs[i]);
   }
 
-  /* ---------- 目录树：图标 / 折角连接线 / 展开收起 ---------- */
-  var TSTEP = 15;
+  /* ---------- 目录树：缩进 + 展开箭头 + 类型图标 + 层级导引线 ---------- */
+  var TSTEP = 14, TPAD = 9;
   var ICON_SVG = {
-    bld: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M2.4 10.3V2.4h4.3v7.9"/><path d="M6.7 5.4h2.9v4.9"/><path d="M1.1 10.3h9.8"/><path d="M3.7 4.4h1.2M3.7 6.2h1.2M3.7 8h1.2M7.6 7.1h1.1M7.6 8.7h1.1"/></svg>',
-    house: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M1.5 6.2 6 2.1l4.5 4.1"/><path d="M2.7 6.1v4.2h6.6V6.1"/><path d="M5 10.3V7.8h2v2.5"/><circle cx="10.3" cy="9.7" r="1.1" fill="#e08a1e" stroke="none"/></svg>',
-    doc: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M3 1.6h3.9l2.1 2.1v6.7H3z"/><path d="M6.9 1.6v2.2h2.1"/><path d="M4.3 6h3.4M4.3 7.5h3.4M4.3 9h2.2"/></svg>',
-    list: '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><path d="M2.4 1.6h7.2v8.8H2.4z"/><path d="M4 4.1h1M6.1 4.1h2M4 6h1M6.1 6h2M4 7.9h1M6.1 7.9h2"/></svg>'
+    bld: '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><path d="M2.6 13.4V3.3a.8.8 0 0 1 .8-.8h4.9a.8.8 0 0 1 .8.8v10.1"/><path d="M9.1 7.6h3.2a.8.8 0 0 1 .8.8v5"/><path d="M1.5 13.4h13"/><path d="M4.5 5.3h1.7M4.5 7.5h1.7M4.5 9.7h1.7M11 9.4h.9M11 11.3h.9"/></svg>',
+    house: '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><path d="M2.3 7.7 8 2.9l5.7 4.8"/><path d="M3.8 7.5v6h8.4v-6"/><path d="M6.6 13.5v-3h2.8v3"/></svg>',
+    folder: '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><path d="M1.9 5.3a.9.9 0 0 1 .9-.9h2.9l1.3 1.5h6.2a.9.9 0 0 1 .9.9v5.5a.9.9 0 0 1-.9.9H2.8a.9.9 0 0 1-.9-.9z"/></svg>',
+    doc: '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><path d="M4 2.6h4.6l3.4 3.3v7.5H4z"/><path d="M8.6 2.6v3.3h3.4"/><path d="M6 8.6h4M6 10.9h4"/></svg>',
+    list: '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"><path d="M8 2.5 2.4 5.3 8 8.1l5.6-2.8z"/><path d="M2.4 9.6 8 12.4l5.6-2.8"/></svg>'
   };
-  function expSvg(exp, box) {
-    if (exp === undefined || exp === '') return '';
-    if (box) {
-      return '<svg viewBox="0 0 11 11" width="10" height="10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="10" height="10" rx="1.5"/>' +
-        (exp === 'open' ? '<path d="M3 5.5h5"/>' : '<path d="M3 5.5h5M5.5 3v5"/>') + '</svg>';
-    }
-    return exp === 'open'
-      ? '<svg viewBox="0 0 10 10" width="9" height="9"><path d="M2 3.4h6L5 7.3z" fill="currentColor"/></svg>'
-      : '<svg viewBox="0 0 10 10" width="9" height="9"><path d="M3.6 2l2.9 3-2.9 3z" fill="currentColor"/></svg>';
-  }
-  // 一行树节点：左侧橙色折角连接线（竖线 + 圆角横线），后接展开符 / 图标 / 名称
+  var CHEV = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.3 3.7 10.6 8l-4.3 4.3"/></svg>';
+  // 表格行内的展开箭头（比字符 ▾ / ▸ 更锐利）
+  var CARET_OPEN = '<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M4.6 2.5 8.1 6l-3.5 3.5"/></svg>';
+  var CARET_CLOSED = '<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 2.5 8.1 6l-3.5 3.5"/></svg>';
+  // 一行树节点：层级导引线 → 展开箭头 → 类型图标 → 名称 → 计数
   function treeRow(o) {
-    var depth = o.depth || 0, pad = 6 + depth * TSTEP, x = pad - 8, h = '';
-    if (depth > 0) {
-      // 来自父级的主干：末位只画到本行中线，其余贯通
-      h += '<i class="tv" style="left:' + x + 'px;' + (o.last ? 'top:0;height:calc(50% + 1px)' : 'top:0;bottom:0') + '"></i>';
-      // 本行接入线：有展开符时只连到方框左边，叶子连到图标左边
-      h += '<i class="tj" style="left:' + x + 'px;width:' + (o.exp ? 8 : 22) + 'px"></i>';
+    var depth = o.depth || 0, pad = TPAD + depth * TSTEP, h = '', guides = o.guides || [];
+    for (var d = 0; d < depth; d++) {
+      // guides[k] = 第 k 层节点后面还有兄弟。缩进 d 的竖线要穿过「下一层子节点」的子树，
+      // 因此当 guides[d+1] 为真、或 d 就是父级那一层时，才继续往下画。
+      if (d === depth - 1 || guides[d + 1]) h += '<i class="gd" style="left:' + (TPAD + d * TSTEP + 8) + 'px"></i>';
     }
-    h += '<span class="tg' + (o.box ? ' box' : '') + '"' + (o.tg ? ' data-tg="' + esc(o.tg) + '"' : '') + '>' + expSvg(o.exp, o.box) + '</span>';
+    var open = o.exp === 'open';
+    h += '<span class="tg' + (open ? ' open' : '') + '"' + (o.tg ? ' data-tg="' + esc(o.tg) + '"' : '') + '>' +
+      (o.exp ? CHEV : '') + '</span>';
     h += '<span class="ic ' + (o.iconCls || 'd') + '">' + (ICON_SVG[o.icon] || ICON_SVG.doc) + '</span>';
     h += '<span class="nm">' + esc(o.name) + '</span>';
-    if (o.count !== undefined && o.count !== null && o.count !== '' && o.count !== 0) h += '<span class="ct">(' + esc(o.count) + ')</span>';
-    if (o.exp) h += '<i class="tv" style="left:' + (pad + 7) + 'px;top:calc(50% + 6px);bottom:0"></i>';
+    if (o.count !== undefined && o.count !== null && o.count !== '' && o.count !== 0) h += '<span class="ct">' + esc(o.count) + '</span>';
     return '<div class="tn' + (o.on ? ' on' : '') + '" style="padding-left:' + pad + 'px"' + (o.attrs || '') + ' title="' +
       esc(o.title === undefined ? o.name : o.title) + '">' + h + '</div>';
   }
@@ -1907,7 +2182,11 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         if (tg && tg.getAttribute('data-tg')) { toggleTree(tg.getAttribute('data-tg')); return; }
         if (!row) return;
         if (row.hasAttribute('data-u')) return selectUnit(Number(row.getAttribute('data-u')));
-        if (row.hasAttribute('data-s')) { S.section = row.getAttribute('data-s'); renderTrees(); renderGrid(); return; }
+        if (row.hasAttribute('data-s')) {
+          S.section = row.getAttribute('data-s');
+          S.collapsed['s' + S.section] = false; // 跳转后该分部显式展开，不会只剩一个没有内容的箭头
+          renderTrees(); renderGrid(); return;
+        }
         if (row.hasAttribute('data-q')) { S.qtItem = row.getAttribute('data-q'); renderTrees(); renderGrid(); return; }
         if (row.hasAttribute('data-h')) { S.hjCat = Number(row.getAttribute('data-h')); renderTrees(); renderGrid(); return; }
         var g = row.querySelector('.tg[data-tg]');
@@ -1918,10 +2197,10 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
 
   function renderTrees() {
     var d = S.data;
-    var h = '<div class="tree-hd"><span>工程结构</span><span>' + d.counts.units + '</span></div>';
+    var h = '<div class="tree-hd"><span>工程结构</span><span class="cnt">' + d.counts.units + '</span></div>';
     var nodes = d.project.hierarchy, children = {};
     nodes.forEach(function (n) { var k = String(n.pid); (children[k] = children[k] || []).push(n); });
-    function walk(pid, depth) {
+    function walk(pid, depth, guides) {
       var arr = children[String(pid)] || [];
       arr.forEach(function (n, i) {
         var isUnit = n.type === 2, idx = -1;
@@ -1931,17 +2210,17 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         var kids = isUnit ? [] : (children[String(n.id)] || []);
         var key = 'h' + n.id, open = !S.treeCol[key];
         h += treeRow({
-          depth: depth, last: i === arr.length - 1,
-          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '', box: false,
-          icon: isUnit ? 'house' : 'bld', iconCls: 'k', name: n.name,
+          depth: depth, guides: guides,
+          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '',
+          icon: isUnit ? 'house' : 'bld', iconCls: isUnit ? 'u' : 'k', name: n.name,
           on: isUnit && idx === S.unit,
           attrs: idx >= 0 ? ' data-u="' + idx + '"' : '',
           title: n.name + (n.code ? ' · ' + n.code : '')
         });
-        if (kids.length && open) walk(n.id, depth + 1);
+        if (kids.length && open) walk(n.id, depth + 1, guides.concat([i < arr.length - 1]));
       });
     }
-    walk(null, 0);
+    walk(null, 0, []);
     $('tree1').innerHTML = h;
 
     var show2 = S.tab === 'fbfx' || S.tab === 'qt' || S.tab === 'hj';
@@ -1975,7 +2254,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     }
     var total = u ? (qMode ? u.quota_items.filter(function (q) { return q.namespace === 'FBFX'; })
       : u.bill_items.filter(function (b) { return b.namespace === 'FBFX'; })).length : 0;
-    var h2 = '<div class="tree-hd"><span>分部 / 专业</span><span>' + total + '</span></div>';
+    var h2 = '<div class="tree-hd"><span>分部 / 专业</span><span class="cnt">' + total + '</span></div>';
     var childMap = {};
     secs.forEach(function (s) {
       var k = String(s.pid === null || s.pid === undefined ? -1 : s.pid);
@@ -1983,58 +2262,60 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     });
     var rootOpen = !S.secCol.root;
     h2 += treeRow({
-      depth: 0, last: true, exp: secs.length ? (rootOpen ? 'open' : 'closed') : undefined,
-      tg: secs.length ? 'root' : '', box: true, icon: 'list', iconCls: 'd',
+      depth: 0, guides: [], exp: secs.length ? (rootOpen ? 'open' : 'closed') : undefined,
+      tg: secs.length ? 'root' : '', icon: 'list', iconCls: 's',
       name: '全部分部分项', count: total, on: S.section === '',
       attrs: ' data-s=""', title: '全部分部分项'
     });
-    function walkSec(pid, depth) {
+    function walkSec(pid, depth, guides) {
       var arr = childMap[String(pid)] || [];
       arr.forEach(function (s, i) {
         if (s.id === 0 && pid === -1) return; // 根节点另作“全部分部分项”
         var kids = childMap[String(s.id)] || [], key = 's' + s.id, open = !S.secCol[key];
         h2 += treeRow({
-          depth: depth, last: i === arr.length - 1,
-          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '', box: true,
-          icon: 'doc', iconCls: 'd', name: s.name, count: subtreeCount(s.id) || '',
+          depth: depth, guides: guides,
+          exp: kids.length ? (open ? 'open' : 'closed') : undefined, tg: kids.length ? key : '',
+          icon: 'folder', iconCls: 's', name: s.name, count: subtreeCount(s.id) || '',
           on: S.section === String(s.id), attrs: ' data-s="' + esc(s.id) + '"', title: s.name
         });
-        if (kids.length && open) walkSec(s.id, depth + 1);
+        if (kids.length && open) walkSec(s.id, depth + 1, guides.concat([i < arr.length - 1]));
       });
     }
-    if (rootOpen) walkSec(0, 1);
+    if (rootOpen) walkSec(0, 1, [false]);
     $('tree2').innerHTML = h2;
   }
 
   // 其他项目树：OtherItemTitle 分组 + OtherItem 明细（按原生分类）
   function renderOtherTree(u) {
     var titles = u ? (u.other_titles || []) : [], items = u ? (u.other_items || []) : [];
-    var h = '<div class="tree-hd"><span>其他项目</span><span>' + items.length + '</span></div>';
-    h += treeRow({ depth: 0, last: true, icon: 'list', iconCls: 'd', name: '全部', count: items.length,
+    var h = '<div class="tree-hd"><span>其他项目</span><span class="cnt">' + items.length + '</span></div>';
+    h += treeRow({ depth: 0, guides: [], icon: 'list', iconCls: 's', name: '全部', count: items.length,
       on: S.qtItem === '', attrs: ' data-q=""', title: '全部' });
     var childMap = {};
     titles.forEach(function (t) {
       var k = String(t.pid === null || t.pid === undefined ? -1 : t.pid);
       (childMap[k] = childMap[k] || []).push(t);
     });
-    function walk(pid, depth) {
+    function walk(pid, depth, guides) {
       var arr = childMap[String(pid)] || [];
       arr.forEach(function (t, i) {
-        h += treeRow({ depth: depth, last: i === arr.length - 1, icon: 'doc', iconCls: 'd', name: t.name,
-          on: S.qtItem === 't' + t.id, attrs: ' data-q="t' + esc(t.id) + '"', title: t.name });
+        var more = i < arr.length - 1;
+        var kids = items.filter(function (it) { return String(it.title_id) === String(t.id); });
+        h += treeRow({ depth: depth, guides: guides, icon: 'folder', iconCls: 's', name: t.name,
+          count: kids.length || '', on: S.qtItem === 't' + t.id, attrs: ' data-q="t' + esc(t.id) + '"', title: t.name });
         items.forEach(function (it) {
           if (String(it.title_id) !== String(t.id)) return;
-          h += treeRow({ depth: depth + 1, last: false, icon: 'doc', iconCls: 'd', name: it.name,
+          h += treeRow({ depth: depth + 1, guides: guides.concat([more]), icon: 'doc', iconCls: 'd', name: it.name,
             on: S.qtItem === 'i' + it.id, attrs: ' data-q="i' + esc(it.id) + '"', title: it.name });
         });
-        walk(t.id, depth + 1);
+        walk(t.id, depth + 1, guides.concat([more]));
       });
     }
-    walk(-1, 1);
+    walk(-1, 1, [false]);
     // 无标题归属的明细
     items.forEach(function (it) {
       if (titles.some(function (t) { return String(t.id) === String(it.title_id); })) return;
-      h += treeRow({ depth: 1, last: false, icon: 'doc', iconCls: 'd', name: it.name,
+      h += treeRow({ depth: 1, guides: [false], icon: 'doc', iconCls: 'd', name: it.name,
         on: S.qtItem === 'i' + it.id, attrs: ' data-q="i' + esc(it.id) + '"', title: it.name });
     });
     $('tree2').innerHTML = h;
@@ -2057,13 +2338,13 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
   function renderResCatTree(u) {
     var cats = u ? (u.resource_categories || []) : [];
     var all = u ? u.resources.length : 0;
-    var h = '<div class="tree-hd"><span>人材机分类</span><span>' + all + '</span></div>';
-    h += treeRow({ depth: 0, last: true, icon: 'list', iconCls: 'd', name: '所有人材机', count: all,
+    var h = '<div class="tree-hd"><span>人材机分类</span><span class="cnt">' + all + '</span></div>';
+    h += treeRow({ depth: 0, guides: [], icon: 'list', iconCls: 's', name: '所有人材机', count: all,
       on: S.hjCat === -1, attrs: ' data-h="-1"', title: '所有人材机' });
     RES_TABLES.forEach(function (t, i) {
       var c = cats.filter(function (x) { return String(x.id) === String(t.id); })[0];
       var n = u ? u.resources.filter(function (r) { return resInTable(t, r); }).length : 0;
-      h += treeRow({ depth: 1, last: i === RES_TABLES.length - 1, icon: 'doc', iconCls: 'd',
+      h += treeRow({ depth: 1, guides: [false], icon: 'doc', iconCls: 'd',
         name: c && c.name ? c.name : t.name, count: n,
         on: String(S.hjCat) === String(t.id), attrs: ' data-h="' + t.id + '"', title: t.name });
     });
@@ -2095,7 +2376,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     u.quota_items.forEach(function (q) { (qBy[q.parent_id] = qBy[q.parent_id] || []).push(q); });
     u.resources.forEach(function (r) { rBy[r.id] = r; });
     u.resource_usage.forEach(function (x) { (uBy[x.norm_id] = uBy[x.norm_id] || []).push(x); });
-    var maxSec = LEVELS[S.level] || 9, maxRow = MAXROW[S.level] === undefined ? 3 : MAXROW[S.level];
+    // 层级不再裁剪数据：整棵行树都建出来，由 fbxHidden() 按当前层级 + 折叠状态决定显隐
     var filterId = S.section === '' ? null : Number(S.section), allowed = null;
     if (filterId !== null) {
       allowed = {};
@@ -2117,13 +2398,13 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       });
       return a;
     }
-    var serial = 0;
-    function emitSection(s, depth) {
+    // 全量建行：折叠只影响显示，不再重新构建整张表（点击箭头才能瞬间响应）
+    function emitSection(s, depth, parents) {
       if (allowed && !allowed[s.id]) return;
-      out.push({ kind: 'section', row: s, depth: depth, code: depth === 0 ? '' : 'B' + depth });
-      if (S.collapsed['s' + s.id]) return;
-      if (depth < maxSec) secs.forEach(function (child) { if (child.pid === s.id) emitSection(child, depth + 1); });
-      if (maxRow < 1) return;
+      var key = 's' + s.id;
+      out.push({ kind: 'section', row: s, depth: depth, code: depth === 0 ? '' : 'B' + depth, key: key, parents: parents });
+      var mine = parents.concat([key]);
+      if (depth < 12) secs.forEach(function (child) { if (child.pid === s.id) emitSection(child, depth + 1, mine); });
       if (quotaMode) {
         u.quota_items.forEach(function (q) {
           if (q.namespace !== 'FBFX') return;
@@ -2132,11 +2413,12 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
           var ms = matsOf(q), qh = ql && has(quotaText(q)), mh = false;
           ms.forEach(function (m) { if (has(matText(m.r))) mh = true; });
           if (ql && !qh && !mh) return;
-          out.push({ kind: 'quota', row: q, bill: null, flat: true, no: ++serial });
-          if (maxRow < 2 || S.collapsed['q' + q.id]) return;
+          var qkey = 'q' + q.id;
+          out.push({ kind: 'quota', row: q, bill: null, flat: true, key: qkey, parents: mine });
+          var qmine = mine.concat([qkey]);
           ms.forEach(function (m) {
             if (ql && !qh && !has(matText(m.r))) return;
-            out.push({ kind: 'material', row: m.x, res: m.r, quota: q, no: ++serial });
+            out.push({ kind: 'material', row: m.x, res: m.r, quota: q, key: 'm' + m.x.id, parents: qmine });
           });
         });
         return;
@@ -2153,15 +2435,15 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
           qList.push({ q: q, ms: ms, qh: qh, mh: mh });
         });
         if (ql && !billHit && !quotaHit) return;
-        out.push({ kind: 'bill', row: b, no: ++serial });
-        if (S.collapsed['b' + b.id] || maxRow < 2) return;
+        var bkey = 'b' + b.id, bmine = mine.concat([bkey]);
+        out.push({ kind: 'bill', row: b, key: bkey, parents: mine });
         qList.forEach(function (it) {
           if (ql && !billHit && !it.qh && !it.mh) return;
-          out.push({ kind: 'quota', row: it.q, bill: b, no: ++serial });
-          if (maxRow < 3 || S.collapsed['q' + it.q.id]) return;
+          var qkey = 'q' + it.q.id;
+          out.push({ kind: 'quota', row: it.q, bill: b, key: qkey, parents: bmine });
           it.ms.forEach(function (m) {
             if (ql && !billHit && !it.qh && !has(matText(m.r))) return;
-            out.push({ kind: 'material', row: m.x, res: m.r, quota: it.q, no: ++serial });
+            out.push({ kind: 'material', row: m.x, res: m.r, quota: it.q, key: 'm' + m.x.id, parents: bmine.concat([qkey]) });
           });
         });
       });
@@ -2179,44 +2461,177 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         startDepth++; cur = map[cur.pid];
       }
     }
-    if (startNode) emitSection(startNode, startDepth);
+    if (startNode) emitSection(startNode, startDepth, []);
     if (!out.length) { // 无原生分部表时回退
       if (quotaMode) {
         u.quota_items.forEach(function (q) {
           if (q.namespace !== 'FBFX') return;
           if (ql && !has(quotaText(q))) return;
-          out.push({ kind: 'quota', row: q, bill: null, flat: true, no: ++serial });
+          out.push({ kind: 'quota', row: q, bill: null, flat: true, key: 'q' + q.id, parents: [] });
         });
       } else u.bill_items.forEach(function (b) {
         if (b.namespace !== 'FBFX') return;
         if (ql && !has(billText(b))) return;
-        out.push({ kind: 'bill', row: b, no: ++serial });
+        out.push({ kind: 'bill', row: b, key: 'b' + b.id, parents: [] });
       });
     }
+    // 序号只给清单行；定额模式（无清单）退化为给顶层定额行；判定有无子行（决定是否画箭头）
+    var billNo = 0;
+    out.forEach(function (r, i) {
+      if (r.kind === 'bill') r.no = ++billNo;
+      var nxt = out[i + 1];
+      r.hasKids = !!(nxt && nxt.key && nxt.parents.indexOf(r.key) >= 0);
+    });
+    if (!billNo) {
+      var qNo = 0;
+      out.forEach(function (r) { if (r.kind === 'quota' && r.flat) r.no = ++qNo; });
+    }
     return out;
+  }
+
+  /* 分部分项：折叠只做显示/隐藏，箭头点击即时生效，不重建表格 */
+  var FBX = { rows: [], trs: [], byKey: {}, kidsVis: {} };
+  function lvCap() { return LVCAP[S.level] || LVCAP.all; }
+  function rankOf(k) { return k === 'bill' ? 1 : k === 'quota' ? 2 : 3; }
+  // 行本身是否超出当前层级（仍可能因为上一级被手动展开而露出）
+  function lvHidden(r) {
+    // 顶层行（无分部回退、跳转后的根分部）不受层级限制
+    if (!r.parents || !r.parents.length) return false;
+    var c = lvCap();
+    return r.kind === 'section' ? r.depth > c.sec : rankOf(r.kind) > c.row;
+  }
+  function fbxHidden(r) {
+    var p = r.parents || [], i;
+    for (i = 0; i < p.length; i++) if (S.collapsed[p[i]] === true) return true;
+    if (!lvHidden(r)) return false;
+    // 超出层级的行：只有当它的上一级节点被手动展开时才显示（展开一层看一层）
+    var pk = p.length ? p[p.length - 1] : '';
+    return !(pk && S.collapsed[pk] === false);
+  }
+  // 箭头开合：显式折叠/展开优先，否则取决于「子行是否直接可见」（层级折叠的子行箭头朝右）
+  function caretOpen(r) {
+    var st = S.collapsed[r.key];
+    if (st !== undefined) return !st;
+    return !!(FBX.kidsVis && FBX.kidsVis[r.key]);
+  }
+  function refreshFbx() {
+    for (var i = 0; i < FBX.rows.length; i++) {
+      var r = FBX.rows[i], tr = FBX.trs[i];
+      if (!tr) continue;
+      tr.classList.toggle('hide', fbxHidden(r));
+      if (r.hasKids) {
+        var w = tr.querySelector('.tw[data-exp]');
+        if (w) w.innerHTML = caretOpen(r) ? CARET_OPEN : CARET_CLOSED;
+      }
+    }
+  }
+  function paintPicked() {
+    var trs = $('grid').querySelectorAll('tr[data-k]');
+    for (var i = 0; i < trs.length; i++) {
+      if (trs[i].getAttribute('data-k') === S.selKey && S.selKey) trs[i].classList.add('picked');
+      else trs[i].classList.remove('picked');
+    }
+  }
+
+  // 选中清单 / 定额 / 主材后统一刷新工料窗口
+  function showDetail(bill, quota) {
+    S.pickBill = bill || null;
+    S.picked = quota || null;
+    if (S.detailOn && S.tab === 'fbfx') renderDetail();
+  }
+  function quotasOfBill(bill) {
+    var u = unit(), out = [];
+    if (!u || !bill) return out;
+    u.quota_items.forEach(function (q) {
+      if (q.namespace !== 'FBFX') return;
+      if (String(q.parent_id) === String(bill.id)) out.push(q);
+    });
+    return out;
+  }
+  function usageCount(q) {
+    var u = unit(), n = 0;
+    if (!u || !q) return 0;
+    u.resource_usage.forEach(function (x) { if (String(x.norm_id) === String(q.id)) n++; });
+    return n;
+  }
+
+  // 工料显示窗口：显/隐由标题栏按钮控制，切换页签时自动收起
+  function syncDetail() {
+    var on = !!(S.data && S.detailOn && S.tab === 'fbfx');
+    if ($('detail')) $('detail').style.display = on ? '' : 'none';
+    if ($('splitter')) $('splitter').style.display = on ? '' : 'none';
+    if ($('detailBtn')) {
+      $('detailBtn').classList.toggle('on', !!S.detailOn);
+      $('detailBtn').setAttribute('aria-pressed', S.detailOn ? 'true' : 'false');
+    }
+  }
+  function toggleDetail() {
+    S.detailOn = !S.detailOn;
+    try { localStorage.setItem('gbqDetailOn', S.detailOn ? '1' : '0'); } catch (e) {}
+    syncDetail();
+    if (S.detailOn && S.tab === 'fbfx' && (S.picked || S.pickBill)) renderDetail();
+  }
+
+  // 展开 / 折叠一个节点：展开 → 折叠；折叠（含层级默认折叠）→ 显式展开，所以手动一定能展开
+  function toggleNode(key, item) {
+    var it = item || FBX.byKey[key];
+    S.collapsed[key] = it ? caretOpen(it) : !S.collapsed[key];
+    refreshFbx();
+  }
+
+  // 表格点击统一委托：箭头最优先（点 SVG 描边也能命中），单击即生效
+  function onGridClick(e) {
+    var t = e.target, tw = t && t.closest ? t.closest('.tw') : null;
+    if (tw && tw.getAttribute('data-exp') !== null) {
+      var k = tw.getAttribute('data-exp');
+      toggleNode(k, FBX.byKey[k]);
+      return;
+    }
+    if (S.tab !== 'fbfx') return;
+    var tr = t && t.closest ? t.closest('tr[data-i]') : null;
+    if (!tr) return;
+    var item = FBX.rows[Number(tr.getAttribute('data-i'))];
+    if (!item) return;
+    // 数据区点分部行只做展开 / 折叠（不做筛选，其他分支的数据不会被隐藏）
+    if (item.kind === 'section') { if (item.hasKids) toggleNode(item.key, item); return; }
+    if (item.kind === 'bill') { showDetail(item.row, null); S.selKey = 'b' + item.row.id; paintPicked(); return; }
+    if (item.kind === 'quota') { showDetail(item.bill || null, item.row); S.selKey = 'q' + item.row.id; paintPicked(); return; }
+    if (item.kind === 'material' && item.quota) { showDetail(item.bill || null, item.quota); S.selKey = 'm' + item.row.id; paintPicked(); }
   }
 
   function renderFbfx() {
     var cols = [
       ['序号', 'no'], ['编码', 'code'], ['类别', 'cat'], ['名称', 'name'], ['项目特征', 'feature'],
-      ['是否需要评审', 'review'], ['单位', 'unit'], ['工程量表达式', 'expr'],
+      ['单位', 'unit'], ['工程量表达式', 'expr'],
       ['含量', 'ratio'], ['工程量', 'qty', 'n'], ['单价', 'price', 'n'], ['合价', 'amount', 'n']
     ];
     var rows = buildFbfx();
-    var widths = [36, 112, 40, 190, 210, 52, 48, 92, 58, 82, 82, 92];
+    // 预判每个节点是否存在「当前层级下直接可见」的子行：决定箭头朝下还是朝右
+    FBX.rows = rows;
+    FBX.kidsVis = {};
+    rows.forEach(function (r) {
+      if (lvHidden(r)) return;
+      var p = r.parents || [];
+      if (p.length) FBX.kidsVis[p[p.length - 1]] = true;
+    });
+    var widths = [36, 112, 40, 190, 214, 48, 92, 58, 82, 82, 92];
     var h = '<table><colgroup>' + widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') + '</colgroup>' +
       tableHead(cols) + '<tbody>';
     rows.forEach(function (r, i) {
       var k = r.kind, b = r.row;
+      // 只有真的有子行才给箭头（含被当前层级折叠起来的子行），否则留等宽占位保持对齐
+      var tw = r.hasKids
+        ? '<span class="tw" data-exp="' + r.key + '">' + (caretOpen(r) ? CARET_OPEN : CARET_CLOSED) + '</span>'
+        : '<span class="tw ph"></span>';
+      var hide = fbxHidden(r) ? ' hide' : '';
       if (k === 'section') {
-        var tw = '<span class="tw" data-exp="s' + b.id + '">' + (S.collapsed['s' + b.id] ? '▸' : '▾') + '</span>';
-        h += '<tr class="section sec' + r.depth + '" data-i="' + i + '">' +
+        h += '<tr class="section sec' + r.depth + hide + '" data-i="' + i + '">' +
           '<td class="seq"></td><td title="' + esc(r.code) + '">' + tw + esc(r.code) + '</td>' +
           cell('部', 'cat') + cell(b.name, 'secname', b.name) +
-          cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + '</tr>';
+          cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + cell('') + '</tr>';
         return;
       }
-      var ind = k === 'bill' ? '' : k === 'quota' ? (r.flat ? '' : ' indent1') : ' indent2';
+      var ind = ''; // 清单 / 定额 / 主材编码与名称一律左对齐，不做分级缩进
       var code = k === 'material' ? (r.res.code || r.row.resource_code) : b.code;
       var cat = k === 'bill' ? '项' : k === 'quota' ? '定' : '主';
       var name = k === 'material' ? (r.res.name || r.row.resource_name) : b.name;
@@ -2227,36 +2642,23 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       var qty = k === 'material' ? r.row.qty : b.qty;
       var price = k === 'material' ? r.res.market_rate : b.price;
       var amount = k === 'material' ? product(r.row.qty, r.res.market_rate) : b.amount;
-      var tw = k === 'bill' ? '<span class="tw" data-exp="b' + b.id + '">' + (S.collapsed['b' + b.id] ? '▸' : '▾') + '</span>' :
-        k === 'quota' ? '<span class="tw" data-exp="q' + b.id + '">' + (S.collapsed['q' + b.id] ? '▸' : '▾') + '</span>' : '';
-      var selKey = k === 'quota' ? 'q' + b.id : k === 'material' ? 'm' + r.row.id : '';
-      h += '<tr class="' + k + (selKey && S.selKey === selKey ? ' picked' : '') + '" data-i="' + i + '">' +
+      var selKey = k === 'bill' ? 'b' + b.id : k === 'quota' ? 'q' + b.id : k === 'material' ? 'm' + r.row.id : '';
+      h += '<tr class="' + k + hide + (selKey && S.selKey === selKey ? ' picked' : '') + '" data-i="' + i + '"' +
+        (selKey ? ' data-k="' + esc(selKey) + '"' : '') + '>' +
         '<td class="seq">' + (r.no || '') + '</td>' +
         '<td class="' + ind + '" title="' + esc(code) + '"' + (match(code) ? ' style="background:#fff3c4"' : '') + '>' + tw + esc(code || '') + '</td>' +
         cell(cat, 'cat') + cell(name, ind, name) +
-        cell(feat, 'feature', feat) + cell('') + cell(unitName) + cell(expr) + cell(ratio) +
+        cell(feat, 'feature', feat) + cell(unitName) + cell(expr) + cell(ratio) +
         num(qty) + num(price) + num(amount) + '</tr>';
     });
     h += '</tbody></table>';
     $('grid').innerHTML = h;
-    var trs = $('grid').querySelectorAll('tr[data-i]');
-    for (var i = 0; i < trs.length; i++) (function (el) {
-      el.onclick = function (e) {
-        var idx = Number(el.getAttribute('data-i')), item = rows[idx];
-        if (!item) return;
-        if (e.target && e.target.getAttribute && e.target.getAttribute('data-exp') !== null) {
-          S.collapsed[e.target.getAttribute('data-exp')] = !S.collapsed[e.target.getAttribute('data-exp')];
-          renderFbfx(); return;
-        }
-        if (item.kind === 'section') { S.section = String(item.row.id); S.picked = null; S.selKey = ''; renderTrees(); renderGrid(); }
-        else if (item.kind === 'quota') { S.picked = item.row; S.selKey = 'q' + item.row.id; renderFbfx(); renderDetail(item.row); }
-        else if (item.kind === 'material' && item.quota) { S.picked = item.quota; S.selKey = 'm' + item.row.id; renderFbfx(); renderDetail(item.quota); }
-        else if (item.kind === 'bill') { S.picked = null; S.selKey = ''; renderFbfx(); }
-      };
-    })(trs[i]);
-    $('detail').style.display = '';
-    if ($('splitter')) $('splitter').style.display = '';
-    if (S.picked) renderDetail(S.picked); else renderDetail(null);
+    FBX.rows = rows;
+    FBX.trs = $('grid').querySelectorAll('tbody tr[data-i]');
+    FBX.byKey = {};
+    rows.forEach(function (r) { if (r.hasKids) FBX.byKey[r.key] = r; });
+    syncDetail();
+    if (S.detailOn) renderDetail();
   }
 
   function product(a, b) {
@@ -2270,15 +2672,55 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     if (/机|机械|设备/.test(String(res.name || ''))) return '机';
     return '材';
   }
-  function renderDetail(q) {
-    if (!q) {
-      $('detailBody').innerHTML = '<div class="empty">选中定额行后，在此显示人材机明细</div>';
+  function renderDetail() {
+    var u = unit();
+    if (!u) return;
+    var bill = S.pickBill || null, picked = S.picked || null;
+    var quotas = bill ? quotasOfBill(bill) : (picked ? [picked] : []);
+    var active = picked || quotas[0] || null;
+
+    // 一个清单多个定额时，标题栏右侧给出可切换的定额标签
+    var tabs = '';
+    if (quotas.length > 1) {
+      quotas.forEach(function (q) {
+        tabs += '<button class="dq' + (q === active ? ' on' : '') + '" data-q="' + esc(q.id) + '" title="' +
+          esc((q.code || '') + ' ' + (q.name || '')) + '"><span class="t">' + esc(q.code || '') + ' ' +
+          esc(q.name || '') + '</span><span class="n">' + usageCount(q) + '</span></button>';
+      });
+    }
+    var tb = $('detailTabs');
+    if (tb) {
+      tb.innerHTML = tabs;
+      tb.style.display = tabs ? '' : 'none';
+      tb.onclick = function (e) {
+        var b = e.target && e.target.closest ? e.target.closest('.dq') : null;
+        if (!b) return;
+        var id = b.getAttribute('data-q');
+        var hit = quotas.filter(function (q) { return String(q.id) === String(id); })[0];
+        if (!hit) return;
+        S.picked = hit; S.selKey = 'q' + hit.id; paintPicked(); renderDetail();
+      };
+    }
+    if ($('detailHint')) {
+      $('detailHint').textContent = bill
+        ? '清单 ' + (bill.code || '') + ' · ' + quotas.length + ' 个定额'
+        : '点击清单 / 定额行查看人材机组成';
+    }
+
+    if (!bill && !active) {
+      $('detailBody').innerHTML = '<div class="empty">点击清单行或定额行，在此显示人材机明细</div>';
+      $('detailTitle').textContent = '工料显示';
       return;
     }
-    var u = unit();
+    if (bill && !quotas.length) {
+      $('detailBody').innerHTML = '<div class="empty">该清单下没有定额子目</div>';
+      $('detailTitle').textContent = '工料显示 — 清单 ' + (bill.code || '') + ' ' + (bill.name || '');
+      return;
+    }
+
     var resMap = {}, usages = [];
     u.resources.forEach(function (r) { resMap[r.id] = r; });
-    u.resource_usage.forEach(function (x) { if (x.norm_id === q.id) usages.push(x); });
+    u.resource_usage.forEach(function (x) { if (String(x.norm_id) === String(active.id)) usages.push(x); });
     // 项目级资源兜底
     S.data.bid_resources.forEach(function (r) { resMap['bid_' + r.id] = r; });
     var cols = ['编码', '类别', '名称', '规格及型号', '单位', '特征率', '含量', '数量', '定额价', '市场价', '合价', '是否暂估', '锁定数量', '是否计价', '原始含量'];
@@ -2294,7 +2736,9 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     });
     h += '</tbody></table>';
     $('detailBody').innerHTML = h;
-    $('detailTitle').textContent = '工料显示 — 定额 ' + (q.code || '') + ' ' + (q.name || '') + '（' + usages.length + ' 条）';
+    var ttl = '工料显示 — 定额 ' + (active.code || '') + ' ' + (active.name || '') + '（' + usages.length + ' 条）';
+    $('detailTitle').textContent = ttl;
+    $('detailTitle').title = ttl;
   }
 
   function simpleGrid(cols, rows) {
@@ -2309,8 +2753,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     });
     h += '</tbody></table>';
     $('grid').innerHTML = h;
-    $('detail').style.display = 'none';
-    if ($('splitter')) $('splitter').style.display = 'none';
+    syncDetail();
   }
   function filtered(rows, keys) {
     if (!S.q) return rows;
@@ -2363,7 +2806,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       widths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('') +
       '</colgroup><thead><tr>' +
       '<th rowspan="2">序号</th><th rowspan="2">名称</th><th rowspan="2">金额</th>' +
-      '<th rowspan="2">评标报价<br>（不含规费、税金、安全文明费、<br>暂列金额与专业工程暂估价）</th>' +
+      '<th rowspan="2" class="evalb">评标报价<br>（不含规费、税金、安全文明费、<br>暂列金额与专业工程暂估价）</th>' +
       '<th colspan="1">分部分项</th><th colspan="2">措施项目</th><th colspan="1">其他项目</th>' +
       '<th rowspan="2">规费</th><th rowspan="2">增值税</th><th rowspan="2">占造价比例(%)</th>' +
       '<th rowspan="2">工程规模<br>(m2或m)</th><th rowspan="2">单位造价<br>(元/m2或元/m)</th></tr><tr>' +
@@ -2379,10 +2822,10 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
       var f = feesOf(n, memo), amt = Number(n.amount || 0);
       var evalBid = amt - f.gui - f.tax - f.aqw;
       var child = kids[String(n.id)] || [];
-      var caret = child.length ? '<span class="tw" data-cost="' + n.id + '">' + (S.costCollapsed[n.id] ? '▸' : '▾') + '</span>' : '';
+      var caret = child.length ? '<span class="tw" data-cost="' + n.id + '">' + (S.costCollapsed[n.id] ? CARET_CLOSED : CARET_OPEN) + '</span>' : '';
       h += '<tr class="cost-row"><td class="seq">' + caret + (depth ? '<span class="ord">' + seq + '</span>' : '') + '</td>' +
         '<td class="nm" style="padding-left:' + (6 + depth * 16) + 'px">' + esc(n.name) + '</td>' +
-        '<td class="num">' + money(amt) + '</td><td class="num">' + money(evalBid) + '</td>' +
+        '<td class="num">' + money(amt) + '</td><td class="num evalb">' + money(evalBid) + '</td>' +
         '<td class="num">' + money(f.fbfx) + '</td><td class="num">' + money(f.cs - f.aqw) + '</td>' +
         '<td class="num">' + money(f.cs) + '</td><td class="num">' + money(f.other) + '</td>' +
         '<td class="num">' + money(f.gui) + '</td><td class="num">' + money(f.tax) + '</td>' +
@@ -2392,9 +2835,15 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         walk(c, depth + 1, depth === 0 ? String(i + 1) : seq + '.' + (i + 1));
       });
     }
-    (kids['0'] || []).forEach(function (r, i) { if (r.type !== 0) walk(r, 0, String(i + 1)); });
+    // 顶层行：常规是项目根（pid=0 的子节点）；单工程另存时根节点 pid 为空，需要按根 id 再取一层
+    var top = kids['0'] || [];
+    if (!top.length) {
+      var rootN = nodes.filter(function (n) { return n.pid === null || n.pid === undefined; })[0];
+      if (rootN) top = kids[String(rootN.id)] || [rootN];
+    }
+    top.forEach(function (r, i) { if (r.type !== 0) walk(r, 0, String(i + 1)); });
     h += '<tr class="total"><td></td><td class="nm">合计</td><td class="num">' + money(tot.amount) + '</td>' +
-      '<td class="num">' + money(tot.evalBid) + '</td><td class="num">' + money(tot.fbfx) + '</td>' +
+      '<td class="num evalb">' + money(tot.evalBid) + '</td><td class="num">' + money(tot.fbfx) + '</td>' +
       '<td class="num">' + money(tot.csNo) + '</td><td class="num">' + money(tot.cs) + '</td>' +
       '<td class="num">' + money(tot.other) + '</td><td class="num">' + money(tot.gui) + '</td>' +
       '<td class="num">' + money(tot.tax) + '</td><td class="num">100.00</td><td class="num">—</td><td class="num">—</td></tr>';
@@ -2468,12 +2917,13 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     groups.forEach(function (g, gi) {
       var sum = g.items.reduce(function (a, m) { return a + Number(m.amount || 0); }, 0);
       var open = !S.csCollapsed[g.key];
-      h += '<tr class="section sec1"><td class="seq"><span class="tw" data-cs="' + g.key + '">' + (open ? '▾' : '▸') + '</span>' +
+      var gTw = g.items.length ? '<span class="tw" data-cs="' + g.key + '">' + (open ? CARET_OPEN : CARET_CLOSED) + '</span>' : '<span class="tw ph"></span>';
+      h += '<tr class="section sec1"><td class="seq">' + gTw +
         (gi === 0 ? '一' : '二') + '</td>' + td('') + td(g.name, 'nm') + td('') + td('') + td('') + td('') + td('') + td('') + nd(sum) + '</tr>';
       if (!open) return;
       g.items.forEach(function (m, i) {
         var subs = qBy[m.id] || [], mOpen = !S.csCollapsed['m' + m.id];
-        var caret = subs.length ? '<span class="tw" data-cs="m' + m.id + '">' + (mOpen ? '▾' : '▸') + '</span>' : '';
+        var caret = subs.length ? '<span class="tw" data-cs="m' + m.id + '">' + (mOpen ? CARET_OPEN : CARET_CLOSED) + '</span>' : '';
         var base = (m.quantity_expression && m.quantity_expression.expression) || '';
         h += '<tr class="bill"><td class="seq">' + caret + esc(m.code || (i + 1)) + '</td>' + td('项', 'cat') +
           td(m.name) + td(m.unit) + nd(m.qty) + td(ESTI[m.esti_style] || (m.esti_style ? '方式' + m.esti_style : '')) +
@@ -2496,8 +2946,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         renderCsxm();
       };
     })(ts[i]);
-    $('detail').style.display = 'none';
-    if ($('splitter')) $('splitter').style.display = 'none';
+    syncDetail();
   }
 
   // 其他项目：OtherItemTitle 分组 + OtherItem 明细，原生层级/勾选
@@ -2540,8 +2989,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     });
     h += '</tbody></table>';
     $('grid').innerHTML = h;
-    $('detail').style.display = 'none';
-    if ($('splitter')) $('splitter').style.display = 'none';
+    syncDetail();
   }
   function feeCategory(n) {
     n = String(n || '');
@@ -2622,8 +3070,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
         for (var k = 0; k < ths.length; k++) ths[k].style.display = b.checked ? '' : 'none';
       };
     })(boxes[i], i === 0 ? 'mktotal' : 'diffcol');
-    $('detail').style.display = 'none';
-    if ($('splitter')) $('splitter').style.display = 'none';
+    syncDetail();
   }
 
   // 费用汇总：Summary 原生 PID 层级 + 全部费用列
@@ -2666,8 +3113,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     (kids['-1'] || []).forEach(function (f) { walk(f, 0); });
     h += '</tbody></table>';
     $('grid').innerHTML = h;
-    $('detail').style.display = 'none';
-    if ($('splitter')) $('splitter').style.display = 'none';
+    syncDetail();
   }
 
   function renderGrid() {
@@ -2677,8 +3123,7 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     syncColVis();
     if (S.tab === 'cost') {
       renderOverview(S.tab);
-      $('detail').style.display = 'none';
-      if ($('splitter')) $('splitter').style.display = 'none';
+      syncDetail();
       return;
     }
     if (S.tab === 'fbfx') { renderFbfx(); return; }
@@ -2688,7 +3133,471 @@ html[data-theme="dark"] .ep-tbl tr.ep-enc td{color:#e0b276}
     if (S.tab === 'fee') { renderFee(); return; }
   }
 
+  /* ============ 导出清单：勾选单位工程 → 单个 .xlsx（每单位工程一个工作表） ============ */
+  var XL = { sel: {}, busy: false, pre: false };
+  var XL_HEAD = ['序号', '分部', '项目编码', '项目名称', '项目特征', '单位', '工程量', '综合单价', '合价'];
+  var XL_W = [6, 30, 18, 30, 46, 8, 11, 12, 14];
+
+  function numOrEmpty(v) {
+    if (v === null || v === undefined || v === '') return '';
+    var n = Number(v);
+    return isFinite(n) ? n : '';
+  }
+  function num2(v) {
+    if (v === null || v === undefined || v === '') return '';
+    var n = Number(v);
+    return isFinite(n) ? Math.round(n * 100) / 100 : '';
+  }
+  function xlMode(u) { return u.mode === 'quota' || (!((u.sections || []).length) && (u.norm_sections || []).length > 0); }
+
+  function unitRowCount(u) {
+    var n = 0;
+    if (xlMode(u)) (u.quota_items || []).forEach(function (q) { if (q.namespace === 'FBFX') n++; });
+    else (u.bill_items || []).forEach(function (b) { if (b.namespace === 'FBFX') n++; });
+    return n;
+  }
+
+  // 分部 id → 完整层级路径（整项目根节点不参与）
+  function secPathMap(secs) {
+    var byId = {}, cache = {};
+    secs.forEach(function (s) { byId[String(s.id)] = s; });
+    function walk(s) {
+      var key = String(s.id);
+      if (cache[key] !== undefined) return cache[key];
+      cache[key] = '';
+      var me = String(s.name || s.code || '').trim();
+      var p = byId[String(s.pid)];
+      var top = '';
+      if (p && String(p.id) !== key && String(p.id) !== '0' &&
+        String(p.name || '').trim() !== '整个项目') top = walk(p);
+      var r = me ? (top ? top + ' / ' + me : me) : top;
+      cache[key] = r;
+      return r;
+    }
+    var out = {};
+    secs.forEach(function (s) { out[String(s.id)] = walk(s); });
+    return out;
+  }
+
+  // 单位工程 → 「单项工程名称-单位工程名称」（无单项工程层时退回工程名，重名则不重复）
+  function unitLabel(u, withPre) {
+    var name = String((u && u.name) || '').trim();
+    if (!withPre) return name;
+    var nodes = (S.data && S.data.project && S.data.project.hierarchy) || [];
+    if (!nodes.length) return name;
+    var byId = {};
+    nodes.forEach(function (n) { byId[String(n.id)] = n; });
+    var cur = byId[String(u.file_id)], single = '', root = '', guard = 0;
+    while (cur && guard++ < 32) {
+      if (cur.type === 1) { single = String(cur.name || '').trim(); break; }
+      if (cur.type === 0) { root = String(cur.name || '').trim(); break; }
+      var p = cur.pid === null || cur.pid === undefined ? null : byId[String(cur.pid)];
+      if (!p || String(p.id) === String(cur.id)) break;
+      cur = p;
+    }
+    if (!single) single = root;
+    if (!single || single === name) return name;
+    return single + '-' + name;
+  }
+
+  // 单位工程 → 表格行（定额模式无清单时导出定额条目）
+  function xlSheet(u) {
+    var quota = xlMode(u);
+    var secs = (quota ? u.norm_sections : u.sections) || [];
+    var secName = secPathMap(secs);
+    var rows = [], total = 0, noOf = {};
+    function push(secId, code, name, feat, unitName, qty, price, amount) {
+      var key = String(secId === undefined || secId === null ? '' : secId);
+      noOf[key] = (noOf[key] || 0) + 1;             // 每个分部各自从 1 开始
+      var amt = num2(amount);
+      if (amt === '') { var a = Number(qty) * Number(price); amt = isFinite(a) ? num2(a) : ''; }
+      if (amt !== '') total += amt;
+      rows.push([noOf[key], secName[key] || '', code || '', name || '',
+        String(feat === null || feat === undefined ? '' : feat).replace(/\r\n?/g, '\n'),
+        unitName || '', num2(qty), num2(price), amt]);
+    }
+    if (quota) {
+      (u.quota_items || []).forEach(function (q) {
+        if (q.namespace !== 'FBFX') return;
+        push(q.section_id, q.code, q.name, '', q.unit, q.qty, q.price, q.amount);
+      });
+    } else {
+      (u.bill_items || []).forEach(function (b) {
+        if (b.namespace !== 'FBFX') return;
+        push(b.section_id, b.code, b.name, b.description, b.unit, b.qty, b.price, b.amount);
+      });
+    }
+    return { quota: quota, rows: rows, total: Math.round(total * 100) / 100 };
+  }
+
+  function xlSheetName(name, used) {
+    var n = String(name || '单位工程').replace(/[\\\/?*\[\]:]/g, '_').replace(/^'+|'+$/g, '').trim();
+    if (!n) n = '单位工程';
+    if (n.length > 28) n = n.slice(0, 28);
+    var base = n, k = 2;
+    while (used[n.toLowerCase()]) { n = base.slice(0, 25) + '(' + k + ')'; k++; }
+    used[n.toLowerCase()] = 1;
+    return n;
+  }
+
+  function xlEsc(v) {
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/[\u007F-\u009F]/g, ' ')
+      .replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c];
+      })
+      .slice(0, 30000);
+  }
+  function xlCol(n) {
+    var s = '';
+    while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function xlStr(col, row, text, style) {
+    return '<c r="' + xlCol(col) + row + '" s="' + style + '" t="inlineStr"><is><t xml:space="preserve">' +
+      xlEsc(text) + '</t></is></c>';
+  }
+
+  var XL_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="1"><numFmt numFmtId="176" formatCode="0.00"/></numFmts>' +
+    '<fonts count="4">' +
+    '<font><sz val="10"/><color theme="1"/><name val="等线"/><charset val="134"/></font>' +
+    '<font><b/><sz val="10"/><color theme="1"/><name val="等线"/><charset val="134"/></font>' +
+    '<font><b/><sz val="14"/><color theme="1"/><name val="等线"/><charset val="134"/></font>' +
+    '<font><b/><sz val="10"/><color rgb="FF1F4F7F"/><name val="等线"/><charset val="134"/></font>' +
+    '</fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF2F5F9"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right>' +
+    '<top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+    '</borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="9">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="176" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="176" fontId="3" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+    '</cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+
+  function xlSheetXml(sh) {
+    var NC = XL_HEAD.length;
+    var x = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">',
+      '<sheetViews><sheetView' + (sh.first ? ' tabSelected="1"' : '') + ' workbookViewId="0">',
+      '<pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/>',
+      '</sheetView></sheetViews>',
+      '<sheetFormatPr defaultRowHeight="15"/>',
+      '<cols>' + XL_W.map(function (w, i) {
+        return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>';
+      }).join('') + '</cols>',
+      '<sheetData>'];
+    x.push('<row r="1" ht="26" customHeight="1">' + xlStr(1, 1, sh.title, 4) + '</row>');
+    var hd = ['<row r="2" ht="21" customHeight="1">'];
+    XL_HEAD.forEach(function (t, i) { hd.push(xlStr(i + 1, 2, t, 1)); });
+    hd.push('</row>');
+    x.push(hd.join(''));
+    // 列样式：0 常规 / 2 数字(0.00) / 3 整数居中 / 7 文本居中 / 8 文本换行
+    var COL_S = [3, 8, 0, 0, 8, 7, 2, 2, 2];
+    sh.rows.forEach(function (row, ri) {
+      var rn = ri + 3, cells = ['<row r="' + rn + '">'];
+      row.forEach(function (v, ci) {
+        var ref = xlCol(ci + 1) + rn, st = COL_S[ci] || 0;
+        if (typeof v === 'number') {
+          cells.push('<c r="' + ref + '" s="' + st + '"><v>' + v + '</v></c>');
+        } else if (v === '' || v === null || v === undefined) {
+          cells.push('<c r="' + ref + '" s="' + st + '"/>');
+        } else {
+          cells.push('<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">' + xlEsc(v) + '</t></is></c>');
+        }
+      });
+      cells.push('</row>');
+      x.push(cells.join(''));
+    });
+    var trn = sh.rows.length + 3, lastC = xlCol(NC);
+    x.push('<row r="' + trn + '" ht="20" customHeight="1">' +
+      xlStr(1, trn, '合计', 5) + '<c r="' + lastC + trn + '" s="6"><v>' + (sh.total || 0) + '</v></c></row>');
+    x.push('</sheetData>');
+    x.push('<mergeCells count="2"><mergeCell ref="A1:' + lastC + '1"/>' +
+      '<mergeCell ref="A' + trn + ':' + xlCol(NC - 1) + trn + '"/></mergeCells>');
+    x.push('<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>');
+    x.push('</worksheet>');
+    return x.join('');
+  }
+
+  function xlFiles(sheets) {
+    var ct = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+      '<Default Extension="xml" ContentType="application/xml"/>',
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'];
+    var rels = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'];
+    var files = [], sheetTags = [];
+    sheets.forEach(function (s, i) {
+      var n = i + 1;
+      ct.push('<Override PartName="/xl/worksheets/sheet' + n + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>');
+      rels.push('<Relationship Id="rId' + n + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + n + '.xml"/>');
+      sheetTags.push('<sheet name="' + xlEsc(s.name) + '" sheetId="' + n + '" r:id="rId' + n + '"/>');
+      files.push({ name: 'xl/worksheets/sheet' + n + '.xml', text: xlSheetXml(s) });
+    });
+    var sid = 'rId' + (sheets.length + 1);
+    rels.push('<Relationship Id="' + sid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>');
+    rels.push('</Relationships>');
+    ct.push('</Types>');
+    var wb = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
+      '<bookViews><workbookView xWindow="0" yWindow="0" windowWidth="22000" windowHeight="13000"/></bookViews>',
+      '<sheets>' + sheetTags.join('') + '</sheets></workbook>'].join('');
+    return [
+      { name: '[Content_Types].xml', text: ct.join('') },
+      { name: '_rels/.rels', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>' },
+      { name: 'xl/workbook.xml', text: wb },
+      { name: 'xl/_rels/workbook.xml.rels', text: rels.join('') },
+      { name: 'xl/styles.xml', text: XL_STYLES }
+    ].concat(files);
+  }
+
+  var XL_CRC = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function xlCrc(u8) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < u8.length; i++) c = XL_CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  // 最小 ZIP：store 或 deflate-raw（浏览器自带压缩，无外部库）
+  function xlZip(entries) {
+    var enc = new TextEncoder(), parts = [], central = [], offset = 0;
+    var d = new Date();
+    var dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+    var dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+    entries.forEach(function (e) {
+      var name = enc.encode(e.name), crc = e.crc, csize = e.data.length, usize = e.size;
+      var lh = new Uint8Array(30 + name.length), lv = new DataView(lh.buffer);
+      lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0x0800, true);
+      lv.setUint16(8, e.method, true); lv.setUint16(10, dt, true); lv.setUint16(12, dd, true);
+      lv.setUint32(14, crc, true); lv.setUint32(18, csize, true); lv.setUint32(22, usize, true);
+      lv.setUint16(26, name.length, true); lv.setUint16(28, 0, true);
+      lh.set(name, 30);
+      var ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+      cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, e.method, true); cv.setUint16(12, dt, true); cv.setUint16(14, dd, true);
+      cv.setUint32(16, crc, true); cv.setUint32(20, csize, true); cv.setUint32(24, usize, true);
+      cv.setUint16(28, name.length, true); cv.setUint32(42, offset, true);
+      ch.set(name, 46);
+      parts.push(lh, e.data);
+      central.push(ch);
+      offset += lh.length + csize;
+    });
+    var cdSize = 0;
+    central.forEach(function (c) { cdSize += c.length; });
+    var eo = new Uint8Array(22), ev = new DataView(eo.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, entries.length, true); ev.setUint16(10, entries.length, true);
+    ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+    return new Blob(parts.concat(central, [eo]), {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+  }
+  function xlDeflate(u8) {
+    if (typeof CompressionStream === 'undefined') return Promise.resolve(null);
+    try {
+      return throughStream(u8, new CompressionStream('deflate-raw')).then(function (c) {
+        return c;
+      }, function () { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+  function xlBuild(sheets) {
+    var enc = new TextEncoder();
+    return Promise.all(xlFiles(sheets).map(function (f) {
+      var raw = enc.encode(f.text), crc = xlCrc(raw), usize = raw.length;
+      return xlDeflate(raw).then(function (c) {
+        var useDef = !!(c && c.length && c.length < usize);
+        return { name: f.name, data: useDef ? c : raw, method: useDef ? 8 : 0, crc: crc, size: usize };
+      });
+    })).then(function (entries) { return xlZip(entries); });
+  }
+  function saveBlob(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 5000);
+  }
+
+  function openXlsxDlg() {
+    if (!S.data) { $('statusRight').textContent = '请先打开一个工程再导出清单'; return; }
+    XL.sel = {};
+    (S.data.units || []).forEach(function (u, i) { XL.sel[i] = true; });
+    $('xlsxMsg').className = 'msg';
+    $('xlsxMsg').textContent = '';
+    $('xlsxMask').style.display = 'flex';
+    renderXlsxList();
+  }
+  function closeXlsxDlg() { $('xlsxMask').style.display = 'none'; }
+
+  function renderXlsxList() {
+    var units = (S.data && S.data.units) || [];
+    var box = $('xlsxList');
+    if (!units.length) { box.innerHTML = '<div class="empty">没有可导出的单位工程</div>'; syncXlsxBar(); return; }
+    var h = '';
+    units.forEach(function (u, i) {
+      h += '<label class="unit-row"><input type="checkbox" data-i="' + i + '"' + (XL.sel[i] ? ' checked' : '') + '>' +
+        '<span class="un" title="' + esc(unitLabel(u, XL.pre) || ('单位工程 ' + (i + 1))) + '">' + esc(unitLabel(u, XL.pre) || ('单位工程 ' + (i + 1))) + '</span>' +
+        '<span class="uc">' + unitRowCount(u) + ' 项</span>' +
+        '<span class="um">¥' + money(u.amount) + '</span></label>';
+    });
+    box.innerHTML = h;
+    box.onchange = function (e) {
+      var t = e.target;
+      if (!t || t.type !== 'checkbox') return;
+      XL.sel[t.getAttribute('data-i')] = t.checked;
+      syncXlsxBar();
+    };
+    syncXlsxBar();
+  }
+  function syncXlsxBar() {
+    var units = (S.data && S.data.units) || [], n = 0, rows = 0;
+    units.forEach(function (u, i) { if (XL.sel[i]) { n++; rows += unitRowCount(u); } });
+    $('xlsxCnt').textContent = '已选 ' + n + ' / ' + units.length + ' 个单位工程 · ' + rows + ' 条清单';
+    var all = $('xlsxAll');
+    if (all) { all.checked = n > 0 && n === units.length; all.indeterminate = n > 0 && n < units.length; }
+    var go = $('xlsxGo');
+    if (go) go.disabled = !n;
+  }
+
+  function doExportXlsx() {
+    var units = (S.data && S.data.units) || [], picked = [];
+    units.forEach(function (u, i) { if (XL.sel[i]) picked.push(u); });
+    if (!picked.length) {
+      $('xlsxMsg').className = 'msg err';
+      $('xlsxMsg').textContent = '请至少勾选一个单位工程';
+      return;
+    }
+    if (XL.busy) return;
+    var btn = $('xlsxGo'), label = btn.textContent;
+    XL.busy = true; btn.disabled = true; btn.textContent = '生成中…';
+    $('xlsxMsg').className = 'msg';
+    $('xlsxMsg').textContent = '正在生成 Excel…';
+    var used = {}, sheets = [], totalRows = 0;
+    picked.forEach(function (u, i) {
+      var d = xlSheet(u);
+      totalRows += d.rows.length;
+      sheets.push({
+        name: xlSheetName(u.name, used),
+        title: (unitLabel(u, XL.pre) || ('单位工程 ' + (i + 1))) + (d.quota ? ' · 定额清单' : ' · 分部分项工程量清单'),
+        rows: d.rows, total: d.total, first: i === 0
+      });
+      $('xlsxMsg').textContent = '正在生成 Excel… ' + (i + 1) + '/' + picked.length;
+    });
+    xlBuild(sheets).then(function (blob) {
+      var fn = safeFileName((S.data.project && S.data.project.name) || S.fileName) + '-清单.xlsx';
+      saveBlob(blob, fn);
+      XL.busy = false; btn.disabled = false; btn.textContent = label;
+      $('xlsxMsg').textContent = '已导出 ' + fn;
+      $('statusLeft').innerHTML = '已导出清单 <b>' + esc(fn) + '</b> · ' + sheets.length + ' 个工作表 · ' + totalRows + ' 条';
+      $('statusRight').textContent = (blob.size / 1024).toFixed(0) + ' KB';
+      setTimeout(closeXlsxDlg, 700);
+    }).catch(function (e) {
+      XL.busy = false; btn.disabled = false; btn.textContent = label;
+      $('xlsxMsg').className = 'msg err';
+      $('xlsxMsg').textContent = '生成失败：' + ((e && e.message) || e);
+    });
+  }
+
+  /* ============ 右键「深色 / 浅色」按钮：设置清单行 / 定额行底色（记住上次选择） ============ */
+  var ROWC = { bill: '', quota: '' };
+  function cssVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback;
+  }
+  // 按底色亮度挑深 / 浅文字，避免自定义浅色底在深色主题下看不见
+  function txOn(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return '';
+    var n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.55 ? '#1a1f26' : '#eef3f9';
+  }
+  function applyRowColors() {
+    var root = document.documentElement;
+    if (ROWC.bill) {
+      root.style.setProperty('--rowbill', ROWC.bill);
+      root.style.setProperty('--rowbill-tx', txOn(ROWC.bill));
+      root.setAttribute('data-rowc-bill', '1');
+    } else {
+      root.style.removeProperty('--rowbill'); root.style.removeProperty('--rowbill-tx');
+      root.removeAttribute('data-rowc-bill');
+    }
+    if (ROWC.quota) {
+      root.style.setProperty('--rowquota', ROWC.quota);
+      root.style.setProperty('--rowquota-tx', txOn(ROWC.quota));
+      root.setAttribute('data-rowc-quota', '1');
+    } else {
+      root.style.removeProperty('--rowquota'); root.style.removeProperty('--rowquota-tx');
+      root.removeAttribute('data-rowc-quota');
+    }
+  }
+  function saveRowColors() {
+    try { localStorage.setItem('gbqRowColors', JSON.stringify({ bill: ROWC.bill, quota: ROWC.quota })); } catch (e) {}
+  }
+  function initRowColors() {
+    try {
+      var v = JSON.parse(localStorage.getItem('gbqRowColors') || '{}');
+      ROWC.bill = /^#[0-9a-f]{6}$/i.test(v.bill || '') ? v.bill : '';
+      ROWC.quota = /^#[0-9a-f]{6}$/i.test(v.quota || '') ? v.quota : '';
+    } catch (e) {}
+    applyRowColors();
+    var m = $('themeMenu'), btn = $('themeBtn');
+    if (!m || !btn) return;
+    var cb = $('colBill'), cq = $('colQuota');
+    function syncInputs() {
+      if (cb) cb.value = ROWC.bill || cssVar('--green', '#f2f9ee');
+      if (cq) cq.value = ROWC.quota || cssVar('--blue', '#eef5fd');
+    }
+    function close() { m.style.display = 'none'; }
+    btn.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      syncInputs();
+      m.style.display = 'block';
+      var r = m.getBoundingClientRect();
+      m.style.left = Math.max(8, Math.min(e.clientX, innerWidth - r.width - 8)) + 'px';
+      m.style.top = Math.max(8, Math.min(e.clientY, innerHeight - r.height - 8)) + 'px';
+    });
+    document.addEventListener('pointerdown', function (e) {
+      if (m.style.display !== 'none' && !m.contains(e.target) && e.target !== btn) close();
+    }, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    if (cb) cb.oninput = function () { ROWC.bill = this.value; applyRowColors(); saveRowColors(); };
+    if (cq) cq.oninput = function () { ROWC.quota = this.value; applyRowColors(); saveRowColors(); };
+    if ($('colReset')) $('colReset').onclick = function () {
+      ROWC.bill = ''; ROWC.quota = ''; applyRowColors(); saveRowColors(); syncInputs();
+    };
+    // 切换深/浅色后，未自定义的一侧跟随主题；已自定义的保持
+    if ($('themeBtn')) $('themeBtn').addEventListener('click', function () { setTimeout(applyRowColors, 0); });
+  }
+
   start();
+  initRowColors();
   bootSnapshot();
   // 便于自动化验证：导出 html 字符串而不触发下载
   window.GBQUI = {
