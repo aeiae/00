@@ -343,7 +343,7 @@
     gap:14px;margin-left:auto;min-width:0;}
   .summary-pills .pill b.up{color:var(--primary);}
   .summary-pills .pill b.down{color:var(--red-tx);}
-  /* 顶栏 送审合价 / 审定合价 / 审减金额 / 审减率：标签与数字统一比例 */
+  /* 顶栏 送审合价 / 审定合价 / 增减金额 / 审减率：标签与数字统一比例 */
   .summary-pills .pill{font-size:11px;line-height:1.7;white-space:nowrap;}
   .summary-pills .pill b{font-size:13px;font-weight:600;margin-left:2px;}
   .summary-pills .scope-pill{color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;}
@@ -391,7 +391,7 @@
   /* 差异文字色（无底色）：送审 / 审定组内只上文字色 */
   td.v-red{color:var(--red-tx);}
   td.v-blue{color:var(--primary);}
-  /* 浅色底：工程量差 与 审减金额 两列按正负着色 */
+  /* 浅色底：工程量差 与 增减金额 两列按正负着色 */
   td.bg-red{background:rgba(192,57,43,.10);}
   td.bg-blue{background:rgba(59,108,246,.10);}
   td.v-note{color:var(--text);font-size:11px;}
@@ -399,19 +399,74 @@
   [data-theme="dark"] td.bg-blue{background:rgba(91,134,255,.18);}
   /* 单位工程首行分部汇总 */
   tr.div-sum td{background:var(--sec-l0);font-weight:600;color:var(--text);}
+  /* 汇总行：工程名放「项目名称」列，左对齐；超出列宽时只向右侧溢出显示（不截断、不省略）。
+     不设 position/z-index：避免该格脱离表格常规绘制顺序而遮住相邻单元格的背景色，
+     表格本身按「所有单元格背景 → 所有单元格内容」绘制，溢出文字依然显示在相邻列之上。 */
+  tr.div-sum td.div-sum-name{text-align:left;white-space:nowrap;overflow:visible;
+    text-overflow:clip;max-width:none;background:var(--sec-l0);}
   tr.div-sum td.div-sum-amt{font-weight:700;}
-  /* 汇总行的审减金额同样按正负着色，特异性需高于上面的整行灰底 */
-  tr.div-sum td.bg-red{background:rgba(192,57,43,.10);}
-  tr.div-sum td.bg-blue{background:rgba(59,108,246,.10);}
-  [data-theme="dark"] tr.div-sum td.bg-red{background:rgba(255,138,122,.16);}
-  [data-theme="dark"] tr.div-sum td.bg-blue{background:rgba(91,134,255,.18);}
+  /* 分部行名称：与汇总行一致，允许向右侧溢出直接显示，不做省略号截断 */
+  tbody tr.section td.name{overflow:visible;text-overflow:clip;white-space:nowrap;
+    max-width:none;position:relative;z-index:2;}
+  /* 汇总行：增减金额格不按正负着色，背景与本行其他单元格保持一致；
+     正负只通过文字颜色（v-blue / v-red）区分 */
+  tr.div-sum td.bg-red,tr.div-sum td.bg-blue{background:var(--sec-l0);}
+  [data-theme="dark"] tr.div-sum td.bg-red,
+  [data-theme="dark"] tr.div-sum td.bg-blue{background:var(--sec-l0);}
   td.feat{white-space:normal;overflow:hidden;word-break:break-all;line-height:1.45;vertical-align:middle;}
   tr.item.cmp-del td[data-key="code"],tr.item.cmp-del td[data-key="name"]{color:var(--red-tx);}
   tr.item.cmp-add td[data-key="code"],tr.item.cmp-add td[data-key="name"]{color:var(--primary);}
   tr.add-sec td{font-weight:700;}
 
-  /* 批量导入：表头与行对齐（含「对应送审单位工程」下拉） */
-  .modal.batch-modal{width:820px;}
+  /* 批量导入：弹窗可拖动标题栏移动、右下角拖动缩放；列表随高度自适应 */
+  .modal.batch-modal{width:820px;height:min(560px,86vh);max-width:96vw;max-height:92vh;
+    box-sizing:border-box;display:flex;flex-direction:column;position:relative;padding-right:24px;}
+  .modal.batch-modal h3{cursor:move;user-select:none;flex:0 0 auto;}
+  .modal.batch-modal .hint,.modal.batch-modal .field,.modal.batch-modal .batch-tools,
+  .modal.batch-modal .batch-head,.modal.batch-modal .modal-actions{flex:0 0 auto;}
+  .modal.batch-modal .batch-list{flex:1 1 auto;min-height:110px;max-height:none;overflow:auto;}
+  .batch-resizer{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;
+    border-right:2px solid var(--line);border-bottom:2px solid var(--line);border-radius:0 0 4px 0;opacity:.7;}
+  .batch-resizer:hover{opacity:1;border-color:var(--primary);}
+  /* 导出对比表：选择要导出的项目 / 单位工程 */
+  .modal.exp-modal{width:560px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;}
+  .modal.exp-modal .hint,.modal.exp-modal .batch-tools,.modal.exp-modal .modal-actions{flex:0 0 auto;}
+  .modal.exp-modal .exp-list{flex:1 1 auto;min-height:140px;max-height:52vh;overflow:auto;
+    border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:2px;}
+  .exp-group+.exp-group{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+  .exp-proj,.exp-item{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;
+    padding:4px 6px;min-width:0;}
+  .exp-proj:hover,.exp-item:hover{background:var(--sec-l0);}
+  .exp-proj input,.exp-item input{margin:0;flex:0 0 auto;cursor:pointer;}
+  .exp-proj{font-size:12.5px;font-weight:600;color:var(--text);}
+  .exp-pname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .exp-pmeta{margin-left:auto;flex:0 0 auto;font-size:11px;font-weight:400;color:var(--muted);}
+  .exp-items{padding-left:20px;}
+  .exp-item{font-size:12px;color:var(--text);}
+  .exp-dname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .exp-tag{margin-left:auto;flex:0 0 auto;font-size:10.5px;line-height:1.5;padding:1px 6px;
+    border-radius:999px;background:var(--primary-soft);color:var(--primary);}
+  .exp-tag.single{background:var(--sec-l1);color:var(--muted);}
+  .exp-cnt{flex:0 0 auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* 项目 / 单位工程拖动排序 */
+  .tree-node[draggable="true"]{cursor:grab;}
+  .tree-node.dragging{opacity:.4;}
+  .tree-node.drop-before{box-shadow:inset 0 2px 0 var(--primary);}
+  .tree-node.drop-after{box-shadow:inset 0 -2px 0 var(--primary);}
+  /* 项目树长按跨项目拖动 */
+  .tree-node.drop-into{box-shadow:inset 0 0 0 1px var(--primary);background:var(--primary-soft);}
+  .tree-node.st-drag-src{opacity:.42;}
+  /* 清单分部树：长按拖动排序（与项目树一致，上下插入线） */
+  .st-row[data-stid]{cursor:grab;}
+  .st-row.st-drag-src{opacity:.42;}
+  .st-row.drop-before{box-shadow:inset 0 2px 0 var(--primary);}
+  .st-row.drop-after{box-shadow:inset 0 -2px 0 var(--primary);}
+  .st-row.drop-into{box-shadow:inset 0 0 0 1px var(--primary);background:var(--primary-soft);}
+  /* 分部树右键菜单中的标题与提示行（不可点击） */
+  .ctx-menu .ctx-title{font-weight:600;color:var(--text);padding:5px 12px 4px;font-size:11.5px;
+    max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ctx-menu .ctx-tip{font-size:10.5px;color:var(--muted);padding:4px 12px 2px;cursor:default;}
+  td.div-sum-total{font-weight:700;}
   .batch-head{display:flex;align-items:center;gap:8px;padding:4px 6px;margin-bottom:4px;
     border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;}
   .batch-head span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -434,11 +489,22 @@
   .batch-row.off .bs-map{opacity:.5;}
 
   .tree-foot{line-height:1.7;}
+  /* 分部弹窗：分级展开 / 折叠按钮 */
+  .sec-pop .sp-levels{display:flex;gap:6px;padding:6px 10px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);background:var(--surface);}
+  .sec-pop .sp-levels .sl-row{display:flex;align-items:center;gap:2px;}
+  .sec-pop .sp-levels .sl-label{font-size:10.5px;color:var(--muted);margin-right:2px;}
+  .sec-pop .sp-levels a{font-size:10.5px;color:var(--primary);cursor:pointer;padding:2px 5px;border-radius:5px;white-space:nowrap;}
+  .sec-pop .sp-levels a:hover{background:var(--primary-soft);}
+  /* 项目树展开/收起改用顶栏按钮，取消左侧竖条 */
+  .tree-rail{display:none !important;}
+  .tree-toggle-btn{padding:4px 9px;font-size:11.5px;}
 
 </style>
 <body>
 <div class="topbar">
   <div class="title">清单对比工具</div>
+  <button class="btn ghost tree-toggle-btn" id="btnTreeToggle" title="项目树：单击=展开/收起（选项目后自动收起）；双击=展开/收起（选项目后保持展开）">☰</button>
   <div class="spacer"></div>
   <div class="summary-pills" id="summaryPills"></div>
   <button class="btn" id="btnImportSend" title="导入送审清单（.xlsx / .xls / .csv，可勾选多个工作表批量导入）">📥 导入送审清单</button>
@@ -456,7 +522,7 @@
   <div class="tree-panel" id="treePanel">
     <div class="tree-head"><span>项目 / 单位工程</span><span class="st-acts"><a id="btnTreeAdd" title="新建项目">＋</a><a data-tact="hide" title="收起项目树栏（点左侧竖条可重新展开）">«</a></span></div>
     <div class="tree-body" id="treeBody"></div>
-    <div class="tree-foot">右键节点：新建 / 重命名 / 删除 / 导入清单<br>单位工程名后的小圆点表示已导入审定清单</div>
+    <div class="tree-foot">拖动 / 长按节点可排序，单位工程可跨项目移动；右键节点：新建 / 重命名 / 删除 / 导入清单<br>单位工程名后的小圆点表示已导入审定清单</div>
   </div>
   <div class="tree-rail off" id="treeRail" title="展开项目树栏">
     <a class="rail-btn" aria-hidden="true"><svg width="11" height="10" viewBox="0 0 11 10" fill="none"><path d="M1.5 1.5L4.5 5l-3 3.5M6 1.5L9 5 6 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
@@ -508,6 +574,7 @@
       <button class="btn ghost" id="batchCancel" type="button">取消</button>
       <button class="btn primary" id="batchOk" type="button">确定导入</button>
     </div>
+    <div class="batch-resizer" id="batchResizer" title="拖动调整弹窗大小（宽高会记住）"></div>
   </div>
 </div>
 
@@ -521,6 +588,26 @@
       <span class="spacer"></span><span class="hint" id="colCount"></span>
     </div>
     <div class="modal-actions"><button class="btn ghost" id="colCancel">取消</button><button class="btn primary" id="colOk">确定</button></div>
+  </div>
+</div>
+
+<div class="mask" id="expMask">
+  <div class="modal exp-modal">
+    <h3>导出对比表</h3>
+    <div class="hint" style="margin:-4px 0 10px;line-height:1.7">
+      勾选要导出的单位工程，每个单位工程一个工作表；勾选 2 个及以上时自动生成目录页。
+    </div>
+    <div class="batch-tools">
+      <input id="expSearch" placeholder="输入项目 / 单位工程名称筛选…">
+      <button class="btn ghost" id="expAll" type="button">全选</button>
+      <button class="btn ghost" id="expNone" type="button">全不选</button>
+    </div>
+    <div class="exp-list" id="expList"></div>
+    <div class="hint" id="expCount" style="margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="expCancel" type="button">取消</button>
+      <button class="btn primary" id="expOk" type="button">导出EXCEL</button>
+    </div>
   </div>
 </div>
 
@@ -541,9 +628,23 @@
   <div data-act="importSend">导入送审清单…</div>
   <div data-act="importAudit">导入审定清单…</div>
 </div>
+<div class="ctx-menu" id="secTreeCtx">
+  <div class="ctx-title" id="stCtxTitle">分部操作</div>
+  <div class="sep"></div>
+  <div data-act="lvl1">设为一级分部</div>
+  <div data-act="lvl2">设为二级分部</div>
+  <div data-act="lvl3">设为三级分部</div>
+  <div class="sep"></div>
+  <div data-act="resetLvl">恢复自动层级</div>
+  <div class="ctx-tip">长按节点可拖动跨级归位</div>
+</div>
 <div class="sec-pop" id="secPop">
   <div class="sp-head"><b id="secPopTitle">清单分部</b>
     <span class="sp-acts"><a data-sact="expand">全展开</a><a data-sact="collapse">全折叠</a></span></div>
+  <div class="sp-levels">
+    <span class="sl-row"><span class="sl-label">展开</span><a data-sact="expL1">一级</a><a data-sact="expL2">二级</a><a data-sact="expL3">三级</a></span>
+    <span class="sl-row"><span class="sl-label">折叠</span><a data-sact="colL1">一级</a><a data-sact="colL2">二级</a><a data-sact="colL3">三级</a></span>
+  </div>
   <div class="sp-list" id="secPopList"></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -580,6 +681,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   "use strict";
   var STORE_KEY="boq_compare_v1";
   var TOL=0.005;
+  var BLANK_MAP="__blank_send_zero__";   /* 审定清单不对应送审单位工程：送审清单全部为 0 */
 
   /* ==================== 基础工具 ==================== */
   function $(id){return document.getElementById(id);}
@@ -589,6 +691,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function nz(v){var n=num(v);return isNaN(n)?0:n;}
   function totalOf(r){if(!r)return 0;var t=num(r.total);if(!isNaN(t))return t;return nz(r.qty)*nz(r.price);}
   function fmtNum(v){var n=num(v);if(isNaN(n))return '';return String(Math.round(n*100)/100);}
+  /* 审减率 = (审定合价 - 送审合价) / 基准 × 100%
+     基准 = |送审合价|；送审合价为 0 时改用 |审定合价|，使审减率始终可显示。
+     - 送审为正：公式不变（100万→80万 = -20%）；
+     - 送审为负（扣减 / 签证）：取绝对值避免负负得正导致率与金额符号相反；
+     - 送审为 0（审定独有 / 全新增）：分母用 |审定|，得 ±100%，与增减金额同号。 */
+  function cutRate(s,a){
+    var d=num(s),v=num(a),base=Math.abs(d);
+    if(base<=1e-9)base=Math.abs(v);
+    return base>1e-9?((v-d)/base*100):NaN;
+  }
   function normHeader(s){return String(s==null?'':s).replace(/\s+/g,'');}
   function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -613,7 +725,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     {key:'a_qty',name:'工程量',w:78,num:true,grp:'audit'},
     {key:'a_price',name:'综合单价',w:82,num:true,grp:'audit'},
     {key:'a_total',name:'合价',w:96,num:true,grp:'audit'},
-    {key:'d_qty',name:'工程量差',w:82,num:true},{key:'d_amt',name:'审减金额',w:104,num:true},
+    {key:'d_qty',name:'工程量差',w:82,num:true},{key:'d_amt',name:'增减金额',w:104,num:true},
     {key:'d_note',name:'审减说明',w:104}
   ];
   var ALL_COLS=SINGLE_COLS.concat(COMPARE_COLS.filter(function(c){return SINGLE_COLS.indexOf(c)<0;}));
@@ -626,7 +738,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function defaultState(){return {projects:[],activeProjectId:null,activeDivisionId:null,activeNode:null,
     colWidths:{},hiddenCols:[],selection:[],collapsed:{},secCollapsed:{},secTreeFold:{},
     secTreeFilter:null,secTreeScope:null,activeSection:null,treeOn:true,secTreeOn:true,
-    treeWidth:280,secTreeWidth:220,onlyDiff:false};}
+    treeWidth:280,secTreeWidth:220,onlyDiff:false,hideMeasure:true,treePinned:false};}
   var state=defaultState();
   var undoStack=[],redoStack=[],histLast=null,histBase=null,histTimer=null;
   var pendingSide='send',importMode='batch',batchItems=null,treeImportTarget=null;
@@ -653,6 +765,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     ['colWidths','collapsed','secCollapsed','secTreeFold'].forEach(function(k){if(!state[k])state[k]={};});
     if(!state.hiddenCols)state.hiddenCols=[];
     if(!state.selection)state.selection=[];
+    if(typeof state.hideMeasure!=='boolean')state.hideMeasure=true;
+    if(typeof state.treePinned!=='boolean')state.treePinned=false;
     if(!state.projects.some(function(p){return p.id===state.activeProjectId;}))
       state.activeProjectId=state.projects.length?state.projects[0].id:null;
     var p=activeProj();
@@ -726,14 +840,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var g=function(col){return map[col]!=null?r[map[col]]:undefined;};
       var sSeq=normHeader(g('序号')),sCode=normHeader(g('编码')),sName=normHeader(g('名称'));
       if(sSeq==='序号'&&(sCode==='项目编码'||sName==='项目名称'))continue;
-      var qty=num(g('工程量')),isItem=sCode!==''&&!isNaN(qty);
+      var qty=num(g('工程量')),price=num(g('综合单价')),gtot=num(g('合价'));
+      /* 分部行识别：除「编码列为空」外，还要认广联达等软件导出的分部编码
+         B1 / B2 / B10（纯 B + 1~3 位数字）。审定表常见这种格式，若漏识别，
+         审定行会全部没有分部、与送审分部锁定的匹配键对不上，导致各分部内容混在一起。
+         补项编码如 B3B003+ / B3B002 不匹配本规则，仍按明细处理。 */
+      var secCode=(sCode===''||/^[Bb]\d{1,3}$/.test(sCode));
+      /* 清单行判定优先于编码形态：只要有工程量且带单价或合价，即使编码为空、或像 B002
+         这种「分部式」编码，也必须当清单行（如「原投标应扣费用」「价格指数调整」这类
+         补充 / 调整项）。旧规则「编码为空即分部」会把它们误判成分部，表格里冒出假分部。 */
+      var isItem=(!isNaN(qty)&&!isNaN(price))||(!secCode&&sCode!==''&&!isNaN(qty));
       if(isItem){
         out.push({id:uid(),type:'item',seq:String(g('序号')==null?'':g('序号')).trim(),
           code:String(g('编码')==null?'':g('编码')).trim(),name:String(g('名称')==null?'':g('名称')).trim(),
           feature:String(g('项目特征')==null?'':g('项目特征')).replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim(),
-          unit:String(g('单位')==null?'':g('单位')).trim(),qty:qty,price:num(g('综合单价')),total:num(g('合价')),
+          unit:String(g('单位')==null?'':g('单位')).trim(),qty:qty,price:price,total:gtot,
           note:noteCol>=0?String(r[noteCol]==null?'':r[noteCol]).trim():''});
-      }else if(sCode===''&&sName!==''&&!/小计|合计|其中|暂估|页/.test(sName)){
+      }else if(secCode&&sName!==''&&!/小计|合计|其中|暂估|页/.test(sName)){
         var stot=num(g('合价'));
         out.push({id:uid(),type:'section',seq:'',code:'',name:sName,feature:'',unit:'',
           qty:NaN,price:NaN,total:isNaN(stot)?0:stot,note:''});
@@ -776,6 +899,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   /* ==================== 清单分部层级（复用原规则） ==================== */
   function secTotTol(tot){return Math.max(0.05,Math.min(1,Math.abs(tot)*0.0002));}
+  /* 分部参与层级推断的「有效合价」：合价有效就用合价，合价为空 / 0 时用其明细合计兜底。
+     广联达导出的分部汇总行经常留空，若直接按 0 处理，这个分部会被当成没有金额的
+     顶级分部（审定清单新增分部就常这样跑到最外层）。 */
+  function effTotalOf(r){
+    var v=r._effTot;
+    if(v===undefined||v===null||isNaN(v))v=num(r.total);
+    return isNaN(v)?0:v;
+  }
   function buildSecTree(div){
     var rows=div.rows||[],byId={},secIdx=[];
     rows.forEach(function(r,i){if(r.type!=='section')return;
@@ -783,11 +914,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var top=[];
     for(var q=secIdx.length-1;q>=0;q--){
       var r=rows[secIdx[q]],end=(q+1<secIdx.length)?secIdx[q+1]:rows.length;
-      var items=0;for(var j=secIdx[q]+1;j<end;j++){if(rows[j].type==='item')items++;}
-      var tot=num(r.total),tol=secTotTol(tot),sum=0,taken=0;
-      if(!items&&tot>0){
-        for(var p2=0;p2<top.length;p2++){sum+=(num(top[p2].total)||0);
-          if(Math.abs(sum-tot)<=tol){taken=p2+1;break;}if(sum>tot+tol)break;}
+      var items=0,itemSum=0;
+      for(var j=secIdx[q]+1;j<end;j++){if(rows[j].type==='item'){items++;itemSum+=(totalOf(rows[j])||0);}}
+      var tot=num(r.total);
+      if(!(Math.abs(tot)>TOL)&&Math.abs(itemSum)>TOL)tot=itemSum;
+      r._effTot=tot;
+      var tol=secTotTol(tot),sum=0,taken=0;
+      /* 合价可正可负（增减 / 签证工程常见负数），只要非 0 就可能是汇总分部行 */
+      if(!items&&!isNaN(tot)&&Math.abs(tot)>tol){
+        for(var p2=0;p2<top.length;p2++){sum+=effTotalOf(top[p2]);
+          if(Math.abs(sum-tot)<=tol){taken=p2+1;break;}
+          /* 越过目标后，只有「剩余子分部绝对值之和已不足以拉回」才提前退出；
+             不能再用 sum>tot 判断，否则负合价第一次累加就会被误判为越界 */
+          var rest=0;for(var z=p2+1;z<top.length;z++)rest+=Math.abs(effTotalOf(top[z]));
+          if(Math.abs(sum-tot)>tol+rest)break;}
         for(var m=0;m<taken;m++){top[m]._parent=r.id;r._sub++;}
         if(taken)top.splice(0,taken);
       }
@@ -795,9 +935,66 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     rows.forEach(function(r){if(r.type!=='section')return;var d=0,p=byId[r._parent];
       while(p&&d<12){d++;p=byId[p._parent];}r._lvl=d;});
+    /* 手动层级覆盖（分部树右键设级别 / 长按拖动归位）：
+       fixLvl 存在 → 该分部强制为指定级别（0=一级）；
+       fixParent 存在 → 该分部强制挂到指定 id 的分部下（拖动跨级）。
+       两者的后代层级自然随父子链重算，实现「连带平移」。
+       fixLvl 优先级高于 fixParent。 */
+    applyManualHierarchy(rows,byId);
+  }
+  /* 应用手动层级：基于自动推断的快照计算，保证反复重算幂等；后代层级随最终父子链连带重算 */
+  function applyManualHierarchy(rows,byId){
+    var secs=[];rows.forEach(function(r){if(r.type==='section')secs.push(r);});
+    var autoLvl={},autoParent={};
+    secs.forEach(function(s){autoLvl[s.id]=s._lvl;autoParent[s.id]=s._parent;});
+    secs.forEach(function(s){
+      if(s.fixLvl!==undefined&&s.fixLvl!==null){
+        /* 设级别：0=一级置顶；N>0 找其前面自动层级=N-1 的最近分部作父（找不到则置顶） */
+        var want=Math.max(0,Math.min(11,num(s.fixLvl)));
+        if(want===0){s._parent=null;return;}
+        var cand=null,idx=rows.indexOf(s);
+        for(var i=idx-1;i>=0;i--){var t=rows[i];
+          if(t.type!=='section'||t===s)continue;
+          if(autoLvl[t.id]===want-1){cand=t.id;break;}}
+        s._parent=cand||null;
+      }else if(s.fixParent!==undefined&&s.fixParent!==null){
+        /* 拖动定级：'__root__' 表示一级；否则挂到指定分部之下 */
+        var pid=s.fixParent;
+        if(pid==='__root__'){s._parent=null;return;}
+        if(byId[pid]&&pid!==s.id){
+          /* 目标存在且不是自身后代才接受，避免成环（用自动父链判定） */
+          var q=byId[pid],ok=true;while(q){if(q===s){ok=false;break;}q=byId[autoParent[q.id]];}
+          if(ok)s._parent=pid;
+        }
+      }
+    });
+    /* 防止手动设置造成父子环：成环节点退回顶级 */
+    secs.forEach(function(s){var seen={},q=s,guard=0;
+      while(q&&guard++<20){if(seen[q.id]){s._parent=null;break;}seen[q.id]=1;q=byId[q._parent];}});
+    secs.forEach(function(s){var d=0,p=byId[s._parent],g=0;
+      while(p&&g++<12){d++;p=byId[p._parent];}s._lvl=d;});
   }
   function computeSecTree(div){buildSecTree(div);}
-  function secItemCount(div,row){var rows=div.rows||[],i=rows.indexOf(row);if(i<0)return 0;
+  /* 整棵分部树按「可见深度」整体展开 / 折叠（Excel 大纲风格）：
+     depth=N 表示展开 lvl 0..N-1、折叠 lvl>=N；depth=0 全折叠，depth>=99 全展开。
+     与旧「各管一级」不同，一次点击即设定所有层级的折叠状态。
+     覆盖送审 + 审定两侧分部（按名称去重），确保审定独有分部一并处理。 */
+  function setSecDepth(div,depth){
+    state.secCollapsed=state.secCollapsed||{};
+    var secs=[];
+    if(div.rows&&div.rows.length)buildSecTree(div);
+    (div.rows||[]).forEach(function(r){if(r.type==='section')secs.push(r);});
+    if(div.auditRows&&div.auditRows.length){
+      buildSecTree({rows:div.auditRows});
+      (div.auditRows||[]).forEach(function(r){
+        if(r.type==='section'&&!secs.some(function(x){return x.name===r.name;}))secs.push(r);});
+    }
+    secs.forEach(function(s){
+      if((s._lvl||0)<depth)delete state.secCollapsed[s.id];
+      else state.secCollapsed[s.id]=true;
+    });
+  }
+  function secItemCount(rows,row){rows=rows||[];var i=rows.indexOf(row);if(i<0)return 0;
     var lvl=row._lvl||0,n=0;for(var k=i+1;k<rows.length;k++){var r=rows[k];
       if(r.type==='section'&&(r._lvl||0)<=lvl)break;if(r.type==='item')n++;}return n;}
   function divTopTotal(div){var s=0;(div.rows||[]).forEach(function(r){
@@ -808,8 +1005,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if(i<0)return null;var lvl=rows[i]._lvl||0,end=rows.length;
     for(var j=i+1;j<rows.length;j++){var r=rows[j];if(r.type==='section'&&(r._lvl||0)<=lvl){end=j;break;}}
     return {start:i,end:end};}
+  /* 分部是否存在于该单位工程（送审清单或审定清单任一侧），
+     用于校验分部树筛选目标是否仍然有效（审定独有分部只存在于审定侧）。 */
+  function sectionExists(div,sid){
+    return (div.rows||[]).some(function(r){return r.id===sid&&r.type==='section';})||
+      (div.auditRows||[]).some(function(r){return r.id===sid&&r.type==='section';});}
   function secFilterName(){if(!state.secTreeFilter)return '';var divs=activeDivisions();
-    for(var i=0;i<divs.length;i++){var r=(divs[i].rows||[]).filter(function(x){return x.id===state.secTreeFilter;})[0];
+    for(var i=0;i<divs.length;i++){var d=divs[i];
+      var r=(d.rows||[]).filter(function(x){return x.id===state.secTreeFilter;})[0]||
+        (d.auditRows||[]).filter(function(x){return x.id===state.secTreeFilter;})[0];
       if(r)return r.name;}return '';}
 
   /* ==================== 对比计算 ==================== */
@@ -818,16 +1022,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .replace(/[\uFF01-\uFF5E]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);})
     .replace(/[（）]/g,function(c){return c==='（'?'(':')';})
     .toLowerCase();}
-  function rowKey(r){return normKey(r.code)+'\u0001'+normKey(r.name)+'\u0001'+normKey(r.feature);}
+  /* 编码匹配键：标准清单编码末3位为顺序码，前段相同、仅末3位不同视为同一清单。
+     仅对「纯数字且长度≥6」的编码去末3位；短编码（A1/B1）与含字母编码原样返回，避免误合并。 */
+  function matchCode(s){var c=normKey(s);return /^\d{6,}$/.test(c)?c.slice(0,-3):c;}
+  function rowKey(r){return matchCode(r.code)+'\u0001'+normKey(r.name)+'\u0001'+normKey(r.feature);}
   /* 项目特征描述：保留原始换行（\r\n / \r / \n 统一为 \n），并把全角空格还原 */
   function keepBreaks(s){return String(s==null?'':s).replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ');}
   function featHtml(s){
     var lines=keepBreaks(s).split('\n');
     return lines.map(function(l){return l===''?'&nbsp;':escapeHtml(l);}).join('<br>');
   }
-  function auditSectionOf(div,row){var rows=div.auditRows||[],last='';
-    for(var i=0;i<rows.length;i++){if(rows[i]===row)return last;
+  function sectionOfRows(rows,row){var last='';
+    for(var i=0;i<(rows||[]).length;i++){if(rows[i]===row)return last;
       if(rows[i].type==='section')last=rows[i].name;}return last;}
+  function auditSectionOf(div,row){return sectionOfRows(div.auditRows,row);}
+  function sendSectionOf(div,row){return sectionOfRows(div.rows,row);}
+  /* 对比匹配键：分部名 + 编码 + 名称 + 特征。
+     必须锁定同一分部：送审分部A 的行不得跨分部匹配到审定分部B 的同名行，
+     否则不同分部的内容会混在一起（原行键只有编码+名称+特征，会跨分部误配）。 */
+  function cmpKey(r,sec){return normKey(sec)+'\u0002'+rowKey(r);}
   /* 审减说明（两步连续判定，两部分可同时存在）：
      ① 审定工程量为 0 或空 → [删除]（终止，不再判量差/调价）
         注意：负数不是删除，负数按实际值参与量差计算
@@ -867,12 +1080,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return o;
   }
   function buildCompare(div){
-    var A=[],B=[];
+    var A=[],B=[],auditRows=div.auditRows||[];
     (div.rows||[]).forEach(function(r){if(r.type==='item')A.push(r);});
-    (div.auditRows||[]).forEach(function(r){if(r.type==='item')B.push(r);});
+    auditRows.forEach(function(r){if(r.type==='item')B.push(r);});
+    /* 审定清单单独算分部层级：审定独有分部（送审没有）也要按自身层级展示 */
+    if(auditRows.length)buildSecTree({rows:auditRows});
     var mapA={},mapB={},pairA=new Array(A.length),pairB=new Array(B.length);
-    A.forEach(function(r,i){var k=rowKey(r);(mapA[k]=mapA[k]||[]).push(i);});
-    B.forEach(function(r,i){var k=rowKey(r);(mapB[k]=mapB[k]||[]).push(i);});
+    /* 行归属分部：送审取送审分部，审定取审定分部；匹配键 = 分部名 + 编码 + 名称 + 特征 */
+    var secOfA=A.map(function(r){return sendSectionOf(div,r);});
+    var secOfB=B.map(function(r){return auditSectionOf(div,r);});
+    A.forEach(function(r,i){var k=cmpKey(r,secOfA[i]);(mapA[k]=mapA[k]||[]).push(i);});
+    B.forEach(function(r,i){var k=cmpKey(r,secOfB[i]);(mapB[k]=mapB[k]||[]).push(i);});
     Object.keys(mapA).forEach(function(k){
       var la=mapA[k],lb=mapB[k]||[],n=Math.min(la.length,lb.length),i;
       for(i=0;i<n;i++){var s=A[la[i]],b=B[lb[i]];pairB[lb[i]]=true;
@@ -901,34 +1119,111 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         out.push({kind:'section',id:r.id,name:r.name,lvl:r._lvl||0,markType:'部'});return;}
       var pr=pairA[ai++];if(!pr)return;
       var o=div.auditDone?makeItem(r,pr.b,pr.type,pr.chg,++seq):makeItem(r,null,'none',null,++seq);
-      o.kidx=rowKey(r);o.bidx=pr.bi;
+      o.kidx=cmpKey(r,sendSectionOf(div,r));o.bidx=pr.bi;
       if(o.kidx&&keyPos[o.kidx]===undefined)keyPos[o.kidx]=out.length;
       out.push(o);
     });
+    /* 审定独有分部：送审清单没有、审定清单有的分部也作为骨架显示。
+       按审定分部顺序，锚定 out 中已存在的前一分部（送审分部或已插入的独有分部），
+       插到该分部区块末尾；无前部分部时插到后一分部之前；都没有则放表尾。 */
+    var sendSecNames={};
+    (div.rows||[]).forEach(function(r){if(r.type==='section')sendSecNames[r.name]=true;});
+    var auditSecs=[];
+    auditRows.forEach(function(r){if(r.type==='section')auditSecs.push(r);});
+    function findSecPos(name){
+      for(var i=0;i<out.length;i++)if(out[i].kind==='section'&&out[i].name===name)return i;
+      return -1;
+    }
+    function blockEnd(idx){
+      var lvl=out[idx].lvl||0,e=out.length;
+      for(var k=idx+1;k<out.length;k++)
+        if(out[k].kind==='section'&&(out[k].lvl||0)<=lvl){e=k;break;}
+      return e;
+    }
+    var insertAuditSec=function(as,pos,lvl){
+      out.splice(pos,0,{kind:'section',id:as.id,name:as.name,lvl:lvl,markType:'部',_auditOnly:true});};
+    function autoPos(as){
+      var aii=auditSecs.indexOf(as),prev=-1,k;
+      for(k=aii-1;k>=0;k--){var pi=findSecPos(auditSecs[k].name);if(pi>=0){prev=pi;break;}}
+      if(prev>=0)return blockEnd(prev);
+      var nxt=-1;
+      for(k=aii+1;k<auditSecs.length;k++){var ni=findSecPos(auditSecs[k].name);if(ni>=0){nxt=ni;break;}}
+      return nxt>=0?nxt:out.length;
+    }
+    /* 手动拖动过的审定独有分部（pinTgt / pinAfter）：按锚点定位，层级取锚点分部层级，
+       即「与目标同级」；锚点还没进 out（锚点本身也被手动拖动）时留到下一轮插入，
+       保证子分部一定排在它父分部之后。 */
+    function insertPinned(as){
+      var ti=-1,i;
+      for(i=0;i<out.length;i++){if(out[i].kind==='section'&&out[i].id===as.pinTgt){ti=i;break;}}
+      if(ti<0)return false;
+      insertAuditSec(as,as.pinAfter?blockEnd(ti):ti,out[ti].lvl||0);
+      return true;
+    }
+    var auditSecById={};
+    auditSecs.forEach(function(s){auditSecById[s.id]=s;});
+    var hasPin=function(as){var c=as,g=0;
+      while(c&&g++<20){if(c.pinTgt)return true;c=auditSecById[c._parent];}return false;};
+    var pendingSecs=[];
+    auditSecs.forEach(function(as){
+      if(sendSecNames[as.name])return;
+      if(hasPin(as))pendingSecs.push(as);
+      else insertAuditSec(as,autoPos(as),as._lvl||0);
+    });
+    for(var rnd=0;rnd<3&&pendingSecs.length;rnd++){
+      var left=[];
+      pendingSecs.forEach(function(as){
+        if(as.pinTgt){if(!insertPinned(as))left.push(as);}
+        else insertAuditSec(as,autoPos(as),as._lvl||0);
+      });
+      pendingSecs=left;
+    }
+    pendingSecs.forEach(function(as){insertAuditSec(as,autoPos(as),as._lvl||0);});
+    /* 分部插入后 out 索引已偏移，重建匹配项位置映射 */
+    keyPos={};
+    out.forEach(function(o,i){if(o.kind==='item'&&o.kidx&&keyPos[o.kidx]===undefined)keyPos[o.kidx]=i;});
     /* 新增项按「审定清单中的顺序位置」插入：
        ① 优先紧跟其前面最近的一个匹配项之后（保持审定中的相邻关系）；
        ② 前面无匹配项时，插到其后第一个匹配项之前；
        ③ 两侧都无匹配项时，放到同名分部末尾（层级内），再不行放表尾。
-       注：审定独有的行若工程量为 0/空，则不算新增，直接丢弃。 */
+       审定独有行一律插入：工程量 ≤0、空值、仅有合价的扣减 / 签证项也要出现，
+       送审侧按 0 计。顶栏审定合价取全部审定行合计，此处必须同口径，
+       否则负合价分部、零量有价项会被漏算，导致数据区与顶栏对不上。 */
     var adds=[];B.forEach(function(b,j){
-      if(!pairB[j]&&nz(b.qty)>TOL)adds.push({b:b,j:j,sec:auditSectionOf(div,b)});});
+      if(pairB[j])return;
+      adds.push({b:b,j:j,sec:secOfB[j]});});
+    /* 新增项插入位置：严格参照审定清单里的相对顺序——
+       ① 同一分部内，紧跟其前面最近的一个匹配项之后；
+       ② 前面没有匹配项时，插到其后第一个匹配项之前；
+       ③ 整个分部都是新增（无匹配项）时，插到该分部块开头，行序即审定顺序。
+       同一位置的多条新增项按审定行序排列（adds 本身按 B 顺序生成）。 */
     var byPos={};
+    function secBlock(name){
+      for(var i=0;i<out.length;i++){
+        if(out[i].kind==='section'&&out[i].name===name){
+          var lvl=out[i].lvl||0,e=out.length;
+          for(var k=i+1;k<out.length;k++)
+            if(out[k].kind==='section'&&(out[k].lvl||0)<=lvl){e=k;break;}
+          return {start:i+1,end:e};
+        }
+      }
+      return null;
+    }
     adds.forEach(function(x){
+      var sec=x.sec||'',blk=sec?secBlock(sec):null;
       var anchor=null,prev=null,k;
-      for(k=x.j+1;k<B.length;k++){if(pairB[k]){anchor=rowKey(B[k]);break;}}
-      for(k=x.j-1;k>=0;k--){if(pairB[k]){prev=rowKey(B[k]);break;}}
+      for(k=x.j-1;k>=0;k--){
+        if(sec&&secOfB[k]!==sec)break;
+        if(pairB[k]){prev=cmpKey(B[k],secOfB[k]);break;}
+      }
+      for(k=x.j+1;k<B.length;k++){
+        if(sec&&secOfB[k]!==sec)break;
+        if(pairB[k]){anchor=cmpKey(B[k],secOfB[k]);break;}
+      }
       var pos;
       if(prev!=null&&keyPos[prev]!==undefined)pos=keyPos[prev]+1;
       else if(anchor!=null&&keyPos[anchor]!==undefined)pos=keyPos[anchor];
-      else{
-        var secName=x.sec||'',si=-1,end=out.length;
-        if(secName){for(k=0;k<out.length;k++){
-          if(out[k].kind==='section'&&out[k].name===secName){si=k;break;}}
-          if(si>=0){var lvl=out[si].lvl||0;end=out.length;
-            for(k=si+1;k<out.length;k++){
-              if(out[k].kind==='section'&&(out[k].lvl||0)<=lvl){end=k;break;}}}}
-        pos=(si>=0?end:out.length);
-      }
+      else pos=blk?blk.start:out.length;
       (byPos[pos]=byPos[pos]||[]).push(x.b);
     });
     Object.keys(byPos).map(Number).sort(function(a,b){return b-a;}).forEach(function(p){
@@ -975,6 +1270,36 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       s+=nz(o.s_total!==undefined?o.s_total:o.total);a+=nz(o.a_total);}});
     return {s:s,a:a};
   }
+  function isMeasureSec(name){return String(name==null?'':name).indexOf('措施项目')>=0;}
+  /* 单位工程首行 / 目录汇总：优先一级分部合计；清单无分部行时按明细行合计。
+     「措施项目」分部（名称含"措施项目"四字，通常在末尾）为汇总性分部，
+     其合价多由子分部汇总而来，计入会重复计算，故首行合计与提示浮层均排除它。 */
+  function divTotals(out){
+    var s=0,a=0,hasTop=false,parts=[];
+    /* 按「最终显示层级」取一级分部：sSum 由 sumSections 按当前块结构实时累加，
+       父分部的块已包含其子分部的明细，因此只取 lvl=0 既不会重复也不会漏算
+       （手动拖动改变层级后同样成立）。 */
+    out.forEach(function(o){
+      if(o.kind!=='section')return;
+      if((o.lvl||0)!==0)return;
+      hasTop=true;if(isMeasureSec(o.name))return;
+      var ps=nz(o.sSum||0),pa=nz(o.aSum||0);
+      s+=ps;a+=pa;parts.push({name:o.name,s:ps,a:pa});});
+    if(!hasTop)out.forEach(function(o){if(o.kind==='item'){
+      s+=nz(o.s_total!==undefined?o.s_total:o.total);a+=nz(o.a_total);}});
+    return {s:s,a:a,amt:a-s,parts:parts};
+  }
+  /* 首行悬浮提示：列出参与合计的一级分部送审 / 审定合价（不含措施项目分部） */
+  function sumTip(o){
+    var parts=o.parts||[],L=[];
+    if(!parts.length)L.push('合价构成：按清单明细汇总（未识别到一级分部）');
+    else{
+      L.push('合价构成（不含措施项目分部）：');
+      parts.forEach(function(p){L.push(p.name+'：送审 '+fmtNum(p.s)+'，审定 '+fmtNum(p.a));});
+    }
+    L.push('合计：送审 '+fmtNum(o.s)+'，审定 '+fmtNum(o.a)+'，审减 '+fmtNum(o.amt));
+    return L.join('\n');
+  }
   /* 「有差异」与「类型」解耦：类型为「项」的行也可能存在纯量差 / 价差 / 合价差
      （此时审减说明列显示 [增量↑] / [减量↓]），必须按实际差异值判断，不能只看 type。 */
   function itemHasDiff(o){
@@ -986,27 +1311,61 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if(!isNaN(sp)&&!isNaN(ap)&&Math.abs(sp-ap)>TOL)return true;
     return false;
   }
-  function filterCompareRows(out){
-    if(!state.onlyDiff)return out;
-    var keep=new Array(out.length),i;
-    for(i=0;i<out.length;i++)keep[i]=out[i].kind!=='item'||itemHasDiff(out[i]);
+  /* 仅移除措施项目分部整段（分部行 + 其下所有层级行），供界面与导出共用。
+     与 onlyDiff 解耦：导出只应用本过滤，不受「仅显示差异」影响。 */
+  function filterMeasureOnly(out){
+    if(!state.hideMeasure)return out;
+    var mk=new Array(out.length),i,skipLvl=null;
     for(i=0;i<out.length;i++){
-      if(out[i].kind!=='section')continue;
-      var lvl=out[i].lvl||0,end=out.length,has=false;
-      for(var j=i+1;j<out.length;j++){
-        if(out[j].kind==='section'&&(out[j].lvl||0)<=lvl){end=j;break;}
-        if(out[j].kind==='item'&&keep[j])has=true;
+      var o=out[i];
+      if(o.kind==='section'){
+        var ml=o.lvl||0;
+        if(skipLvl!==null&&ml>skipLvl){mk[i]=false;continue;}
+        skipLvl=null;
+        if(isMeasureSec(o.name)){mk[i]=false;skipLvl=ml;continue;}
+      }else if(skipLvl!==null){mk[i]=false;continue;}
+      mk[i]=true;
+    }
+    return out.filter(function(o,idx){return mk[idx];});
+  }
+  function filterCompareRows(out){
+    /* 隐藏措施项目分部：整段（分部行 + 其下所有层级行）移除。
+       与 onlyDiff 可叠加，统一在最后重排序号与分部合计。 */
+    var src=filterMeasureOnly(out);
+    if(!state.onlyDiff){renumber(src);sumSections(src);return src;}
+    var keep=new Array(src.length),i;
+    for(i=0;i<src.length;i++)keep[i]=src[i].kind!=='item'||itemHasDiff(src[i]);
+    for(i=0;i<src.length;i++){
+      if(src[i].kind!=='section')continue;
+      var lvl=src[i].lvl||0,has=false;
+      for(var j=i+1;j<src.length;j++){
+        if(src[j].kind==='section'&&(src[j].lvl||0)<=lvl)break;
+        if(src[j].kind==='item'&&keep[j])has=true;
       }
       if(!has)keep[i]=false;
     }
-    var f=out.filter(function(o,idx){return keep[idx];});
+    var f=src.filter(function(o,idx){return keep[idx];});
     renumber(f);sumSections(f);return f;
   }
   function cmpMode(divs){var done=divs.some(function(d){return d.auditDone&&(d.auditRows||[]).length;});
     return done?'compare':'single';}
+  /* 视图行缓存：同一次渲染里「清单分部树」与「表格」共用同一份 out
+     （送审 + 审定合并、已隐藏措施项目 / 仅看差异），这样树的分部顺序、层级、
+     上下级关系必然与表格一致，不会出现「表格里有、树里位置不一样」。
+     render() 开头清空，任何数据变更都会重建。 */
+  var viewCache={};
+  function clearViewCache(){viewCache={};}
+  function buildViewRows(div,mode){
+    var k=div.id+'|'+mode;
+    if(viewCache[k])return viewCache[k];
+    computeSecTree(div);
+    var out=(mode==='compare')?filterCompareRows(buildCompare(div)):buildSingle(div);
+    viewCache[k]=out;return out;
+  }
 
   /* ==================== 渲染 ==================== */
   function render(){
+    clearViewCache();
     applyTreeWidth();applySecTreeWidth();applyTreeOn();applySecTreeOn();updateHistBtns();
     renderTree();renderCmpBar();renderSummaryPills();renderSecTree();renderTable();
   }
@@ -1017,14 +1376,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var mode=cmpMode(divs),scope=escapeHtml(state.activeNode&&state.activeNode.type==='proj'?p.name:divs[0].name);
     var s=0,a=0;divs.forEach(function(d){(d.rows||[]).forEach(function(r){if(r.type==='item')s+=totalOf(r);});
       (d.auditRows||[]).forEach(function(r){if(r.type==='item')a+=totalOf(r);});});
-    var dl=a-s,rate=(Math.abs(s)>1e-9)?(dl/s*100):NaN;
+    var dl=a-s,rate=cutRate(s,a);
     var rateTxt=isNaN(rate)?'—':(rate>=0?'+':'')+rate.toFixed(2)+'%';
     var kcls=dl>0?'up':(dl<0?'down':'');
     var h='<span class="pill scope-pill">'+(state.activeNode&&state.activeNode.type==='proj'?'项目':'单位工程')+'「'+scope+'」</span>';
     h+='<span class="pill">送审合价 <b>'+fmtNum(s)+'</b></span>';
     if(mode==='compare'){
       h+='<span class="pill">审定合价 <b>'+fmtNum(a)+'</b></span>'+
-        '<span class="pill">审减金额 <b class="'+kcls+'">'+fmtNum(dl)+'</b></span>'+
+        '<span class="pill">增减金额 <b class="'+kcls+'">'+fmtNum(dl)+'</b></span>'+
         '<span class="pill">审减率 <b class="'+kcls+'">'+rateTxt+'</b></span>';
     }
     box.innerHTML=h;
@@ -1048,9 +1407,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         '<span class="pill pill-mark del">删除 <b>'+delCnt+'</b></span>'+
         '<span class="hint">匹配键：项目编码 + 项目名称 + 项目特征描述</span>';
     }else h+='<span class="hint">尚未导入审定清单，当前显示送审清单原始数据</span>';
-    h+='<span class="spacer"></span><label class="diff-toggle"><input type="checkbox" id="onlyDiff"'+
+    h+='<span class="spacer"></span>'+
+      '<label class="diff-toggle"><input type="checkbox" id="hideMeasure"'+
+      (state.hideMeasure?' checked':'')+'> 隐藏措施项目</label>'+
+      '<label class="diff-toggle"><input type="checkbox" id="onlyDiff"'+
       (state.onlyDiff?' checked':'')+'> 仅显示有差异的行</label>';
     box.innerHTML=h;
+    var hm=$('hideMeasure');if(hm)hm.addEventListener('change',function(){state.hideMeasure=this.checked;save();render();});
     var cb=$('onlyDiff');if(cb)cb.addEventListener('change',function(){state.onlyDiff=this.checked;save();render();});
   }
   function oneRowHead(C){
@@ -1084,7 +1447,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return '<span class="tbadge t-'+t+'">'+typeLabel({type:t})+'</span>';
     return typeLabel({type:t});
   }
-  /* 数值着色：工程量差 与 审减金额 两列按正负带浅蓝/浅红底色，与类型完全无关
+  /* 数值着色：工程量差 与 增减金额 两列按正负带浅蓝/浅红底色，与类型完全无关
      必须放在类型分支之前 —— 否则「增/删」类型的 early-return 会把这两列短路成无底色 */
   function cellCls(o,key){
     if(key==='d_amt'||key==='d_qty'){
@@ -1104,12 +1467,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function td(c,txt,cls,extra){return '<td data-key="'+c.key+'" class="'+(cls||'')+'"'+(extra||'')+'>'+txt+'</td>';}
   function renderRow(o,div,C,mode,seqOf){
     if(o.kind==='divsum'){
-      /* 单位工程首行汇总：名称列 = 单位工程名；审减金额 = 一级分部审减合计；其余留空 */
-      var hd='<tr class="div-sum" data-div="'+div.id+'">';
+      /* 单位工程首行汇总：名称列 = 单位工程名；送审/审定合价 = 总合价；
+         增减金额 = 一级分部审减合计；其余留空 */
+      var tip=escapeHtml(sumTip(o)).replace(/\n/g,'&#10;');
+      var hd='<tr class="div-sum" data-div="'+div.id+'" title="'+tip+'">';
+      /* 不合并单元格：单位工程名只放在「项目名称」列并居中显示，
+         文字允许溢出到左右两侧（overflow:visible），不做截断；其余列留空。 */
       C.forEach(function(c){
-        if(c.key==='name')hd+=td(c,escapeHtml(o.name),'name div-sum-name');
+        if(c.key==='name'){
+          hd+=td(c,escapeHtml(o.name),'name div-sum-name',' title="'+escapeHtml(o.name)+'"');
+          return;
+        }
+        if(c.key==='s_total'||c.key==='total')hd+=td(c,fmtNum(o.s||0),'num div-sum-total');
+        else if(c.key==='a_total')hd+=td(c,fmtNum(o.a||0),'num div-sum-total');
         else if(c.key==='d_amt')hd+=td(c,fmtNum(o.amt),'num div-sum-amt '+
-          (o.amt>TOL?'v-blue bg-blue':(o.amt<-TOL?'v-red bg-red':'')));
+          (o.amt>TOL?'v-blue':(o.amt<-TOL?'v-red':'')));
         else hd+=td(c,'');
       });return hd+'</tr>';
     }
@@ -1121,7 +1493,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         else if(c.key==='s_total')html+=td(c,fmtNum(o.s),'num');
         else if(c.key==='a_total')html+=td(c,fmtNum(o.a),'num');
         else if(c.key==='d_amt'){var sd=(o.a||0)-(o.s||0);
-          html+=td(c,fmtNum(sd),'num '+(sd>TOL?'v-blue bg-blue':(sd<-TOL?'v-red bg-red':'')));}
+          html+=td(c,fmtNum(sd),'num '+(sd>TOL?'v-blue':(sd<-TOL?'v-red':'')));}
         else html+=td(c,'');
       });return html+'</tr>';
     }
@@ -1141,7 +1513,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         else if(c.key==='s_total')h+=td(c,fmtNum(o.sSum||0),'num');
         else if(c.key==='a_total')h+=td(c,fmtNum(o.aSum||0),'num');
         else if(c.key==='d_amt'){var d=(o.aSum||0)-(o.sSum||0);
-          h+=td(c,fmtNum(d),'num '+(d>TOL?'v-blue bg-blue':(d<-TOL?'v-red bg-red':'')));}
+          h+=td(c,fmtNum(d),'num '+(d>TOL?'v-blue':(d<-TOL?'v-red':'')));}
         else h+=td(c,'');
       });return h+'</tr>';
     }
@@ -1176,31 +1548,32 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       '点右上角「📥 导入送审清单」选择清单文件（.xlsx / .xls / .csv），可一次勾选多个工作表批量导入。</div>';return;}
     var divs=activeDivisions();if(!divs.length){wrap.innerHTML='<div class="empty">该项目下没有单位工程，请在左侧树右键新建或导入数据。</div>';return;}
     var filt=state.secTreeFilter;
-    if(filt&&!divs.some(function(d){return !!secFilterRange(d,filt);})){filt=null;state.secTreeFilter=null;}
+    if(filt&&!divs.some(function(d){return sectionExists(d,filt);})){filt=null;state.secTreeFilter=null;}
     var mode=cmpMode(divs),C=colsFor(mode),rowsByDiv=[],lastRowsMapNew={};
     var cg='<colgroup>'+C.map(function(c){return '<col data-key="'+c.key+'" style="width:'+getWidth(c.key)+'px">';}).join('')+'</colgroup>';
     var thead=mode==='compare'?twoRowHead(C):oneRowHead(C);
     var tbody='';
     divs.forEach(function(div){
-      computeSecTree(div);
-      var out=mode==='compare'?filterCompareRows(buildCompare(div)):buildSingle(div);
+      var out=buildViewRows(div,mode);
       var sum=sumDivRows(out,mode);
       rowsByDiv.push(out);
       var view=filt?sliceBySection(out,filt):out;
       tbody+='<tbody class="div-block" data-div="'+div.id+'">';
-      /* 每单位工程第一行：分部汇总（一级分部审减金额之和） */
+      /* 每单位工程第一行：分部汇总（一级分部送审/审定合价之和 + 增减金额） */
       if(!filt){
-        var sumAmt=0;
-        out.forEach(function(o){if(o.kind==='section'&&(o.lvl||0)===0)sumAmt+=nz(o.aSum||0)-nz(o.sSum||0);});
-        tbody+=renderRow({kind:'divsum',name:div.name,amt:sumAmt},div,C,mode);
+        var totals=divTotals(out);
+        tbody+=renderRow({kind:'divsum',name:div.name,s:totals.s,a:totals.a,amt:totals.amt,
+          parts:totals.parts},div,C,mode);
       }
       var open=[];
       view.forEach(function(o){
         if(o.kind==='section'){
           var lvl=o.lvl||0;while(open.length&&open[open.length-1].lvl>=lvl)open.pop();
           var hidden=open.some(function(x){return x.folded;});
-          if(!hidden){lastRowsMapNew[o.cid||('sec_'+o.id)]={div:div,o:o};}
+          /* 先压栈（保持折叠状态向后代传递），祖先折叠则该分部整行连同其子分部一起隐藏 */
           open.push({lvl:lvl,folded:!!(state.secCollapsed&&state.secCollapsed[o.id])});
+          if(hidden)return;
+          lastRowsMapNew[o.cid||('sec_'+o.id)]={div:div,o:o};
         }else{
           if(open.some(function(x){return x.folded;}))return;
           lastRowsMapNew[o.cid]={div:div,o:o};
@@ -1223,16 +1596,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     wrap.querySelectorAll('colgroup col').forEach(function(c){total+=parseFloat(c.style.width)||0;});t.style.width=total+'px';}
 
   /* ==================== 表格事件 ==================== */
+  /* 序号列展开/折叠按钮：手动点击第一优先级，无视分级整体状态或分部树筛选。
+     展开时连带展开整条祖先链，确保该分部立即真正可见；折叠时只作用自身。 */
+  function manualToggleSec(sid,div){
+    state.secCollapsed=state.secCollapsed||{};
+    var rows0=(div&&div.rows)||[];
+    var find0=function(id){return rows0.filter(function(r){return r.id===id;})[0];};
+    if(state.secCollapsed[sid]){
+      delete state.secCollapsed[sid];
+      var t=find0(sid),p=t&&t._parent;
+      while(p){delete state.secCollapsed[p];p=(find0(p)||{})._parent;}
+    }else state.secCollapsed[sid]=true;
+    save();render();
+  }
   function bindTable(wrap,mode){
     wrap.querySelectorAll('.sec-toggle[data-sectoggle]').forEach(function(el){
       el.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();
-        state.secCollapsed=state.secCollapsed||{};var sid=el.getAttribute('data-sectoggle');
-        if(state.secCollapsed[sid])delete state.secCollapsed[sid];else state.secCollapsed[sid]=true;
-        save();render();});});
+        var sid=el.getAttribute('data-sectoggle'),tr=el.closest('tr.section');
+        manualToggleSec(sid,tr?findDivById(tr.getAttribute('data-div')):null);});});
     wrap.querySelectorAll('tr.section td[data-key="name"]').forEach(function(td){
       td.addEventListener('dblclick',function(e){if(e.target.closest&&e.target.closest('.sec-toggle'))return;e.stopPropagation();
-        var sid=td.parentNode.getAttribute('data-rid');if(!sid)return;state.secCollapsed=state.secCollapsed||{};
-        if(state.secCollapsed[sid])delete state.secCollapsed[sid];else state.secCollapsed[sid]=true;save();render();});});
+        var tr=td.parentNode,sid=tr.getAttribute('data-rid');if(!sid)return;
+        manualToggleSec(sid,findDivById(tr.getAttribute('data-div')));});});
     wrap.querySelectorAll('tr.section').forEach(function(tr){
       tr.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();
         openSecPop(e,tr.getAttribute('data-div'));});});
@@ -1308,7 +1693,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     box.querySelectorAll('.tree-node').forEach(function(n){
       n.addEventListener('click',function(e){if(e.target.classList.contains('tree-caret'))return;
         var tp=n.getAttribute('data-type'),id=n.getAttribute('data-id'),pid=n.getAttribute('data-pid');
-        state.activeSection=null;state.secTreeFilter=null;activate(tp,id,pid);save();render();});
+        state.activeSection=null;state.secTreeFilter=null;activate(tp,id,pid);
+        /* 顶栏按钮单击展开的项目树：选完项目自动收起；双击展开（treePinned）则保持展开 */
+        if(!state.treePinned&&state.treeOn)state.treeOn=false;
+        save();render();});
       n.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();
         var type=n.getAttribute('data-type'),id=n.getAttribute('data-id'),pid=n.getAttribute('data-pid');
         treeImportTarget={type:type,id:id,pid:pid};activate(type,id,pid);save();renderTree();
@@ -1319,6 +1707,98 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     box.querySelectorAll('.tree-caret').forEach(function(c){
       c.addEventListener('click',function(e){e.stopPropagation();var pid=c.getAttribute('data-caret');if(!pid)return;
         if(state.collapsed[pid])delete state.collapsed[pid];else state.collapsed[pid]=true;save();renderTree();});});
+    bindTreeDrag(box);
+  }
+  /* 项目 / 单位工程拖动：项目之间排序；单位工程可跨项目移动 + 同项目内排序。
+     同时支持原生拖放与「长按」手势（移动端 / 触屏），两者共用 applyTreeDrop。 */
+  var treeDrag=null;
+  function treeDragData(n){return {type:n.getAttribute('data-type'),id:n.getAttribute('data-id'),
+    pid:n.getAttribute('data-pid')};}
+  /* 执行拖动落位：d=被拖节点，t=目标节点，after=落到目标之后 */
+  function applyTreeDrop(d,t,after){
+    if(!d||!t||t.id===d.id)return false;
+    var i,j,moved,msg='已调整顺序';
+    if(d.type==='proj'&&t.type==='proj'){
+      i=state.projects.findIndex(function(x){return x.id===d.id;});if(i<0)return false;
+      moved=state.projects.splice(i,1)[0];
+      j=state.projects.findIndex(function(x){return x.id===t.id;});
+      state.projects.splice(j<0?i:(after?j+1:j),0,moved);
+    }else if(d.type==='div'){
+      var src=state.projects.find(function(x){return x.id===d.pid;});if(!src)return false;
+      var tgt=t.type==='proj'?state.projects.find(function(x){return x.id===t.id;}):
+        state.projects.find(function(x){return x.id===t.pid;});
+      if(!tgt)return false;
+      i=src.divisions.findIndex(function(x){return x.id===d.id;});if(i<0)return false;
+      moved=src.divisions.splice(i,1)[0];
+      if(tgt!==src){tgt.divisions.push(moved);msg='已移动到「'+tgt.name+'」';}
+      else{j=src.divisions.findIndex(function(x){return x.id===t.id;});
+        src.divisions.splice(j<0?i:(after?j+1:j),0,moved);}
+    }else return false;
+    save();render();toast(msg);return true;
+  }
+  function bindTreeDrag(box){
+    box.querySelectorAll('.tree-node').forEach(function(n){
+      n.setAttribute('draggable','true');
+      n.addEventListener('dragstart',function(e){
+        treeDrag=treeDragData(n);n.classList.add('dragging');e.dataTransfer.effectAllowed='move';
+        try{e.dataTransfer.setData('text/plain',treeDrag.id);}catch(err){}});
+      n.addEventListener('dragend',function(){n.classList.remove('dragging');treeDrag=null;
+        box.querySelectorAll('.drop-before,.drop-after,.drop-into').forEach(function(x){
+          x.classList.remove('drop-before','drop-after','drop-into');});});
+      n.addEventListener('dragover',function(e){
+        if(!treeDrag)return;var t=treeDragData(n);
+        if(t.id===treeDrag.id)return;
+        /* 项目之间可排序；单位工程可落到任意项目或单位工程（含跨项目） */
+        var d=treeDrag,valid=(d.type==='proj'&&t.type==='proj')||(d.type==='div');
+        if(!valid)return;
+        e.preventDefault();e.dataTransfer.dropEffect='move';
+        if(t.type===d.type){var r=n.getBoundingClientRect(),after=(e.clientY>r.top+r.height/2);
+          n.classList.toggle('drop-before',!after);n.classList.toggle('drop-after',after);}
+        else n.classList.add('drop-into');
+      });
+      n.addEventListener('dragleave',function(){n.classList.remove('drop-before','drop-after','drop-into');});
+      n.addEventListener('drop',function(e){
+        e.preventDefault();e.stopPropagation();
+        var t=treeDragData(n),d=treeDrag;treeDrag=null;
+        n.classList.remove('drop-before','drop-after','drop-into');
+        var r=n.getBoundingClientRect(),after=(e.clientY>r.top+r.height/2);
+        applyTreeDrop(d,t,after);
+      });
+    });
+    /* 长按手势：按住约 420ms 进入拖动态，pointerup 落到目标节点（支持跨项目） */
+    var press=null;
+    function clearDrag(){clearTimeout(press&&press.timer);
+      box.querySelectorAll('.st-drag-src,.drop-into').forEach(function(x){x.classList.remove('st-drag-src','drop-into');});}
+    box.addEventListener('pointerdown',function(e){
+      if(e.button!==0)return;
+      if(e.target.closest&&e.target.closest('[data-caret]'))return;
+      var n=e.target.closest?e.target.closest('.tree-node'):null;if(!n)return;
+      var d=treeDragData(n),sx=e.clientX,sy=e.clientY,moved=false;
+      var timer=setTimeout(function(){if(moved)return;n.classList.add('st-drag-src');
+        press.active=true;toast('移动到目标项目 / 单位工程上松开');},420);
+      press={timer:timer,active:false,d:d};
+      function onMove(ev){
+        if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>8)moved=true;
+        if(!press||!press.active)return;
+        if(ev.cancelable)ev.preventDefault();
+        box.querySelectorAll('.drop-into').forEach(function(x){x.classList.remove('drop-into');});
+        var el=document.elementFromPoint(ev.clientX,ev.clientY);
+        var tn=el&&el.closest?el.closest('.tree-node'):null;
+        if(tn&&tn.getAttribute('data-id')!==d.id)tn.classList.add('drop-into');}
+      function onUp(ev){
+        document.removeEventListener('pointermove',onMove,true);
+        document.removeEventListener('pointerup',onUp,true);
+        if(!press)return;var wasActive=press.active;clearDrag();
+        if(!wasActive){press=null;return;}
+        ev.stopPropagation();ev.preventDefault();
+        var el=document.elementFromPoint(ev.clientX,ev.clientY);
+        var tn=el&&el.closest?el.closest('.tree-node'):null;press=null;
+        if(!tn)return;
+        var t=treeDragData(tn),r=tn.getBoundingClientRect();
+        applyTreeDrop(d,t,(ev.clientY>r.top+r.height/2));}
+      document.addEventListener('pointermove',onMove,true);
+      document.addEventListener('pointerup',onUp,true);
+    });
   }
   function activate(type,id,pid){
     if(type==='proj'){state.activeProjectId=id;var p=state.projects.find(function(x){return x.id===id;});
@@ -1381,12 +1861,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return '<svg class="st-ico" viewBox="0 0 16 16" fill="none"><path d="M1.8 4.2h4.6l1.3 1.6h6.5v7.4H1.8z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M1.8 6.4h12.4" stroke="currentColor" stroke-width="1"/></svg>';}
   function stGuides(anc,isLast){var h='';for(var i=0;i<anc.length;i++)h+='<i class="g-'+(anc[i]?'e':'v')+'"></i>';
     return '<span class="st-guides">'+h+'<i class="g-'+(isLast?'l':'t')+'"></i></span>';}
-  function buildSecNav(div){
-    buildSecTree(div);
-    var secs=(div.rows||[]).filter(function(r){return r.type==='section';}),map={},roots=[];
-    secs.forEach(function(s){map[s.id]={key:'sec',id:s.id,name:s.name,row:s,children:[],count:secItemCount(div,s)};});
-    secs.forEach(function(s){var nd=map[s.id],par=s._parent?map[s._parent]:null;
-      if(par)par.children.push(nd);else roots.push(nd);});return roots;}
+  /* 清单分部树节点：直接由「表格视图行」生成——送审分部、审定独有分部、
+     隐藏措施项目、仅看差异全部沿用表格那份 out，树的分部顺序 / 层级 / 上下级
+     因此与表格严格一致（此前树另算一套层级，审定新增分部会跑到最外层末尾）。 */
+  function buildSecNav(div,mode){
+    var out=buildViewRows(div,mode);
+    var roots=[],stack=[];
+    out.forEach(function(o){
+      if(o.kind==='section'){
+        var lvl=o.lvl||0;
+        while(stack.length&&stack[stack.length-1].lvl>=lvl)stack.pop();
+        var nd={key:'sec',id:o.id,name:o.name,row:findSecRowAny(div,o.id),
+          children:[],count:0,auditOnly:!!o._auditOnly};
+        (stack.length?stack[stack.length-1].children:roots).push(nd);
+        stack.push({lvl:lvl,children:nd.children,node:nd});
+      }else if(o.kind==='item'){
+        for(var i=0;i<stack.length;i++)stack[i].node.count++;
+      }
+    });
+    return roots;}
   var stFoldableIds=[];
   function stFoldToDivisions(proj){if(!proj||!proj.divisions||proj.divisions.length<2)return;
     var f=state.secTreeFold=state.secTreeFold||{};delete f['__root'];
@@ -1398,8 +1891,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var proj=activeProj(),divs=activeDivisions();
     if(!proj||!divs.length){box.innerHTML='<div class="st-empty">暂无清单分部<br>导入数据后自动显示</div>';return;}
     var projView=!!(state.activeNode&&state.activeNode.type==='proj')&&divs.length>1,children=[];
-    if(projView)divs.forEach(function(d){children.push({key:'div',id:'__div_'+d.id,divId:d.id,name:d.name,children:buildSecNav(d)});});
-    else divs.forEach(function(d){children=children.concat(buildSecNav(d));});
+    var vmode=cmpMode(divs);
+    if(projView)divs.forEach(function(d){children.push({key:'div',id:'__div_'+d.id,divId:d.id,name:d.name,children:buildSecNav(d,vmode)});});
+    else divs.forEach(function(d){children=children.concat(buildSecNav(d,vmode));});
     var scope=projView?('p:'+proj.id):('d:'+divs.map(function(d){return d.id;}).join(','));
     if(state.secTreeScope!==scope){state.secTreeScope=scope;if(projView)stFoldToDivisions(proj);}
     stFoldableIds=[];(function collect(ns){ns.forEach(function(nd){if(nd.children.length){stFoldableIds.push(nd.id);collect(nd.children);}});})(children);
@@ -1420,13 +1914,174 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if(!rootFold)walk(children,[]);
     box.innerHTML=head+(out.length?out.join(''):'<div class="st-empty">该范围内没有清单分部</div>');
   }
+  /* 分部树跳转：清掉自身与整条祖先链的折叠状态，确保目标分部在表格里真正可见。
+     审定独有分部的祖先在审定侧、id 与送审分部不同（同一分部两侧 id 各自生成），
+     因此祖先需按名称映射回送审分部的 id 再清折叠。 */
+  function expandSecChain(div,sid){
+    state.secCollapsed=state.secCollapsed||{};
+    var rows=div.rows||[],audit=div.auditRows||[];
+    delete state.secCollapsed[sid];
+    var tgt=rows.filter(function(r){return r.id===sid;})[0];
+    if(tgt){var p=tgt._parent;
+      while(p){delete state.secCollapsed[p];
+        p=((rows.filter(function(r){return r.id===p;})[0])||{})._parent;}
+      return;}
+    if(!audit.some(function(r){return r.id===sid;}))return;
+    buildSecTree({rows:audit});
+    var byName={};rows.forEach(function(r){
+      if(r.type==='section'&&byName[r.name]===undefined)byName[r.name]=r.id;});
+    var ar=audit.filter(function(r){return r.id===sid;})[0];if(!ar)return;
+    var p2=ar._parent,guard=0;
+    while(p2&&guard++<20){
+      var pr=audit.filter(function(r){return r.id===p2;})[0];if(!pr)break;
+      delete state.secCollapsed[byName[pr.name]!==undefined?byName[pr.name]:pr.id];
+      p2=pr._parent;
+    }
+  }
   function stJump(sid){state.secTreeFilter=(state.secTreeFilter===sid)?null:sid;state.activeSection=state.secTreeFilter;
-    if(state.secTreeFilter){state.secCollapsed=state.secCollapsed||{};activeDivisions().forEach(function(div){
-      var find0=function(id){return (div.rows||[]).filter(function(r){return r.id===id;})[0];};
-      var tgt=find0(sid);if(!tgt)return;delete state.secCollapsed[sid];
-      var p2=tgt._parent;while(p2){delete state.secCollapsed[p2];p2=(find0(p2)||{})._parent;}});}
+    if(state.secTreeFilter){activeDivisions().forEach(function(div){expandSecChain(div,sid);});}
     save();render();if(state.secTreeFilter)jumpToSection(sid);}
   function stShowAll(){state.secTreeFilter=null;state.activeSection=null;save();render();}
+
+  /* ==================== 分部树：右键设级别 / 长按拖动跨级 ==================== */
+  function findSecDiv(sid){var hit=null;
+    state.projects.forEach(function(p){(p.divisions||[]).forEach(function(d){
+      if((d.rows||[]).some(function(r){return r.id===sid&&r.type==='section';})||
+         (d.auditRows||[]).some(function(r){return r.id===sid&&r.type==='section';}))hit=d;});});return hit;}
+  function findSecRow(sid,div){if(!div)return null;return (div.rows||[]).filter(function(r){return r.id===sid&&r.type==='section';})[0]||null;}
+  /* 分部行可能在送审侧（div.rows）或审定独有侧（div.auditRows），统一查找 */
+  function findSecRowAny(div,sid){
+    if(!div)return null;
+    var r=findSecRow(sid,div);if(r)return r;
+    return (div.auditRows||[]).filter(function(x){return x.id===sid&&x.type==='section';})[0]||null;}
+  var stCtxSid=null;
+  function openSecTreeCtx(e,sid){
+    var div=findSecDiv(sid),row=findSecRowAny(div,sid);if(!row)return;
+    stCtxSid=sid;
+    $('stCtxTitle').textContent=row.name||'分部';
+    var m=$('secTreeCtx');
+    m.querySelectorAll('div[data-act]').forEach(function(it){
+      it.classList.toggle('current',(it.getAttribute('data-act')==='lvl'+(num(row.fixLvl)+1)) ||
+        (row.fixLvl===undefined&&it.getAttribute('data-act')==='resetLvl'));});
+    m.style.left=Math.min(e.clientX,Math.max(8,(window.innerWidth||1200)-210))+'px';
+    m.style.top=Math.min(e.clientY,Math.max(8,(window.innerHeight||800)-230))+'px';
+    m.style.display='block';}
+  function applySecLvl(sid,lvl){
+    var div=findSecDiv(sid),row=findSecRowAny(div,sid);if(!row)return;
+    /* 定级别优先于拖动锚点：设了级别就清掉 pin，避免两套定位互相打架 */
+    delete row.pinTgt;delete row.pinAfter;
+    if(lvl===null){delete row.fixLvl;delete row.fixParent;}
+    else{delete row.fixParent;row.fixLvl=Math.max(0,Math.min(2,lvl));}
+    save();render();toast(lvl===null?'已恢复自动层级':('已设为第'+(lvl+1)+'级分部'));}
+  /* 审定独有分部不在送审清单里，行序无法表达它的位置，改用「锚定目标分部」持久化：
+     pinTgt=目标分部 id（送审分部 / 审定独有分部都行），pinAfter=落在目标块之后。
+     buildCompare 插入该分部时按锚点定位，层级取目标分部的层级（即「与目标同级」）。 */
+  function pinAuditSec(div,sid,tgtSid,after){
+    var rows=div.auditRows||[],src=null,byId={};
+    rows.forEach(function(r){if(r.type!=='section')return;byId[r.id]=r;if(r.id===sid)src=r;});
+    if(!src)return;
+    var cur=byId[tgtSid],guard=0;
+    while(cur&&guard++<20){if(cur.id===sid){toast('不能把分部拖到它自己的子分部旁边');return;}cur=byId[cur._parent];}
+    src.pinTgt=tgtSid;src.pinAfter=!!after;delete src.fixLvl;delete src.fixParent;
+    save();render();
+    var tn=(findSecRowAny(div,tgtSid)||{}).name||'目标分部';
+    var tl=0;buildViewRows(div,cmpMode(activeDivisions())).forEach(function(o){
+      if(o.kind==='section'&&o.id===sid)tl=o.lvl||0;});
+    toast('已与「'+tn+'」同级（第'+(tl+1)+'级）');}
+  /* 长按拖动：把源分部整块（section 行 + 其下明细/子分部）移动到目标分部前/后，
+     并且「与目标同级」——挂到目标所属的父分部之下。
+     结构调整后整体按拖动前的层级快照锁定，避免顺序变化把父分部的合价累加关系
+     打乱、导致其它分部的自动层级跟着漂移。 */
+  function reorderSec(srcSid,tgtSid,after){
+    if(!tgtSid||tgtSid===srcSid)return;
+    var div=findSecDiv(srcSid);if(!div)return;
+    var rows=div.rows||[],i,si=-1;
+    var srcIsSend=rows.some(function(r){return r.id===srcSid&&r.type==='section';});
+    if(!srcIsSend){pinAuditSec(div,srcSid,tgtSid,after);return;}
+    buildSecTree(div);   /* 以当前（含手动覆盖）的层级作为快照基线 */
+    var snapPar={},tgtLvl=null,tgtPar=null;
+    rows.forEach(function(r,idx){
+      if(r.type!=='section')return;
+      snapPar[r.id]=r._parent||null;
+      if(r.id===srcSid)si=idx;
+      if(r.id===tgtSid){tgtLvl=r._lvl||0;tgtPar=r._parent||null;}
+    });
+    if(si<0)return;
+    if(tgtLvl===null){toast('目标是审定清单独有的分部，请拖到送审清单里的分部旁边');return;}
+    /* 源分部整块：到下一个 section 前（含明细与子分部） */
+    var se=rows.length;
+    for(i=si+1;i<rows.length;i++){if(rows[i].type==='section'){se=i;break;}}
+    var block=rows.splice(si,se-si);
+    var ti=-1;
+    for(i=0;i<rows.length;i++){if(rows[i].type==='section'&&rows[i].id===tgtSid){ti=i;break;}}
+    if(ti<0){ /* 目标落在源自己的块内（拖到自身子分部旁）：还原，不允许 */
+      rows.splice.apply(rows,[si,0].concat(block));
+      toast('不能把分部拖到它自己的子分部旁边');return;}
+    if(after){ /* 落到目标整块之后（含目标自身的明细/子分部），避免把目标明细隔开 */
+      var te=rows.length;
+      for(i=ti+1;i<rows.length;i++){if(rows[i].type==='section'){te=i;break;}}
+      ti=te;
+    }
+    rows.splice.apply(rows,[ti,0].concat(block));
+    /* 源改挂到目标的父下 → 与目标同级；其余分部按快照锁定原父，结构不漂移 */
+    rows.forEach(function(r){
+      if(r.type!=='section')return;
+      if(r.id===srcSid){r.fixParent=tgtPar||'__root__';delete r.fixLvl;return;}
+      if(r.fixLvl===undefined&&r.fixParent===undefined)r.fixParent=snapPar[r.id]||'__root__';
+    });
+    computeSecTree(div);
+    save();render();
+    var tn=(findSecRow(tgtSid,div)||{}).name||'目标分部';
+    toast('已与「'+tn+'」同级（第'+(tgtLvl+1)+'级）');}
+
+  /* 分部树长按手势：按住约 420ms 进入拖动态，pointermove 高亮目标，pointerup 落下 */
+  var stPress=null;
+  function cleanupStDrag(){
+    if(stPress){clearTimeout(stPress.timer);stPress=null;}
+    var box=$('secTreeBody');
+    if(box)box.querySelectorAll('.st-drag-src,.drop-into,.drop-before,.drop-after').forEach(function(x){
+      x.classList.remove('st-drag-src','drop-into','drop-before','drop-after');});}
+  function bindSecTreeGesture(){
+    var box=$('secTreeBody');if(!box||box._gestureBound)return;box._gestureBound=true;
+    box.addEventListener('contextmenu',function(e){
+      var row=e.target.closest?e.target.closest('.st-row[data-stid]'):null;
+      if(!row)return;e.preventDefault();e.stopPropagation();openSecTreeCtx(e,row.getAttribute('data-stid'));});
+    box.addEventListener('pointerdown',function(e){
+      if(e.button!==0)return;
+      if(e.target.closest&&e.target.closest('[data-stfold],[data-stall]'))return;
+      var row=e.target.closest?e.target.closest('.st-row[data-stid]'):null;if(!row)return;
+      var sid=row.getAttribute('data-stid'),sx=e.clientX,sy=e.clientY,moved=false;
+      var timer=setTimeout(function(){
+        if(moved)return;row.classList.add('st-drag-src');stPress.active=true;
+        toast('移动到目标分部前 / 后松开');},420);
+      stPress={timer:timer,active:false,moved:moved,sid:sid,row:row};
+      function onMove(ev){
+        if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>8)moved=true;
+        if(!stPress||!stPress.active)return;
+        if(ev.cancelable)ev.preventDefault();
+        box.querySelectorAll('.drop-before,.drop-after').forEach(function(x){x.classList.remove('drop-before','drop-after');});
+        var el=document.elementFromPoint(ev.clientX,ev.clientY);
+        var tgt=el&&el.closest?el.closest('.st-row[data-stid]'):null;
+        if(tgt&&tgt.getAttribute('data-stid')!==sid){
+          var r=tgt.getBoundingClientRect();
+          tgt.classList.add(ev.clientY>r.top+r.height/2?'drop-after':'drop-before');}}
+      function onUp(ev){
+        document.removeEventListener('pointermove',onMove,true);
+        document.removeEventListener('pointerup',onUp,true);
+        if(!stPress)return;
+        var wasActive=stPress.active,src=sid;
+        var el=document.elementFromPoint(ev.clientX,ev.clientY);
+        var tgt=el&&el.closest?el.closest('.st-row[data-stid]'):null;
+        var r=tgt?tgt.getBoundingClientRect():null;
+        var after=r?(ev.clientY>r.top+r.height/2):false;
+        cleanupStDrag();
+        if(wasActive){ev.stopPropagation();ev.preventDefault();
+          var ts=tgt&&tgt.getAttribute('data-stid');
+          if(ts&&ts!==src)reorderSec(src,ts,after);
+          stPress=null;}}
+      document.addEventListener('pointermove',onMove,true);
+      document.addEventListener('pointerup',onUp,true);});
+  }
   var stAllTimer=null;
   function stToggleAllFold(){var f=state.secTreeFold=state.secTreeFold||{},ids=stFoldableIds;
     var allFolded=ids.length>0&&ids.every(function(id){return !!f[id];});state.secTreeFold={};
@@ -1440,11 +2095,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     wrap.querySelectorAll('tr.section.flash').forEach(function(x){x.classList.remove('flash');});
     tr.classList.add('flash');clearTimeout(jumpToSection._t);
     jumpToSection._t=setTimeout(function(){tr.classList.remove('flash');},1800);}
+  /* 单位工程的分部清单浮层：同样取自表格视图行，审定新增分部也列在里面 */
   function openSecPop(e,did){var div=findDivById(did);if(!div)return;secPopDivId=did;
     $('secPopTitle').textContent=div.name;
-    var secs=(div.rows||[]).filter(function(r){return r.type==='section';}),list=$('secPopList');
+    var tree=buildSecNav(div,cmpMode(activeDivisions())),secs=[];
+    (function walk(ns,d){ns.forEach(function(n){
+      secs.push({id:n.id,name:n.name,lvl:d,count:n.count});walk(n.children,d+1);});})(tree,0);
+    var list=$('secPopList');
     if(!secs.length)list.innerHTML='<div class="sp-empty">该单位工程没有清单分部</div>';
-    else list.innerHTML=secs.map(function(sc){var n=secItemCount(div,sc),lvl=sc._lvl||0;
+    else list.innerHTML=secs.map(function(sc){var n=sc.count,lvl=sc.lvl||0;
       var folded=!!(state.secCollapsed&&state.secCollapsed[sc.id]),act=(state.activeSection===sc.id)?' active':'';
       var pfx=lvl?(new Array(Math.min(lvl,4)+1).join('└')+' '):'';
       return '<div class="sp-item'+(lvl?' sp-sub':'')+act+'" data-sid="'+sc.id+'" style="padding-left:'+(9+lvl*14)+'px">'+
@@ -1475,6 +2134,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     reader.readAsArrayBuffer(file);
   }
   function batchDivName(it){return (it.divName&&String(it.divName).trim())?String(it.divName).trim():String(it.engName||it.name||'');}
+  /* 审定清单不对应送审单位工程时，补一份「送审清单全部为 0」的同结构清单：
+     清单项工程量/单价/合价全部置 0；分部行保留原合价仅供分部层级识别（数据区合价按清单项实时累加） */
+  function zeroSendRows(auditRows){
+    return (auditRows||[]).map(function(r){
+      var z=clone(r);z.id=uid();
+      if(z.type==='item'){z.qty=0;z.price=0;z.total=0;}
+      return z;
+    });
+  }
   function allDivOptions(){
     var out=[];state.projects.forEach(function(p){(p.divisions||[]).forEach(function(d){
       out.push({id:d.id,label:p.name+' / '+d.name,name:d.name,projId:p.id});});});return out;}
@@ -1505,34 +2173,76 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     $('batchTitle').textContent=(pendingSide==='send'?'导入送审清单':'导入审定清单')+(importMode==='custom'?' · 自定义':' · 批量');
     $('batchHint').innerHTML=pendingSide==='audit'
-      ? '每个工作表对应一个单位工程；<b>「对应送审单位工程」</b>用于把审定清单挂到已有的送审单位工程上（默认按名称自动匹配，可下拉修改）。'
+      ? '每个工作表对应一个单位工程；<b>「对应送审单位工程」</b>用于把审定清单挂到已有的送审单位工程上（默认按名称自动匹配，可下拉修改）。选择「空 · 送审清单全部为 0」时，该工作表自成一个单位工程，送审侧清单项全部置 0。'
       : '勾选要导入的工作表（默认全不选）；单位工程名称可修改；同一个文件的多个工作表归入同一个项目。';
     $('batchProjField').style.display=importMode==='custom'?'none':'';
     $('batchProjName').value=importMode==='custom'?'':(treeImportTarget?projNameOfTarget():fb);
     $('batchSearch').value='';
     $('batchHead').querySelector('.bh-proj').style.display=importMode==='custom'?'':'none';
     $('batchHead').querySelector('.bh-map').style.display=pendingSide==='audit'?'':'none';
-    renderBatchList();$('batchList').scrollTop=0;$('batchMask').classList.add('show');
+    applyBatchSize();renderBatchList();$('batchList').scrollTop=0;$('batchMask').classList.add('show');
   }
   function projNameOfTarget(){if(!treeImportTarget)return '';
     if(treeImportTarget.type==='proj'){var p=state.projects.find(function(x){return x.id===treeImportTarget.id;});return p?p.name:'';}
     var q=state.projects.find(function(x){return x.id===treeImportTarget.pid;});return q?q.name:'';}
   function closeBatchModal(){$('batchMask').classList.remove('show');batchItems=null;}
+  /* 批量导入弹窗：记住上次拖出来的宽高，标题栏可拖动移动，右下角可拖动缩放 */
+  function applyBatchSize(){
+    var m=document.querySelector('#batchMask .batch-modal');if(!m)return;
+    var maxW=Math.max(640,window.innerWidth-24),maxH=Math.max(380,window.innerHeight-24);
+    m.style.width=Math.min(Math.max(640,state.batchW||820),maxW)+'px';
+    m.style.height=Math.min(Math.max(380,state.batchH||Math.round(window.innerHeight*0.86)),maxH)+'px';
+    m.style.transform='';
+  }
+  function initBatchModalDrag(){
+    var m=document.querySelector('#batchMask .batch-modal'),hd=$('batchTitle'),rz=$('batchResizer');
+    if(!m||!hd||!rz)return;
+    hd.addEventListener('mousedown',function(e){
+      if(e.button!==0)return;e.preventDefault();
+      var sx=e.clientX,sy=e.clientY,ox=0,oy=0,
+        cur=/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(m.style.transform||'');
+      if(cur){ox=parseFloat(cur[1]);oy=parseFloat(cur[2]);}
+      function mv(ev){m.style.transform='translate('+(ox+ev.clientX-sx)+'px,'+(oy+ev.clientY-sy)+'px)';}
+      function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);}
+      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+    });
+    rz.addEventListener('mousedown',function(e){
+      if(e.button!==0)return;e.preventDefault();e.stopPropagation();
+      var sx=e.clientX,sy=e.clientY,r0=m.getBoundingClientRect(),w=r0.width,h=r0.height;
+      function mv(ev){
+        m.style.width=Math.max(640,Math.min(window.innerWidth-24,w+ev.clientX-sx))+'px';
+        m.style.height=Math.max(380,Math.min(window.innerHeight-24,h+ev.clientY-sy))+'px';
+      }
+      function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
+        /* 直接取刚设置的样式值，避免布局矩形受 max-width / transform 影响 */
+        state.batchW=Math.round(parseFloat(m.style.width)||820);
+        state.batchH=Math.round(parseFloat(m.style.height)||560);save();}
+      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+    });
+  }
   function renderBatchList(){
     var opts=allDivOptions();
     var h='';
     (batchItems||[]).forEach(function(it,idx){
-      var ok=it.itemCount>0;
-      var mapSel='<select class="bs-map" data-i="'+idx+'"'+(ok?'':' disabled')+'>'+
+      var ok=it.itemCount>0,curLabel='（按名称自动匹配 / 新建）';
+      if(it.mapDiv===BLANK_MAP)curLabel='（空 · 送审清单全部为 0）';
+      else if(it.mapDiv){var co=opts.filter(function(o){return o.id===it.mapDiv;})[0];
+        if(co)curLabel=co.label;}
+      var mapSel='<select class="bs-map" data-i="'+idx+'"'+(ok?'':' disabled')+
+        ' title="'+escapeHtml(curLabel)+'">'+
         '<option value="">（按名称自动匹配 / 新建）</option>'+
-        opts.map(function(o){return '<option value="'+o.id+'"'+(it.mapDiv===o.id?' selected':'')+'>'+escapeHtml(o.label)+'</option>';}).join('')+'</select>';
+        '<option value="'+BLANK_MAP+'"'+(it.mapDiv===BLANK_MAP?' selected':'')+
+          '>（空 · 送审清单全部为 0）</option>'+
+        opts.map(function(o){return '<option value="'+o.id+'"'+(it.mapDiv===o.id?' selected':'')+
+          ' title="'+escapeHtml(o.label)+'">'+escapeHtml(o.label)+'</option>';}).join('')+'</select>';
       h+='<label class="batch-row'+(ok?'':' off')+'" data-idx="'+idx+'" data-name="'+escapeHtml(it.name)+'">'+
         '<input type="checkbox" data-i="'+idx+'"'+(ok?'':' disabled')+(ok&&it.checked?' checked':'')+'>'+
         '<span class="bs-name" title="'+escapeHtml(it.name)+'">'+escapeHtml(it.name)+'</span>'+
         '<span class="bs-cnt">'+(ok?(it.itemCount+' 项'):'未识别到清单')+'</span>'+
         '<input type="text" class="bs-proj" data-i="'+idx+'" value="'+escapeHtml(it.projName||'')+'" placeholder="项目名称"'+
           (importMode==='custom'?'':' style="display:none"')+(ok?'':' disabled')+'>'+
-        '<input type="text" class="bs-div" data-i="'+idx+'" value="'+escapeHtml(batchDivName(it))+'" placeholder="单位工程名称"'+(ok?'':' disabled')+'>'+
+        '<input type="text" class="bs-div" data-i="'+idx+'" value="'+escapeHtml(batchDivName(it))+'"'+
+          ' title="'+escapeHtml(batchDivName(it))+'" placeholder="单位工程名称"'+(ok?'':' disabled')+'>'+
         '<span class="bs-map-wrap"'+(pendingSide==='audit'?'':' style="display:none"')+'>'+mapSel+'</span>'+
         '</label>';});
     $('batchList').innerHTML=h;filterBatchList();
@@ -1569,9 +2279,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var overwrite=[];
     /* 审定侧：必须挂到已有送审单位工程，否则给出明确提示，避免静默新建空项目 */
     if(pendingSide==='audit'){
+      var allOpts=allDivOptions();
       var orphan=chosen.filter(function(it){
+        if(it.mapDiv===BLANK_MAP)return false;                        /* 明确留空：自成一个单位工程 */
         if(it.mapDiv&&findDivGlobal(it.mapDiv))return false;          /* 弹窗里已手动/自动选定 */
-        if(opts.length===1)return false;                              /* 全局只有一个送审单位工程：直接挂过去 */
+        if(allOpts.length===1)return false;                            /* 全局只有一个送审单位工程：直接挂过去 */
         var pn=importMode==='custom'?(String(it.projName||'').trim()||defaultProj):defaultProj;
         var proj=state.projects.find(function(p){return p.name===pn;});
         return !proj||!findTargetDiv(it,proj,pn);});
@@ -1582,7 +2294,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     groups.forEach(function(g){var proj=state.projects.find(function(p){return p.name===g.proj;});
       if(!proj)return;g.items.forEach(function(it){
-        var target=findTargetDiv(it,proj,g.proj);
+        var blank=(pendingSide==='audit'&&it.mapDiv===BLANK_MAP);
+        var target=blank?(proj.divisions||[]).find(function(d){return d.name===it._finalDiv;})
+          :findTargetDiv(it,proj,g.proj);
         if(target&&((pendingSide==='send'&&(target.rows||[]).length)||(pendingSide==='audit'&&target.auditDone)))
           overwrite.push(g.proj+' / '+(target.name||it._finalDiv));});});
     if(overwrite.length&&!confirm('以下单位工程已存在清单数据，导入将覆盖：\n'+overwrite.slice(0,8).join('\n')+
@@ -1603,10 +2317,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if(!proj){proj={id:uid(),name:g.proj,divisions:[]};state.projects.push(proj);}
       if(!proj.divisions)proj.divisions=[];
       g.items.forEach(function(it){
+        var blank=(pendingSide==='audit'&&it.mapDiv===BLANK_MAP);
         var div=findTargetDiv(it,proj,g.proj);
-        if(!div){div={id:uid(),name:it._finalDiv,rows:[],auditRows:[],auditDone:false};proj.divisions.push(div);}
+        if(!div){
+          /* 明确留空时同名单位工程可复用（覆盖），避免重复导入堆积 */
+          if(blank)div=(proj.divisions||[]).find(function(d){return d.name===it._finalDiv;});
+          if(!div){div={id:uid(),name:it._finalDiv,rows:[],auditRows:[],auditDone:false};proj.divisions.push(div);}
+        }
         var rows=clone(it.rows);rows.forEach(function(r){r.id=uid();});
         if(pendingSide==='audit'){
+          if(blank)div.rows=zeroSendRows(it.rows);   /* 送审清单全部为 0 */
           div.auditRows=rows;div.auditDone=true;div.auditFrom=it._finalDiv;
         }else{
           div.rows=rows;
@@ -1625,6 +2345,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function findTargetDiv(it,proj,projName){
     if(pendingSide==='audit'){
+      if(it.mapDiv===BLANK_MAP)return null;   /* 明确留空：不挂任何已有送审单位工程 */
       if(it.mapDiv){var g0=findDivGlobal(it.mapDiv);if(g0)return g0.div;}
       /* 全局只有一个送审单位工程时，直接挂到它上面 */
       var all0=allDivOptions();
@@ -1653,7 +2374,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function sheetName(base,n){base=String(base||'工程').replace(/[\\/:*?\[\]]/g,'').trim().slice(0,26)||'工程';
     return (n?base+'('+n+')':base).slice(0,31);}
   function exportRows(div,mode){
-    var out=mode==='compare'?buildCompare(div):buildSingle(div),C=colsFor(mode),aoa=[];
+    var out=mode==='compare'?filterMeasureOnly(buildCompare(div)):buildSingle(div),C=colsFor(mode),aoa=[];
     renumber(out);
     if(mode==='compare'){
       var head1=[],head2=[];
@@ -1796,7 +2517,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<top style="thin"><color rgb="FFD9D9D9"/></top><bottom style="thin"><color rgb="FFD9D9D9"/></bottom>'
     +'<diagonal/></border></borders>'
     +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    +'<cellXfs count="28">'
+    +'<cellXfs count="32">'
     +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
     +'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
@@ -1828,6 +2549,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<xf numFmtId="0" fontId="11" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="5" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'
     +'<xf numFmtId="1" fontId="0" fillId="8" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    /* 28/29=分部行增减金额：只换字色，背景沿用分部行 fill3（浅蓝）；
+       30/31=单位工程汇总行增减金额：背景沿用汇总行 fill7（浅灰），与同行其他格完全一致。
+       两类都不带浅蓝浅红差异底色。 */
+    +'<xf numFmtId="2" fontId="9" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="8" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="9" fillId="7" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="8" fillId="7" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'</cellXfs>'
     +'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     +'</styleSheet>';
@@ -1932,7 +2660,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var k=c.key,v='',t='s',s=4,cc;
     if(o.kind==='divsum'){
       if(k==='name'){v=o.name;s=14;}
-      else if(k==='d_amt'){v=o.amt;t='n';s=(o.amt>TOL?18:(o.amt<-TOL?19:15));}
+      else if(k==='s_total'||k==='total'){v=nz(o.s||0);t='n';s=15;}
+      else if(k==='a_total'){v=nz(o.a||0);t='n';s=15;}
+      else if(k==='d_amt'){v=o.amt;t='n';s=(o.amt>TOL?30:(o.amt<-TOL?31:15));}
       else{v='';s=14;}
       return {v:v,t:t,s:s};
     }
@@ -1941,7 +2671,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       else if(k==='ctype'){v='部';s=23;}
       else if(k==='s_total'||k==='total'){v=nz(o.sSum);t='n';s=10;}
       else if(k==='a_total'){v=nz(o.aSum);t='n';s=10;}
-      else if(k==='d_amt'){v=(o.aSum||0)-(o.sSum||0);t='n';s=(v>TOL?18:(v<-TOL?19:10));}
+      else if(k==='d_amt'){v=(o.aSum||0)-(o.sSum||0);t='n';s=(v>TOL?28:(v<-TOL?29:10));}
       else{v='';s=9;}
       return {v:v,t:t,s:s};
     }
@@ -1960,7 +2690,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if(isNaN(v))v='';
       else{
         t='n';
-        /* 工程量差 / 审减金额：按正负带浅蓝浅红底；其余数值列只上字色 */
+        /* 工程量差 / 增减金额：按正负带浅蓝浅红底；其余数值列只上字色 */
         if(cc.indexOf('bg-blue')>=0)s=16;
         else if(cc.indexOf('bg-red')>=0)s=17;
         else if(cc.indexOf('v-red')>=0)s=7;
@@ -1973,7 +2703,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function oxSheetData(div,mode){
     var C=colsFor(mode);computeSecTree(div);
-    var out=mode==='compare'?buildCompare(div):buildSingle(div);
+    var out=mode==='compare'?filterMeasureOnly(buildCompare(div)):buildSingle(div);
     renumber(out);
     var merges=[],rows=[],h1=[],h2=[],grpStart={},grpDone={};
     C.forEach(function(c,ci){
@@ -1999,13 +2729,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var featW=18;C.forEach(function(c,i){if(c.key==='feature')featW=colW[i];});
     /* 每个单位工程首行：分部汇总（与界面一致）
        sumS/sumA = 一级分部送审/审定合价之和，供目录页「送审合价」「审定合价」列使用 */
-    var sumAmt=0,sumS=0,sumA=0;
-    out.forEach(function(o){if(o.kind==='section'&&(o.lvl||0)===0){
-      sumS+=nz(o.sSum||0);sumA+=nz(o.aSum||0);
-      sumAmt+=nz(o.aSum||0)-nz(o.sSum||0);}});
-    rows.push({cells:C.map(function(c){return oxCell({kind:'divsum',name:div.name,amt:sumAmt},c,mode);}),h:24,lv:0});
+    var totals=divTotals(out),sumAmt=totals.amt,sumS=totals.s,sumA=totals.a;
+    rows.push({cells:C.map(function(c){return oxCell({kind:'divsum',name:div.name,
+      s:sumS,a:sumA,amt:sumAmt},c,mode);}),h:24,lv:0});
     /* 按分部创建可折叠组：分部行 = 当前层级，其下清单行 = 当前层级+1
-       同时收集目录元数据：每个分部的审减金额与其在本表中的行号 */
+       同时收集目录元数据：每个分部的增减金额与其在本表中的行号 */
     var curLvl=0,maxLv=0,sections=[],itemCount=0;
     out.forEach(function(o){
       var hh=20,lv=0,rowNo=rows.length+1;
@@ -2031,27 +2759,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   /* 工作簿内部跳转：表名用单引号包裹，名称内的单引号加倍 */
   function oxSheetRef(n){return "'"+String(n).replace(/'/g,"''")+"'";}
   function oxAmtStyle(v){return v>TOL?16:(v<-TOL?17:6);}
-  /* 目录页：7 列 = 序号 / 项目 / 单位工程·清单分部 / 清单项数 /
-     送审合价 / 审定合价 / 审减金额；蓝色名称为内部链接，可点击跳转 */
+  /* 目录页：6 列 = 序号 / 项目 / 单位工程·清单分部 / 送审合价 / 审定合价 / 增减金额；
+     蓝色名称为内部链接，可点击跳转。清单项数列已移除。 */
   function oxTocSheet(toc){
     var rows=[],merges=[],links=[],cnt=0,lastProj=null,
-      projCount=0,secCount=0,itemCount=0,totalAmt=0,totalS=0,totalA=0;
-    var blank7=function(s){return [{v:'',s:s},{v:'',s:s},{v:'',s:s},{v:'',s:s},
+      projCount=0,secCount=0,totalAmt=0,totalS=0,totalA=0;
+    var blank6=function(s){return [{v:'',s:s},{v:'',s:s},{v:'',s:s},
       {v:'',s:s},{v:'',s:s},{v:'',s:s}];};
-    rows.push({cells:[{v:'目录',s:25},{v:'',s:25},{v:'',s:25},{v:'',s:25},
+    rows.push({cells:[{v:'目录',s:25},{v:'',s:25},{v:'',s:25},
       {v:'',s:25},{v:'',s:25},{v:'',s:25}],h:38,lv:0});
-    merges.push({r1:0,c1:0,r2:0,c2:6});
-    rows.push({cells:['序号','项目','单位工程 / 清单分部','清单项数',
-      '送审合价','审定合价','审减金额']
+    merges.push({r1:0,c1:0,r2:0,c2:5});
+    rows.push({cells:['序号','项目','单位工程 / 清单分部','送审合价','审定合价','增减金额']
       .map(function(t){return {v:t,s:1};}),h:26,lv:0});
     toc.forEach(function(t){
       if(t.projName!==lastProj){projCount++;lastProj=t.projName;}
-      cnt++;itemCount+=t.itemCount||0;
+      cnt++;
       var da=t.divAmt||0,ds=t.divS||0,dq=t.divA||0,ri=rows.length+1;
       totalAmt+=da;totalS+=ds;totalA+=dq;
       rows.push({cells:[
         {v:String(cnt),s:5},{v:t.projName,s:4},{v:t.divName,s:26},
-        {v:t.itemCount||0,t:'n',s:27},
         {v:ds,t:'n',s:6},{v:dq,t:'n',s:6},{v:da,t:'n',s:oxAmtStyle(da)}
       ],h:22,lv:0});
       links.push({ref:'C'+ri,loc:oxSheetRef(t.sheetName)+'!A1',
@@ -2062,7 +2788,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         var pad=new Array(L+1).join('\u3000'),txt=pad+(L?'\u2514 ':'')+sc.name;
         rows.push({cells:[
           {v:'',s:4},{v:'',s:4},{v:txt,s:4},
-          {v:sc.count||0,t:'n',s:27},
           {v:sc.s||0,t:'n',s:6},{v:sc.a||0,t:'n',s:6},{v:amt,t:'n',s:oxAmtStyle(amt)}
         ],h:20,lv:1});
         links.push({ref:'C'+rj,loc:oxSheetRef(t.sheetName)+'!A'+sc.row,
@@ -2072,26 +2797,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     rows.push({cells:[
       {v:'',s:14},{v:'合计',s:14},
       {v:projCount+' 个项目 · '+toc.length+' 个单位工程 · '+secCount+' 个分部',s:14},
-      {v:itemCount,t:'n',s:27},
       {v:totalS,t:'n',s:6},{v:totalA,t:'n',s:6},{v:totalAmt,t:'n',s:oxAmtStyle(totalAmt)}
     ],h:26,lv:0});
-    rows.push({cells:blank7(0),h:10,lv:0});
-    /* 说明与生成时间各占独立一行，均合并 A:G */
+    rows.push({cells:blank6(0),h:10,lv:0});
+    /* 说明 / 备注 / 生成时间各占独立一行，均合并 A:F */
     var nr=rows.length;
     var note='说明：蓝色名称为内部链接，点击跳转到对应工作表 / 分部行；'+
       '单位工程内点击A1单元格返回目录；分部行可用左上角分级按钮折叠。';
-    rows.push({cells:[{v:note,s:4}].concat(blank7(4).slice(1)),h:26,lv:0});
-    merges.push({r1:nr,c1:0,r2:nr,c2:6});
-    rows.push({cells:[{v:'生成时间：'+stamp(),s:4}].concat(blank7(4).slice(1)),h:20,lv:0});
-    merges.push({r1:nr+1,c1:0,r2:nr+1,c2:6});
-    return {name:'目录',cols:[7,24,58,12,18,18,18],rows:rows,merges:merges,
+    rows.push({cells:[{v:note,s:4}].concat(blank6(4).slice(1)),h:26,lv:0});
+    merges.push({r1:nr,c1:0,r2:nr,c2:5});
+    var nr2=rows.length;
+    rows.push({cells:[{v:'备注：仅对分部分项清单进行对比，其他费用不在对比范围；',s:4}]
+      .concat(blank6(4).slice(1)),h:20,lv:0});
+    merges.push({r1:nr2,c1:0,r2:nr2,c2:5});
+    rows.push({cells:[{v:'生成时间：'+stamp(),s:4}].concat(blank6(4).slice(1)),h:20,lv:0});
+    merges.push({r1:nr2+1,c1:0,r2:nr2+1,c2:5});
+    return {name:'目录',cols:[7,24,58,18,18,18],rows:rows,merges:merges,
       freeze:2,maxLv:1,tabSelected:true,grid:false,links:links};
   }
-  function exportCompareXlsx(){
+  function exportCompareXlsx(list){
     try{
-      if(!state.projects.length){toast('暂无可导出的数据');return;}
+      /* list：可选，[{p:项目,d:单位工程}]；不传则导出全部 */
+      var items=list;
+      if(!items){items=[];state.projects.forEach(function(p){(p.divisions||[]).forEach(function(d){items.push({p:p,d:d});});});}
+      if(!items.length){toast('暂无可导出的数据');return;}
       var sheets=[],used={'目录':1},n=0,toc=[];
-      state.projects.forEach(function(p){(p.divisions||[]).forEach(function(d){
+      items.forEach(function(it){
+        var p=it.p,d=it.d;
         var mode=(d.auditDone&&(d.auditRows||[]).length)?'compare':'single';
         var base=p.name+'-'+d.name,k=sheetName(base);
         if(used[k]){n++;k=sheetName(base,n);}used[k]=1;
@@ -2101,17 +2833,82 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         toc.push({projName:p.name,divName:d.name,sheetName:k,
           divAmt:sh.divAmt||0,divS:sh.divS||0,divA:sh.divA||0,
           sections:sh.sections||[],itemCount:sh.itemCount||0});
-      });});
+      });
       if(!sheets.length){toast('没有可导出的数据');return;}
-      sheets.unshift(oxTocSheet(toc));   /* 目录置于 <sheets> 首位，打开即停留目录页 */
+      /* 只勾选一个单位工程时不生成目录页，并去掉「返回目录」链接 */
+      var single=sheets.length===1;
+      if(single)sheets[0].links=[];
+      else sheets.unshift(oxTocSheet(toc));   /* 目录置于 <sheets> 首位，打开即停留目录页 */
       var buf=oxBuildXlsx(sheets);
       var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
       var a=document.createElement('a'),url=URL.createObjectURL(blob);
-      a.href=url;a.download='清单对比表_'+stamp()+'.xlsx';
+      a.href=url;
+      a.download=(single?(toc[0].projName+'-'+toc[0].divName):'清单对比表')+'_'+stamp()+'.xlsx';
       document.body.appendChild(a);a.click();
       setTimeout(function(){try{URL.revokeObjectURL(url);document.body.removeChild(a);}catch(e){}},0);
-      toast('已导出对比表（'+(sheets.length-1)+' 个单位工程 + 目录页）');
+      toast(single?'已导出对比表（'+toc[0].divName+'）':'已导出对比表（'+(sheets.length-1)+' 个单位工程 + 目录页）');
     }catch(err){console.error(err);toast('导出失败：'+((err&&err.message)||err));}
+  }
+  /* ==================== 导出选择弹窗（按项目 / 单位工程勾选） ==================== */
+  var expSel=null;
+  function expMatch(p,d,kw){
+    if(!kw)return true;
+    var k=kw.toLowerCase();
+    return String(p.name||'').toLowerCase().indexOf(k)>=0||String(d.name||'').toLowerCase().indexOf(k)>=0;
+  }
+  function expCollect(){
+    var out=[];if(!expSel)return out;
+    state.projects.forEach(function(p){(p.divisions||[]).forEach(function(d){
+      if(expSel[p.id]&&expSel[p.id][d.id])out.push({p:p,d:d});});});
+    return out;
+  }
+  function syncExpProjState(){
+    var box=$('expList');if(!box)return;
+    box.querySelectorAll('.exp-group').forEach(function(g){
+      var kids=[].slice.call(g.querySelectorAll('input[data-did]'));
+      var on=kids.filter(function(c){return c.checked;}).length;
+      var pb=g.querySelector('input[data-ppid]');
+      if(pb){pb.checked=kids.length>0&&on===kids.length;pb.indeterminate=on>0&&on<kids.length;}
+    });
+  }
+  function updExpCount(){
+    var n=expCollect().length,c=$('expCount');
+    if(c)c.textContent=n?('已选择 '+n+' 个单位工程'+(n>1?' · 将生成目录页':'（不再生成目录页）')):'请至少选择 1 个单位工程';
+    var b=$('expOk');if(b)b.disabled=!n;
+  }
+  function renderExpList(){
+    var box=$('expList');if(!box)return;
+    var kw=String($('expSearch').value||'').trim(),html='';
+    state.projects.forEach(function(p){
+      var divs=(p.divisions||[]).filter(function(d){return expMatch(p,d,kw);});
+      if(!divs.length)return;
+      var items='';
+      divs.forEach(function(d){
+        var cmp=!!(d.auditDone&&(d.auditRows||[]).length);
+        var cnt=(d.rows||[]).filter(function(r){return r.type==='item';}).length;
+        items+='<label class="exp-item"><input type="checkbox" data-pid="'+p.id+'" data-did="'+d.id+'"'+
+          (expSel[p.id]&&expSel[p.id][d.id]?' checked':'')+'>'+
+          '<span class="exp-dname" title="'+escapeHtml(d.name)+'">'+escapeHtml(d.name)+'</span>'+
+          '<span class="exp-tag'+(cmp?'':' single')+'">'+(cmp?'对比表':'仅送审')+'</span>'+
+          '<span class="exp-cnt">'+cnt+' 项</span></label>';
+      });
+      html+='<div class="exp-group" data-pid="'+p.id+'"><label class="exp-proj">'+
+        '<input type="checkbox" data-ppid="'+p.id+'">'+
+        '<span class="exp-pname" title="'+escapeHtml(p.name)+'">'+escapeHtml(p.name)+'</span>'+
+        '<span class="exp-pmeta">'+divs.length+' 个单位工程</span></label>'+
+        '<div class="exp-items">'+items+'</div></div>';
+    });
+    box.innerHTML=html||'<div class="hint" style="padding:12px 10px">没有匹配的项目 / 单位工程</div>';
+    syncExpProjState();updExpCount();
+  }
+  function openExportModal(){
+    if(!state.projects.length){toast('暂无可导出的数据');return;}
+    expSel={};
+    state.projects.forEach(function(p){expSel[p.id]={};
+      (p.divisions||[]).forEach(function(d){expSel[p.id][d.id]=true;});});
+    $('expSearch').value='';
+    renderExpList();
+    $('expMask').classList.add('show');
   }
   function exportCleanXlsx(){
     try{
@@ -2157,7 +2954,38 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function startImport(side,mode){pendingSide=side;importMode=mode||'batch';treeImportTarget=null;pickFile();}
   $('btnImportSend').addEventListener('click',function(){startImport('send','batch');});
   $('btnImportAudit').addEventListener('click',function(){startImport('audit','batch');});
-  $('btnExport').addEventListener('click',exportCompareXlsx);
+  $('btnExport').addEventListener('click',openExportModal);
+  $('expSearch').addEventListener('input',renderExpList);
+  $('expAll').addEventListener('click',function(){
+    state.projects.forEach(function(p){expSel[p.id]=expSel[p.id]||{};
+      (p.divisions||[]).forEach(function(d){if(expMatch(p,d,String($('expSearch').value||'').trim()))expSel[p.id][d.id]=true;});});
+    renderExpList();});
+  $('expNone').addEventListener('click',function(){
+    state.projects.forEach(function(p){expSel[p.id]=expSel[p.id]||{};
+      (p.divisions||[]).forEach(function(d){if(expMatch(p,d,String($('expSearch').value||'').trim()))expSel[p.id][d.id]=false;});});
+    renderExpList();});
+  $('expList').addEventListener('change',function(e){
+    var t=e.target;if(!t||t.type!=='checkbox')return;
+    if(t.hasAttribute('data-ppid')){
+      var pid=t.getAttribute('data-ppid'),on=!!t.checked;
+      var p=state.projects.find(function(x){return x.id===pid;});
+      expSel[pid]=expSel[pid]||{};
+      (p?p.divisions||[]:[]).forEach(function(d){
+        if(expMatch(p,d,String($('expSearch').value||'').trim()))expSel[pid][d.id]=on;});
+      var g=t.closest('.exp-group');
+      if(g)g.querySelectorAll('input[data-did]').forEach(function(c){c.checked=on;});
+    }else{
+      var pid2=t.getAttribute('data-pid'),did=t.getAttribute('data-did');
+      expSel[pid2]=expSel[pid2]||{};expSel[pid2][did]=!!t.checked;
+    }
+    syncExpProjState();updExpCount();});
+  $('expCancel').addEventListener('click',function(){$('expMask').classList.remove('show');});
+  $('expOk').addEventListener('click',function(){
+    var list=expCollect();
+    if(!list.length){toast('请至少选择 1 个单位工程');return;}
+    $('expMask').classList.remove('show');
+    exportCompareXlsx(list);});
+  $('expMask').addEventListener('click',function(e){if(e.target===$('expMask'))$('expMask').classList.remove('show');});
   $('btnTheme').addEventListener('click',function(){var c=document.documentElement.getAttribute('data-theme');
     document.documentElement.setAttribute('data-theme',c==='dark'?'light':'dark');
     try{localStorage.setItem('boq_theme',document.documentElement.getAttribute('data-theme'));}catch(e){}});
@@ -2166,7 +2994,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   $('fileInputBackup').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(f)importBackup(f);e.target.value='';});
   $('treeSplitter').addEventListener('mousedown',startSplit);
   $('treeSplitter').addEventListener('dblclick',function(){state.treeWidth=280;applyTreeWidth();save();});
-  $('treeRail').addEventListener('click',function(){toggleTreeOn(true);});
+  /* 顶栏项目树按钮：单击=展开/收起且选项目后自动收起；双击=展开/收起且选项目后保持展开 */
+  var treeToggleTimer=null;
+  $('btnTreeToggle').addEventListener('click',function(e){
+    if(e.detail>1){clearTimeout(treeToggleTimer);state.treePinned=true;toggleTreeOn();return;}
+    treeToggleTimer=setTimeout(function(){state.treePinned=false;toggleTreeOn();},230);
+  });
   $('treePanel').addEventListener('click',function(e){var h=e.target.closest?e.target.closest('[data-tact="hide"]'):null;
     if(h){e.stopPropagation();toggleTreeOn(false);}});
   $('secTreeRail').addEventListener('click',function(){toggleSecTree(true);});
@@ -2188,18 +3021,22 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     state.secCollapsed=state.secCollapsed||{};
     var a=e.target.closest?e.target.closest('[data-sact]'):null;
     if(a){var act=a.getAttribute('data-sact'),div=findDivById(secPopDivId);
-      if(div)(div.rows||[]).forEach(function(r){if(r.type!=='section')return;
-        if(act==='expand')delete state.secCollapsed[r.id];else state.secCollapsed[r.id]=true;});
+      if(div){
+        /* 分级展开 / 折叠：整体可见深度（Excel 大纲风格），一次设定整棵树所有层级。
+           展开到 N 级 = 显示到第 N 级（展开 lvl 0..N-1，折叠 lvl>=N）；
+           折叠到 N 级 = 从第 N 级起折叠（展开 lvl 0..N-2，折叠 lvl>=N-1）。
+           全展开 = 深度 99；全折叠 = 深度 0。 */
+        if(/^expL[123]$/.test(act))setSecDepth(div,parseInt(act.slice(-1),10));
+        else if(/^colL[123]$/.test(act))setSecDepth(div,parseInt(act.slice(-1),10)-1);
+        else if(act==='expand')setSecDepth(div,99);
+        else if(act==='collapse')setSecDepth(div,0);
+      }
       save();render();closeSecPop();return;}
     var it=e.target.closest?e.target.closest('[data-sid]'):null;if(!it)return;
     var sid=it.getAttribute('data-sid');closeSecPop();state.activeSection=sid;
-    var rows0=(findDivById(secPopDivId)||{rows:[]}).rows||[];
-    var find0=function(id){return rows0.filter(function(r){return r.id===id;})[0];};
-    var changed=false,tgt=find0(sid),pp=tgt&&tgt._parent;
-    if(state.secCollapsed&&state.secCollapsed[sid]){delete state.secCollapsed[sid];changed=true;}
-    while(pp){if(state.secCollapsed&&state.secCollapsed[pp]){delete state.secCollapsed[pp];changed=true;}
-      pp=(find0(pp)||{})._parent;}
-    if(changed){save();render();}jumpToSection(sid);});
+    /* 展开自身与整条祖先链（送审 / 审定独有分部都支持），保证跳转后可见 */
+    expandSecChain(findDivById(secPopDivId)||{},sid);
+    save();render();jumpToSection(sid);});
   $('btnTreeAdd').addEventListener('click',newProject);
   $('treeBody').addEventListener('contextmenu',function(e){
     if(e.target.closest&&e.target.closest('.tree-node'))return;
@@ -2229,7 +3066,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var t=e.target;if(!t)return;var idx=parseInt(t.getAttribute('data-i'),10);
     if(isNaN(idx)||!batchItems||!batchItems[idx])return;
     if(t.type==='checkbox'){batchItems[idx].checked=t.checked;batchCountUpdate();}
-    else if(t.tagName==='SELECT'){batchItems[idx].mapDiv=t.value;}
+    else if(t.tagName==='SELECT'){batchItems[idx].mapDiv=t.value;
+      /* 名称很长时，悬浮下拉即可看到当前选中项全称 */
+      t.title=t.options[t.selectedIndex]?t.options[t.selectedIndex].text:'';}
   });
   $('batchList').addEventListener('input',function(e){
     var t=e.target;if(!t)return;var idx=parseInt(t.getAttribute('data-i'),10);
@@ -2248,9 +3087,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     state.hiddenCols=hidden;closeColModal();save();render();});
   $('rowCtx').addEventListener('click',function(e){var act=e.target.getAttribute('data-act');if(!act)return;
     $('rowCtx').style.display='none';rowMenuAction(act);});
+  $('secTreeCtx').addEventListener('click',function(e){
+    var a=e.target.closest?e.target.closest('[data-act]'):null;if(!a)return;
+    var act=a.getAttribute('data-act');$('secTreeCtx').style.display='none';
+    if(!stCtxSid)return;
+    if(act==='lvl1')applySecLvl(stCtxSid,0);
+    else if(act==='lvl2')applySecLvl(stCtxSid,1);
+    else if(act==='lvl3')applySecLvl(stCtxSid,2);
+    else if(act==='resetLvl')applySecLvl(stCtxSid,null);});
+  bindSecTreeGesture();
   document.addEventListener('click',function(ev){
     if(ev.target.id!=='batchProjName'&&ev.target.id!=='batchSearch'){
-      ['rowCtx','treeCtx'].forEach(function(id){var m=$(id);if(m)m.style.display='none';});}
+      ['rowCtx','treeCtx','secTreeCtx'].forEach(function(id){var m=$(id);if(m)m.style.display='none';});}
     var sp=$('secPop');if(sp)sp.classList.remove('show');});
   document.addEventListener('keydown',function(e){
     var t=e.target,tag=t&&t.tagName;
@@ -2260,7 +3108,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}
   });
   try{var th=localStorage.getItem('boq_theme');if(th)document.documentElement.setAttribute('data-theme',th);}catch(e){}
-  load();render();
+  initBatchModalDrag();load();render();
 })();
 
 </script>

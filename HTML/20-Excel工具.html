@@ -108,6 +108,33 @@
   .batch .sep{font-size:11px;color:var(--faint)}
   .batch .bmsg{font-size:11px;color:var(--ok);margin-left:auto;font-weight:500}
 
+  /* 拆分单元格模块 */
+  .split-cfg{display:flex;flex-direction:column;gap:10px;background:var(--primary-soft);border:1px solid #dbe3ff;border-radius:11px;padding:12px 15px;margin-bottom:14px}
+  .cfg-item{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text);font-weight:600;flex-wrap:wrap}
+  .cfg-item input[type=number]{width:64px;font-family:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;color:var(--text);background:#fff;outline:none}
+  .cfg-item input[type=number]:focus{border-color:var(--primary);box-shadow:0 0 0 2px #fff}
+  .cfg-unit{font-weight:400;color:var(--muted);font-size:11.5px}
+  .cfg-check{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);cursor:pointer}
+  .cfg-check input{accent-color:var(--primary);cursor:pointer}
+  .scan-sum{font-size:11.5px;color:var(--muted);margin:2px 2px 12px}
+  .scan-sum b{color:var(--primary-d)}
+  .editor-head.split-head{grid-template-columns:52px 1.1fr 2fr 70px}
+  .split-row{display:grid;grid-template-columns:52px 1.1fr 2fr 70px;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f0f3f8;background:#fff;font-size:11.5px}
+  .split-row:last-child{border-bottom:none}
+  .split-row:hover{background:#fafbff}
+  .split-row .num{font-size:11px;color:var(--faint);text-align:center}
+  .split-row .sname{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .split-row .merges{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .split-row .merges em{font-style:normal;color:var(--primary-d);background:var(--primary-soft);padding:1px 6px;border-radius:5px;margin-right:5px;display:inline-block}
+  .split-row .res{text-align:right;color:var(--ok);font-weight:600}
+  .split-row .none{color:var(--faint);text-align:right}
+  .tip.warn{background:#fff8ed;border-color:#f0dcb8}
+  .tip.warn svg{color:#d99431}
+  .tip.warn b{color:#b9761a}
+  @media(max-width:640px){
+    .editor-head.split-head,.split-row{grid-template-columns:36px 1fr 1.4fr 56px}
+  }
+
   .editor{background:var(--card);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);overflow:hidden}
   .editor-head{display:grid;grid-template-columns:52px 34px 1fr 1fr 92px;align-items:center;gap:10px;padding:10px 14px;background:#f5f7fb;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);font-weight:600}
   .sheet-row{display:grid;grid-template-columns:52px 34px 1fr 1fr 92px;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f0f3f8;background:#fff;transition:background .12s}
@@ -169,6 +196,10 @@
     <button class="tab" data-mod="rename">
       <svg class="tic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       批量修改Sheet
+    </button>
+    <button class="tab" data-mod="split">
+      <svg class="tic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h8m2 0h8M3 19h8m2 0h8"/><path d="M12 3v18"/></svg>
+      拆分单元格
     </button>
     <button class="tab soon" disabled>
       <svg class="tic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -271,6 +302,50 @@
       </div>
     </div>
   </div>
+
+  <!-- 模块3：拆分单元格 -->
+  <div class="mod" id="mod-split">
+    <div class="sec-head">
+      <h2>拆分单元格（取消表头合并 · 总列宽不变）</h2>
+      <span class="badge" id="splitBadge">0 个文件</span>
+      <div class="head-actions">
+        <button class="btn ghost" id="splitScanBtn">扫描合并</button>
+        <button class="btn primary" id="splitAllBtn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v3h16v-3"/></svg>
+          拆分并导出全部
+        </button>
+      </div>
+    </div>
+    <div class="picker" id="splitPicker"></div>
+    <div class="split-cfg">
+      <label class="cfg-item">
+        <span>表头所在行</span>
+        <input type="text" id="headerRow" value="1" placeholder="如 3 或 3-4 或 3,4" style="width:118px" />
+        <span class="cfg-unit">行（支持多行，如 <b>3-4</b> 或 <b>3,4</b>；拆这些行里的横向合并）</span>
+      </label>
+      <span class="cfg-unit" style="align-self:center">删除被合并的多余列，右侧列整体左移，被删列宽并入首列，总列宽不变。</span>
+    </div>
+    <div id="splitEmpty" class="empty">
+      <div class="eicon"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h8m2 0h8M3 19h8m2 0h8"/></svg></div>
+      <p>还没有加载文件</p><span>在上方拖入或选择 Excel 文件，点击「扫描合并」查看表头行的合并单元格</span>
+    </div>
+    <div id="splitPanel" class="hidden">
+      <div class="scan-sum" id="splitScanSum"></div>
+      <div class="editor">
+        <div class="editor-head split-head">
+          <span style="text-align:center">序号</span>
+          <span>工作表</span>
+          <span>表头行的合并单元格</span>
+          <span style="text-align:right">将拆成</span>
+        </div>
+        <div id="splitRows"></div>
+      </div>
+      <div class="tip warn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <span>拆分会<b>真正删除</b>被合并的多余列，右侧所有列（含右侧独立小表）整体左移一列；删除列的宽度累加到首列，因此<b>总列宽不变、列数减少</b>。所有单元格内容、公式、样式、条件格式随列同步移动，不会串位；被删列若在其他行有数据将一并删除。</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -282,6 +357,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
 
 </script>
 <script>
+
 (function(){
   'use strict';
   var files = [];
@@ -492,6 +568,226 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     return zipStore(Object.keys(map).map(function(k){return map[k];}));
   }
 
+
+  /* ============ 模块3：拆分单元格（取消表头横向合并，列宽累加，总宽不变） ============ */
+  function colNum(s){var n=0;s=String(s).toUpperCase();for(var i=0;i<s.length;i++)n=n*26+(s.charCodeAt(i)-64);return n;}
+  function colStr(n){var s='';while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-1-m)/26;}return s;}
+  function escReg(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+  // 解析表头行输入：支持 "3" / "3,4" / "3-4" / "3 4"，返回升序去重的行号数组
+  function parseHeaderRows(v){
+    var out=[],parts=String(v==null?'':v).split(/[,，\s]+/);
+    parts.forEach(function(p){
+      if(!p)return;
+      var mm=/^(\d+)\s*[-~—]\s*(\d+)$/.exec(p);
+      if(mm){var a=+mm[1],b=+mm[2];if(a>b){var t=a;a=b;b=t;}for(var i=a;i<=b;i++)if(out.indexOf(i)<0)out.push(i);}
+      else if(/^\d+$/.test(p)){var n=+p;if(n>0&&out.indexOf(n)<0)out.push(n);}
+    });
+    out.sort(function(a,b){return a-b;});
+    return out.length?out:[1];
+  }
+  function headerRowsLabel(arr){return arr.join(',');}
+  function rangeArr(a,b){var r=[];for(var i=a;i<=b;i++)r.push(i);return r;}
+  function parseWidths(xml){
+    // 以 <sheetFormatPr defaultColWidth="..."> 为未定义列的真实默认宽度，
+    // 避免写死 8.43 覆盖原表默认值导致「总列宽不变」被破坏。
+    var def=8.43,sf=xml.match(/<sheetFormatPr\b[^>]*\bdefaultColWidth="([\d.]+)"/);
+    if(sf)def=+sf[1];
+    var w={},m=xml.match(/<cols\b[^>]*>[\s\S]*?<\/cols>/);
+    if(m){var re=/<col\b([^>]*)>/g,mm;while((mm=re.exec(m[0]))){var a=mm[1];var mn=+(a.match(/\bmin="(\d+)"/)||[])[1]||1;var mx=+(a.match(/\bmax="(\d+)"/)||[])[1]||mn;var wd=+(a.match(/\bwidth="([\d.]+)"/)||[])[1]||def;for(var c=mn;c<=mx;c++)w[c]=wd;}}
+    return{str:m?m[0]:null,widths:w,def:def};
+  }
+  // 列映射：原列 -> 新列（被删列不映射，右侧依次左移）
+  function buildMap(deleted,maxCol){var map={},nc=1;for(var c=1;c<=maxCol;c++)if(!deleted[c])map[c]=nc++;return map;}
+  // 引用被删列时收缩到其左侧最近的保留列
+  function transCol(oc,map,deleted){if(map[oc])return colStr(map[oc]);var c=oc;while(c>1&&(deleted&&deleted[c]||!map[c]))c--;return map[c]?colStr(map[c]):'A';}
+  function transRef(ref,map,deleted){return String(ref).replace(/(\$?)([A-Z]+)(\$?)(\d+)/g,function(a,d1,cl,d2,r){return d1+transCol(colNum(cl),map,deleted)+d2+r;});}
+  // 公式转换：跳过函数名（后跟 "("）与标识符内部，避免误伤 LOG10 / 变量名等
+  function transFormula(f,map,deleted){return String(f).replace(/(\$?)([A-Z]{1,3})(\$?)(\d+)/g,function(a,d1,cl,d2,r,off,str){
+    var after=str.charAt(off+a.length),before=off>0?str.charAt(off-1):'';
+    if(after==='('||/[A-Za-z0-9_.]/.test(before))return a;
+    return d1+transCol(colNum(cl),map,deleted)+d2+r;
+  });}
+
+  // 拆分单元格（按用户口径重写）：
+  //   只看填写行里的横向合并。若 A3:B3 合并 → A列宽=A宽+B宽，删除B列；
+  //   若 E3:G3 合并 → E列宽=E+F+G，删除F、G列；依此类推。
+  //   右侧所有列随之整体左移，总列宽不变。
+  function processSheet(xml,headerRows){
+    var mcM=xml.match(/<mergeCells\b[^>]*>[\s\S]*?<\/mergeCells>/);
+    var allMerges=[],deleted={},addTo={},found=[];
+    if(mcM){
+      var re=/<mergeCell\b[^>]*\bref="([^"]+)"[^>]*\/>/g,m;
+      while((m=re.exec(mcM[0]))){
+        var ref=m[1],p=/^(\$?)([A-Z]+)(\$?)(\d+):(\$?)([A-Z]+)(\$?)(\d+)$/.exec(ref);
+        if(!p)continue;
+        var c1=colNum(p[2]),r1=+p[4],c2=colNum(p[6]),r2=+p[8];
+        allMerges.push({ref:ref,c1:c1,r1:r1,c2:c2,r2:r2});
+        // 判定：合并的起始行落在填写行内，且为横向合并
+        if(headerRows.indexOf(r1)>=0&&c2>c1){
+          found.push({ref:ref,c1:c1,c2:c2,row:r1});
+          for(var c=c1+1;c<=c2;c++)deleted[c]=true;
+          (addTo[c1]=addTo[c1]||[]).push.apply(addTo[c1]||[],rangeArr(c1+1,c2));
+        }
+      }
+    }
+    var delCols=Object.keys(deleted).map(Number).sort(function(a,b){return a-b;});
+    if(!delCols.length)return{xml:xml,changed:false,found:[],deleted:[]};
+
+    var pw=parseWidths(xml),widths=pw.widths;
+    // 数据范围：列宽定义 + 实际单元格 r 属性 + 所有合并区域（覆盖右侧独立小表）
+    var usedMaxCol=1;
+    Object.keys(widths).forEach(function(c){if(+c>usedMaxCol)usedMaxCol=+c;});
+    var reCR=/\br="([A-Z]+)\d+"/g,cr;
+    while((cr=reCR.exec(xml))){var cc=colNum(cr[1]);if(cc>usedMaxCol)usedMaxCol=cc;}
+    if(mcM){var reMR=/\bref="[A-Z]+\d+:([A-Z]+)\d+"/g,mr;while((mr=reMR.exec(mcM[0]))){var cc=colNum(mr[1]);if(cc>usedMaxCol)usedMaxCol=cc;}}
+    var map=buildMap(deleted,usedMaxCol);
+
+    // 1) 列宽按 map 重建：首列并入被合并列宽度，其余列随之左移
+    var newW={};
+    Object.keys(map).map(Number).forEach(function(oc){
+      if(oc>usedMaxCol)return;
+      var w=widths[oc]!==undefined?widths[oc]:pw.def;
+      (addTo[oc]||[]).forEach(function(d){w+=(widths[d]!==undefined?widths[d]:pw.def);});
+      newW[map[oc]]=Math.round(w*100)/100;
+    });
+    var colsXml='<cols>';
+    Object.keys(newW).map(Number).sort(function(a,b){return a-b;}).forEach(function(nc){colsXml+='<col min="'+nc+'" max="'+nc+'" width="'+newW[nc]+'" customWidth="1"/>';});
+    colsXml+='</cols>';
+    if(pw.str)xml=xml.replace(pw.str,colsXml);else xml=xml.replace('<sheetData>',colsXml+'<sheetData>');
+
+    // 2) 单元格：删除落在被删列的 <c>，其余 r 地址按 map 左移
+    xml=xml.replace(/(<row\b[^>]*)\s+spans="[^"]*"/g,'$1');
+    xml=xml.replace(/\br="([A-Z]+)(\d+)"/g,function(a,cl,row){var oc=colNum(cl);if(deleted[oc])return'r="__DELCELL__"';return'r="'+colStr(map[oc])+row+'"';});
+    xml=xml.replace(/<c\b[^>]*r="__DELCELL__"[^>]*\/>/g,'');
+    xml=xml.replace(/<c\b[^>]*r="__DELCELL__"[^>]*>[\s\S]*?<\/c>/g,'');
+
+    // 3) 合并单元格（关键修复）：凡是列范围触及被删列的合并一律移除——
+    //    不只表头项，还包括数据行的同名合并(如 C5:D5)。否则删列后会被
+    //    重映射成无效单点合并 C5:C5，导致 Excel 打开时数据错位、标记乱跑。
+    //    只有完全不碰被删列的合并，才按 map 整体左移。
+    if(mcM){
+      var nm=mcM[0];
+      // 合并区域随列删除「收缩但保留」，不整段删除：
+      //   只取合并区内「未被删除」的列做映射，得到新的首尾列。
+      //   - 第1行标题 A1:I1 → A1:G1（仍合并）
+      //   - 名称表头 C3:D4 → C3:C4（删D后缩到C列，跨行合并保留）
+      //   - 单位表头 E3:F4 → D3:D4（同上）
+      //   只有当收缩后首尾列相同「且」只有一行（退化为单个单元格）时才移除该合并，
+      //   例如数据行 C5:D5 → C5:C5 这种单点合并不合法，必须删。
+      allMerges.forEach(function(g){
+        var kept=[];
+        for(var c=g.c1;c<=g.c2;c++){if(!deleted[c]&&map[c])kept.push(map[c]);}
+        var re=new RegExp('<mergeCell\\b[^>]*\\bref="'+escReg(g.ref)+'"[^>]*\\/>');
+        if(!kept.length){nm=nm.replace(re,'');return;}
+        var nc1=Math.min.apply(null,kept),nc2=Math.max.apply(null,kept);
+        if(nc1===nc2&&g.r1===g.r2){nm=nm.replace(re,'');return;}
+        var newRef=colStr(nc1)+g.r1+':'+colStr(nc2)+g.r2;
+        if(newRef!==g.ref)nm=nm.replace(re,function(m0){return m0.replace(g.ref,newRef);});
+      });
+      var cnt=(nm.match(/<mergeCell\b/g)||[]).length;
+      nm=nm.replace(/(\bcount=")\d+(")/,'$1'+cnt+'$2');
+      xml=xml.replace(mcM[0],nm);
+    }
+
+    // 4) 范围类引用统一按 map 转换（dimension / 筛选 / 超链接 / 条件格式 / 数据验证 / 冻结窗格）
+    xml=xml.replace(/(<dimension\b[^>]*\bref=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+    xml=xml.replace(/(<autoFilter\b[^>]*\bref=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+    xml=xml.replace(/(<hyperlink\b[^>]*\bref=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+    xml=xml.replace(/(<conditionalFormatting\b[^>]*\bsqref=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+    xml=xml.replace(/(<dataValidation\b[^>]*\bsqref=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+    xml=xml.replace(/(<pane\b[^>]*\btopLeftCell=")([^"]+)(")/g,function(a,b,ref,c){return b+transRef(ref,map,deleted)+c;});
+
+    // 5) 公式（含条件格式规则内的公式）按 map 转换列引用。
+    //    关键：共享公式的「子公式」是自闭合标签 <f t="shared" si="0"/>，没有 </f>。
+    //    开标签正则必须排除自闭合（用 (?![^>]*\/>)），否则会把它当成开标签，
+    //    让 [\s\S]*? 一路吞到下一个 </f>，把中间的 <c r="..."> 整段卷入替换，
+    //    导致从该行起所有单元格地址错位（曾表现为行9起数据整体左移一列）。
+    xml=xml.replace(/(<f\b(?![^>]*\/>)[^>]*>)([\s\S]*?)(<\/f>)/g,function(a,b,f,c){return b+transFormula(f,map,deleted)+c;});
+    xml=xml.replace(/(<conditionalFormatting\b[\s\S]*?<\/conditionalFormatting>)/g,function(a,blk){
+      return blk.replace(/(<formula>)([\s\S]*?)(<\/formula>)/g,function(b,f1,f,c){return f1+transFormula(f,map,deleted)+c;});
+    });
+    return{xml:xml,changed:true,found:found,deleted:delCols};
+  }
+
+  async function buildWithSplit(u8,headerRows){
+    if(!(headerRows instanceof Array))headerRows=parseHeaderRows(headerRows);
+    var entries=await unzip(u8),detail=[];
+    entries.forEach(function(e){
+      var mm=/^xl\/worksheets\/sheet(\d+)\.xml$/.exec(e.name);
+      if(mm){
+        var r=processSheet(u2s(e.data),headerRows);
+        var det={name:e.name,found:r.found,deleted:r.deleted};
+        if(r.changed){e.data=s2u(r.xml);detail.push(det);}
+        else detail.push(det);
+      }
+    });
+    return{out:zipStore(entries),detail:detail};
+  }
+
+  /* ---- 模块3 界面 ---- */
+  var splitSel=-1;       // 选中的文件
+  var splitScan=[];      // 扫描结果：每个文件 {fi, sheets:[{name,found}]}
+  function splitScanned(fi){for(var i=0;i<splitScan.length;i++)if(splitScan[i].fi===fi)return splitScan[i];return null;}
+  function renderSplit(){
+    $('splitBadge').textContent=files.length+' 个文件';
+    $('splitAllBtn').disabled=files.length===0||!splitScan.length;
+    $('splitPicker').innerHTML='';
+    files.forEach(function(f,i){
+      var c=document.createElement('div');c.className='pchip'+(i===splitSel?' active':'');
+      var sc=splitScanned(i),n=sc?sc.sheets.reduce(function(a,s){return a+s.found.length;},0):-1;
+      c.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'+
+        '<span class="pn" title="'+esc(f.name)+'">'+esc(f.name)+'</span><span class="pc">'+(n<0?'未扫描':n+' 处合并')+'</span>';
+      c.addEventListener('click',function(){splitSel=i;renderSplit();});
+      $('splitPicker').appendChild(c);
+    });
+    if(splitSel<0||splitSel>=files.length){
+      $('splitEmpty').style.display='';$('splitPanel').classList.add('hidden');return;
+    }
+    $('splitEmpty').style.display='none';$('splitPanel').classList.remove('hidden');
+    drawSplitRows();
+  }
+  function drawSplitRows(){
+    var box=$('splitRows');box.innerHTML='';
+    var sc=splitScanned(splitSel);
+    if(!sc){$('splitScanSum').innerHTML='<b>尚未扫描</b> — 点击右上角「扫描合并」查看表头行的合并单元格';return;}
+    var total=0,sheetCnt=0;
+    sc.sheets.forEach(function(s){sheetCnt++;total+=s.found.length;});
+    $('splitScanSum').innerHTML='已扫描 <b>'+sc.sheets.length+'</b> 个工作表，共 <b>'+total+'</b> 处横向合并（表头第 <b>'+headerRowsLabel(parseHeaderRows($('headerRow').value))+'</b> 行）';
+    sc.sheets.forEach(function(s,i){
+      var d=document.createElement('div');d.className='split-row';
+      var tags=s.found.length?s.found.map(function(g){return'<em>'+(g.row?('第'+g.row+'行 '):'')+refOf(g.c1,g.c2)+'</em>';}).join(' '):'<span style="color:var(--faint)">无合并</span>';
+      d.innerHTML='<span class="num">'+(i+1)+'</span>'+
+        '<span class="sname" title="'+esc(s.name)+'">'+esc(s.name)+'</span>'+
+        '<span class="merges">'+tags+'</span>'+
+        (s.found.length?'<span class="res">拆成 '+s.found.length+' 列</span>':'<span class="none">—</span>');
+      box.appendChild(d);
+    });
+  }
+  function refOf(c1,c2){return c1===c2?colStr(c1):colStr(c1)+':'+colStr(c2);}
+  async function scanSplit(){
+    var btn=$('splitScanBtn');btn.disabled=true;btn.textContent='扫描中…';
+    splitScan=[];
+    for(var i=0;i<files.length;i++){
+      var fi=i,u8=new Uint8Array(files[fi].buf);
+      try{
+        var r=await buildWithSplit(u8,parseHeaderRows($('headerRow').value));
+        var sheets=r.detail.map(function(d,j){
+          var nm=(function(){try{return XLSX.read(u8,{type:'array'}).SheetNames[j]||('工作表'+(j+1));}catch(e){return'工作表'+(j+1);}})();
+          return{name:nm,found:d.found};
+        });
+        splitScan.push({fi:fi,sheets:sheets});
+      }catch(e){splitScan.push({fi:fi,sheets:[{name:files[fi].name,found:[]}]});}
+    }
+    if(splitSel<0&&files.length)splitSel=0;
+    btn.textContent='扫描合并';btn.disabled=false;
+    renderSplit();
+  }
+  async function exportSplitOne(fi){
+    var f=files[fi],hr=parseHeaderRows($('headerRow').value);
+    var r=await buildWithSplit(new Uint8Array(f.buf),hr);
+    saveBlob(r.out,outName(f,'_已拆分'));
+  }
+
   function validName(name,names,selfIdx){
     if(!name) return '名称不能为空';
     if(name.length>31) return '名称不能超过 31 个字符';
@@ -523,9 +819,9 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
             if(selIdx<0) selIdx=files.length-1;
           } else alert('文件中没有工作表：'+file.name);
         }catch(err){alert('无法读取文件：'+file.name+'\n'+(err&&err.message?err.message:err));}
-        if(--pending===0){ renderDir(); renderRename(); }
+        if(--pending===0){ renderDir(); renderRename(); invalidateSplit(); }
       };
-      reader.onerror=function(){if(--pending===0){renderDir();renderRename();}};
+      reader.onerror=function(){if(--pending===0){renderDir();renderRename();invalidateSplit();}};
       reader.readAsArrayBuffer(file);
     });
   }
@@ -549,7 +845,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
         catch(err){alert('处理失败：'+f.name+'\n'+(err&&err.message?err.message:err));btn.textContent='生成并导出';}
         setTimeout(function(){btn.textContent='生成并导出';btn.disabled=false;},1600);
       });
-      card.querySelector('.del').addEventListener('click',function(){files.splice(i,1);if(selIdx>=files.length)selIdx=files.length-1;renderDir();renderRename();});
+      card.querySelector('.del').addEventListener('click',function(){files.splice(i,1);if(selIdx>=files.length)selIdx=files.length-1;renderDir();renderRename();invalidateSplit();});
       $('list').appendChild(card);
     });
   }
@@ -676,6 +972,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     saveBlob(out,outName(rec,'_已改名'));
   }
 
+  function invalidateSplit(){ splitScan=[]; splitSel=-1; }
   /* ============ 事件 ============ */
   // 模块切换
   Array.prototype.forEach.call(document.querySelectorAll('.tab[data-mod]'),function(t){
@@ -685,6 +982,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       Array.prototype.forEach.call(document.querySelectorAll('.mod'),function(m){m.classList.remove('active');});
       $('mod-'+t.dataset.mod).classList.add('active');
       if(t.dataset.mod==='rename'){ loadMeta(function(){renderRename();}); }
+      if(t.dataset.mod==='split'){ renderSplit(); }
     });
   });
   var drop=$('drop'),input=$('file');
@@ -696,7 +994,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
   window.addEventListener('dragover',function(e){e.preventDefault();});
   window.addEventListener('drop',function(e){e.preventDefault();});
 
-  $('clearBtn').addEventListener('click',function(){files=[];selIdx=-1;editRows=null;renderDir();renderRename();});
+  $('clearBtn').addEventListener('click',function(){files=[];selIdx=-1;editRows=null;renderDir();renderRename();invalidateSplit();});
   $('allBtn').addEventListener('click',async function(){
     if(!files.length)return;
     var btn=this,ok=0;btn.disabled=true;btn.textContent='生成中…';
@@ -783,9 +1081,25 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     setTimeout(function(){btn.textContent='导出全部';btn.disabled=false;},1800);
   });
 
+  /* ---- 模块3 事件 ---- */
+  $('splitScanBtn').addEventListener('click',function(){scanSplit();});
+  var hrTimer=null;
+  $('headerRow').addEventListener('input',function(){clearTimeout(hrTimer);hrTimer=setTimeout(function(){if(splitScan.length)scanSplit();},450);});
+  $('splitAllBtn').addEventListener('click',async function(){
+    if(!files.length)return;
+    var btn=this,ok=0;btn.disabled=true;btn.textContent='拆分中…';
+    for(var i=0;i<files.length;i++){
+      try{await exportSplitOne(i);ok++;}catch(e){}
+      await new Promise(function(r){setTimeout(r,150);});
+    }
+    btn.textContent='已导出 '+ok+' 个 ✓';
+    setTimeout(function(){btn.textContent='拆分并导出全部';btn.disabled=false;},1800);
+  });
+
   renderDir();
   loadMeta(function(){});
 })();
+
 
 </script>
 </body>
