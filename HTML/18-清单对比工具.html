@@ -459,7 +459,147 @@
   .exp-tag{margin-left:auto;flex:0 0 auto;font-size:10.5px;line-height:1.5;padding:1px 6px;
     border-radius:999px;background:var(--primary-soft);color:var(--primary);}
   .exp-tag.single{background:var(--sec-l1);color:var(--muted);}
-  .exp-cnt{flex:0 0 auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* 项数固定宽度右对齐：避免位数不同（7 / 360）把「对比表」标签挤得左右错列 */
+  .exp-cnt{flex:0 0 auto;min-width:46px;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* 批量重命名单位工程弹窗 */
+  .rename-modal{width:600px;max-width:94vw;}
+  .dr-list{max-height:44vh;overflow:auto;border:1px solid var(--line);border-radius:8px;
+    padding:5px 7px;background:var(--bg);}
+  .dr-row{display:flex;align-items:center;gap:7px;padding:4px 2px;border-bottom:1px solid var(--line);}
+  .dr-row:last-child{border-bottom:none;}
+  .dr-idx{width:22px;flex:none;text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .dr-old{flex:0 1 40%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:11px;color:var(--muted);}
+  .dr-arrow{flex:none;color:var(--muted);font-size:11px;}
+  .dr-row input{flex:1 1 auto;min-width:0;border:1px solid var(--line);border-radius:5px;
+    padding:4px 7px;font-size:12px;background:var(--surface);color:var(--text);}
+  /* 顶栏导入下拉：送审 / 审定合并为一个入口 */
+  .imp-wrap{position:relative;display:inline-flex;}
+  .imp-menu{display:none;position:absolute;top:calc(100% + 5px);left:0;z-index:60;min-width:168px;
+    background:var(--surface);border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 8px 24px rgba(0,0,0,.16);padding:4px;}
+  .imp-menu.show{display:block;}
+  .imp-menu .imp-opt{padding:7px 12px;font-size:12px;color:var(--text);border-radius:6px;
+    cursor:pointer;white-space:nowrap;}
+  .imp-menu .imp-opt:hover{background:var(--primary-soft);color:var(--primary);}
+  /* 批量删除：勾选弹窗 */
+  .dd-modal{width:520px;max-width:94vw;max-height:86vh;display:flex;flex-direction:column;}
+  .dd-modal .hint,.dd-modal .batch-tools,.dd-modal .modal-actions{flex:0 0 auto;}
+  .dd-modal .exp-list{flex:1 1 auto;min-height:140px;max-height:50vh;overflow:auto;
+    border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:2px;}
+  .btn.dd-del{background:#fdecec;color:#c0392b;border-color:#f0c2c2;}
+  .btn.dd-del:hover{background:#fbdcdc;}
+  [data-theme="dark"] .btn.dd-del{background:#3a2222;color:#ff9b9b;border-color:#5a3030;}
+  /* 审减明细：大窗口报表 */
+  .ad-modal{width:940px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;}
+  .ad-modal h3,.ad-modal .modal-actions{flex:0 0 auto;}
+  /* 审减明细：生成范围（项目 / 单位工程勾选，下拉面板） */
+  .ad-scope{flex:0 0 auto;position:relative;margin:0 0 8px;}
+  .ad-scope-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 10px;
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;}
+  .ad-scope-btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11.5px;
+    color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:3px 8px;cursor:pointer;max-width:360px;min-width:0;}
+  .ad-scope-btn:hover{border-color:var(--primary);}
+  .ad-scope-btn #adScopeTxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ad-scope-btn .ad-caret{flex:0 0 auto;width:0;height:0;border-left:4px solid transparent;
+    border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.55;
+    transition:transform .12s;}
+  .ad-scope-btn[aria-expanded="true"] .ad-caret{transform:rotate(180deg);}
+  .ad-scope-mini{padding:3px 8px;font-size:11.5px;}
+  /* 展开时在流内展开（不遮挡下方报表），条目多时列表自身滚动 */
+  .ad-scope-pop{display:none;margin-top:6px;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.08);padding:8px 10px;}
+  .ad-scope-pop.show{display:block;}
+  .ad-scope-tip{font-size:11px;color:var(--muted);padding:0 4px 6px;}
+  .ad-scope-list{max-height:42vh;overflow:auto;}
+  .ad-scope-group+.ad-scope-group{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+  .ad-scope-row{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;
+    padding:3px 6px;min-width:0;font-size:11.5px;color:var(--text);}
+  .ad-scope-row:hover{background:var(--primary-soft);}
+  .ad-scope-row input{margin:0;flex:0 0 auto;cursor:pointer;}
+  .ad-scope-row .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ad-scope-row.p{font-weight:600;}
+  .ad-scope-row.d{padding-left:22px;color:var(--muted);}
+  .ad-scope-row .cnt{flex:0 0 auto;font-size:11px;color:var(--muted);}
+  .ad-body{flex:1 1 auto;min-height:140px;overflow:auto;border:1px solid var(--line);border-radius:8px;
+    padding:14px 18px;background:var(--bg);color:var(--text);
+    font-size:12.5px;line-height:1.95;white-space:normal;word-break:break-word;}
+  .ad-line{margin:0;}
+  .ad-line.l0{font-weight:600;margin-top:10px;}
+  .ad-line.l1{font-weight:600;padding-left:1.2em;}
+  .ad-line.l2{padding-left:2.4em;}
+  .ad-line.l3{padding-left:3.6em;}
+  .ad-line.l4{padding-left:4.8em;}
+  .ad-line.l5{padding-left:6em;}
+  .ad-note{color:var(--muted);font-size:11.5px;padding-bottom:4px;}
+  /* 名称层级配色：项目(深蓝) / 单位工程(绿) / 一级分部(棕) / 二级(石板灰) / 三级及更深(灰)
+     只作用于名称（.ad-nm），金额与说明保持原色 */
+  .ad-line .ad-nm{color:inherit;}
+  .ad-line.l0 .ad-nm{color:#1f4e79;}
+  .ad-line.l1 .ad-nm{color:#1f6b3b;}
+  .ad-line.l2 .ad-nm{color:#8a5a00;}
+  .ad-line.l3 .ad-nm{color:#54616e;}
+  .ad-line.l4 .ad-nm{color:#6b7787;}
+  .ad-line.l5 .ad-nm{color:#8d97a3;}
+  [data-theme="dark"] .ad-line.l0 .ad-nm{color:#8fb8e6;}
+  [data-theme="dark"] .ad-line.l1 .ad-nm{color:#7ec49a;}
+  [data-theme="dark"] .ad-line.l2 .ad-nm{color:#dcb26a;}
+  [data-theme="dark"] .ad-line.l3 .ad-nm{color:#a7b3c2;}
+  [data-theme="dark"] .ad-line.l4 .ad-nm{color:#98a4b3;}
+  [data-theme="dark"] .ad-line.l5 .ad-nm{color:#b6c0cc;}
+  /* 清单项：名称与送审金额用蓝色（结构行按上面层级配色，清单项统一蓝色便于区分） */
+  .ad-line .ad-it-nm,.ad-line .ad-it-s{color:#2f6fd0;}
+  [data-theme="dark"] .ad-line .ad-it-nm,[data-theme="dark"] .ad-line .ad-it-s{color:#7fa9ee;}
+  /* 结构行「送审金额」与名称同色：项目 / 单位工程 / 各级分部逐层可辨 */
+  .ad-line .ad-s{color:inherit;}
+  .ad-line.l0 .ad-s{color:#1f4e79;}
+  .ad-line.l1 .ad-s{color:#1f6b3b;}
+  .ad-line.l2 .ad-s{color:#8a5a00;}
+  .ad-line.l3 .ad-s{color:#54616e;}
+  .ad-line.l4 .ad-s{color:#6b7787;}
+  .ad-line.l5 .ad-s{color:#8d97a3;}
+  [data-theme="dark"] .ad-line.l0 .ad-s{color:#8fb8e6;}
+  [data-theme="dark"] .ad-line.l1 .ad-s{color:#7ec49a;}
+  [data-theme="dark"] .ad-line.l2 .ad-s{color:#dcb26a;}
+  [data-theme="dark"] .ad-line.l3 .ad-s{color:#a7b3c2;}
+  [data-theme="dark"] .ad-line.l4 .ad-s{color:#98a4b3;}
+  [data-theme="dark"] .ad-line.l5 .ad-s{color:#b6c0cc;}
+  .ad-up{color:#d94a4a;font-weight:600;}
+  [data-theme="dark"] .ad-up{color:#ff8080;}
+  .ad-empty{color:var(--muted);text-align:center;padding:48px 0;font-size:12.5px;}
+  /* 审减明细筛选栏：只筛清单项，克制小字号 */
+  .ad-filter{flex:0 0 auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+    margin:0 0 10px;padding:7px 10px;background:var(--bg);
+    border:1px solid var(--line);border-radius:8px;}
+  .ad-filter .ad-flabel{font-size:11.5px;color:var(--muted);white-space:nowrap;flex:0 0 auto;}
+  .ad-scope-top .ad-flabel{font-size:11.5px;color:var(--muted);white-space:nowrap;flex:0 0 auto;}
+  .ad-filter select,.ad-filter input{font:inherit;font-size:11.5px;color:var(--text);flex:0 0 auto;
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:3px 6px;outline:none;}
+  .ad-filter select:hover,.ad-filter input:hover{border-color:var(--primary);}
+  .ad-filter select:focus,.ad-filter input:focus{border-color:var(--primary);background:var(--primary-soft);}
+  .ad-filter input{width:92px;}
+  .ad-filter input:disabled{opacity:.45;background:var(--bg);}
+  .ad-filter .ad-unit{font-size:11.5px;color:var(--muted);margin-left:-2px;}
+  .ad-filter .ad-fhint{font-size:11px;color:var(--muted);margin-left:auto;}
+  .ad-sum{font-size:11px;color:var(--muted);padding:2px 0 4px;}
+  /* 层级符号选择表：层级 / 序号 / 顿号 / 预览 */
+  .ad-sym-pop{max-height:46vh;overflow:auto;}
+  .ad-sym-tb{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed;}
+  .ad-sym-tb th:nth-child(1),.ad-sym-tb td:nth-child(1){width:104px;}
+  .ad-sym-tb th:nth-child(2),.ad-sym-tb td:nth-child(2){width:196px;}
+  .ad-sym-tb th:nth-child(3),.ad-sym-tb td:nth-child(3){width:112px;}
+  .ad-sym-tb th{font-weight:600;color:var(--muted);text-align:left;padding:4px 8px;
+    border-bottom:1px solid var(--line);white-space:nowrap;}
+  .ad-sym-tb td{padding:3px 8px;border-bottom:1px dashed var(--line);}
+  .ad-sym-tb tr:last-child td{border-bottom:0;}
+  .ad-sym-tb td.lv{white-space:nowrap;color:var(--text);}
+  .ad-sym-tb select{font:inherit;font-size:11.5px;color:var(--text);background:var(--surface);
+    border:1px solid var(--line);border-radius:6px;padding:2px 6px;outline:none;min-width:112px;}
+  .ad-sym-tb select:hover{border-color:var(--primary);}
+  .ad-sym-tb select:focus{border-color:var(--primary);background:var(--primary-soft);}
+  .ad-sym-tb td.pv{color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 项目 / 单位工程拖动排序 */
   .tree-node[draggable="true"]{cursor:grab;}
   .tree-node.dragging{opacity:.4;}
@@ -510,13 +650,13 @@
   .sec-pop .sp-levels a:hover{background:var(--primary-soft);}
   /* 项目树展开/收起改用顶栏按钮，取消左侧竖条 */
   .tree-rail{display:none !important;}
-  .tree-toggle-btn{padding:4px 9px;font-size:11.5px;}
+  .tree-toggle-btn{padding:4px 9px;font-size:13px;line-height:1;min-width:30px;text-align:center;}
 
 </style>
 <body>
 <div class="topbar">
   <div class="title">清单对比工具</div>
-  <button class="btn ghost tree-toggle-btn" id="btnTreeToggle" title="项目树：单击=展开/收起（选项目后自动收起）；双击=展开/收起（选项目后保持展开）">☰</button>
+  <button class="btn ghost tree-toggle-btn" id="btnTreeToggle" title="收起项目树（单击切换，选项目后自动收起；双击切换并保持展开）">«</button>
   <div class="spacer"></div>
   <div class="summary-pills" id="summaryPills"></div>
   <select id="globalExpand" title="全局展开级别（最高优先级）：对所有项目 / 单位工程统一查看层级；选中后仍可手动点箭头单独展开或折叠某个分部">
@@ -526,9 +666,15 @@
     <option value="l2">展开到二级分部</option>
     <option value="l3">展开到三级分部</option>
   </select>
-  <button class="btn" id="btnImportSend" title="导入送审清单（.xlsx / .xls / .csv，可勾选多个工作表批量导入）">📥 导入送审清单</button>
-  <button class="btn" id="btnImportAudit" title="导入审定清单；每个工作表可对应到已有的送审单位工程">📥 导入审定清单</button>
+  <div class="imp-wrap">
+    <button class="btn" id="btnImport" title="导入清单：展开后选择送审 / 审定">📥 导入 ▾</button>
+    <div class="imp-menu" id="importMenu">
+      <div id="btnImportSend" class="imp-opt" title="导入送审清单（.xlsx / .xls / .csv，可勾选多个工作表批量导入）">📥 导入送审清单</div>
+      <div id="btnImportAudit" class="imp-opt" title="导入审定清单；每个工作表可对应到已有的送审单位工程">📥 导入审定清单</div>
+    </div>
+  </div>
   <button class="btn" id="btnExport" title="导出对比表（每个单位工程一个工作表）">📤 导出对比表</button>
+  <button class="btn" id="btnAuditDetail" title="审减明细（功能预留，详细内容后续完善）">📋 审减明细</button>
   <button class="btn ghost" id="btnTheme" title="深色 / 浅色切换">🌓 主题</button>
   <button class="btn" id="btnUndo" title="撤销上一步数据改动（Ctrl+Z）">↶ 撤销</button>
   <button class="btn" id="btnRedo" title="恢复被撤销的改动（Ctrl+Y）">↷ 恢复</button>
@@ -630,6 +776,100 @@
   </div>
 </div>
 
+<div class="mask" id="divRenameMask">
+  <div class="modal rename-modal">
+    <h3>批量重命名单位工程</h3>
+    <div class="hint" id="drHint" style="margin:-4px 0 10px;line-height:1.7"></div>
+    <div class="batch-tools">
+      <input id="drFind" placeholder="查找文字">
+      <input id="drReplace" placeholder="替换为（留空=删除）">
+      <button class="btn ghost" id="drReplaceAll" type="button">全部替换</button>
+      <button class="btn ghost" id="drRestore" type="button">恢复原名称</button>
+    </div>
+    <div class="dr-list" id="drList"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="drCancel" type="button">取消</button>
+      <button class="btn primary" id="drOk" type="button">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="divDelMask">
+  <div class="modal dd-modal">
+    <h3>批量删除单位工程</h3>
+    <div class="hint" id="ddHint" style="margin:-4px 0 10px;line-height:1.7"></div>
+    <div class="batch-tools">
+      <button class="btn ghost" id="ddAll" type="button">全选</button>
+      <button class="btn ghost" id="ddNone" type="button">全不选</button>
+    </div>
+    <div class="exp-list" id="ddList"></div>
+    <div class="hint" id="ddCount" style="margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="ddCancel" type="button">取消</button>
+      <button class="btn dd-del" id="ddOk" type="button">删除选中（0）</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="auditDetailMask">
+  <div class="modal ad-modal">
+    <h3>审减明细</h3>
+    <div class="ad-scope" id="adScope">
+      <div class="ad-scope-top">
+        <span class="ad-flabel">生成范围</span>
+        <button class="ad-scope-btn" id="adScopeBtn" type="button" aria-expanded="false"
+          title="勾选需要生成明细的项目 / 单位工程">
+          <span id="adScopeTxt">全部项目 / 单位工程</span><i class="ad-caret"></i>
+        </button>
+        <button class="btn ghost ad-scope-mini" id="adScopeAll" type="button">全选</button>
+        <button class="btn ghost ad-scope-mini" id="adScopeNone" type="button">全不选</button>
+        <span class="ad-fhint" id="adScopeHint">默认全部</span>
+      </div>
+      <div class="ad-scope-pop" id="adScopePop">
+        <div class="ad-scope-tip">勾选需要生成明细的项目 / 单位工程（只列出已导入审定清单的单位工程）</div>
+        <div class="ad-scope-list" id="adScopeList"></div>
+      </div>
+    </div>
+    <div class="ad-filter" id="adFilter">
+      <span class="ad-flabel">明细筛选</span>
+      <select id="adFilterMode" title="只筛选清单项；项目 / 单位工程 / 一级分部 / 审增项始终显示">
+        <option value="all">显示全部（为 0 的项不显示）</option>
+        <option value="nosum">不含清单项（只看项目 / 单位工程 / 分部）</option>
+        <option value="gt">审减金额大于输入值</option>
+        <option value="top">审减金额排名前 N 项</option>
+      </select>
+      <input type="number" id="adFilterVal" min="0" step="1" value="5000" title="填写金额（元）或项数" disabled>
+      <span class="ad-unit" id="adFilterUnit">项</span>
+      <span class="ad-fhint">项目 / 单位工程 / 一级分部与审增项始终显示</span>
+    </div>
+    <div class="ad-scope ad-sym" id="adSym">
+      <div class="ad-scope-top">
+        <span class="ad-flabel">层级符号</span>
+        <button class="ad-scope-btn" id="adSymBtn" type="button" aria-expanded="false"
+          title="按层级选择序号符号与顿号（页面 / 复制全文 / 导出 Excel 同步）">
+          <span id="adSymTxt">默认：一、（一）、（1）、①、❶、⊖、1</span><i class="ad-caret"></i>
+        </button>
+        <button class="btn ghost ad-scope-mini" id="adSymReset" type="button"
+          title="恢复为默认符号（一、（一）、（1）、①、❶、⊖、1）">恢复默认</button>
+        <span class="ad-fhint" id="adSymHint">页面 / 复制 / 导出同步</span>
+      </div>
+      <div class="ad-scope-pop ad-sym-pop" id="adSymPop">
+        <div class="ad-scope-tip">按层级选择序号符号与顿号（预览按该层级第 1 项显示，改完立即生效）</div>
+        <table class="ad-sym-tb">
+          <thead><tr><th>层级</th><th>序号</th><th>顿号</th><th>预览</th></tr></thead>
+          <tbody id="adSymBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ad-body" id="adBody"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="adExport" type="button" title="导出当前筛选结果为 Excel：每行一条，最后一列为项目特征描述">📤 导出EXCEL</button>
+      <button class="btn ghost" id="adCopy" type="button">复制全文</button>
+      <button class="btn ghost" id="adClose" type="button">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="ctx-menu" id="rowCtx">
   <div data-act="onlyDiff">切换：仅显示有差异的行</div>
   <div data-act="selectAll">全选当前视图清单项</div>
@@ -643,6 +883,8 @@
   <div class="sep"></div>
   <div data-act="rename">重命名</div>
   <div data-act="del">删除</div>
+  <div data-act="batchRename">批量重命名（同项目全部）</div>
+  <div data-act="batchDel">批量删除…（可勾选）</div>
   <div class="sep"></div>
   <div data-act="importSend">导入送审清单…</div>
   <div data-act="importAudit">导入审定清单…</div>
@@ -1089,9 +1331,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .replace(/[\uFF01-\uFF5E]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);})
     .replace(/[（）]/g,function(c){return c==='（'?'(':')';})
     .toLowerCase();}
-  /* 编码匹配键：标准清单编码末3位为顺序码，前段相同、仅末3位不同视为同一清单。
-     仅对「纯数字且长度≥6」的编码去末3位；短编码（A1/B1）与含字母编码原样返回，避免误合并。 */
-  function matchCode(s){var c=normKey(s);return /^\d{6,}$/.test(c)?c.slice(0,-3):c;}
+  /* 编码匹配键：清单编码 = 9 位项目编码 + 3 位顺序码，只取「前 9 位」参与匹配，
+     即同属一个项目编码的清单（仅顺序码不同）视为同一项，量差/价差按一行对比。
+     不足 9 位（A1/B1 等补项编码、B3B003 之类）原样返回，避免误合并。 */
+  function matchCode(s){var c=normKey(s);return c.length>9?c.slice(0,9):c;}
   function rowKey(r){return matchCode(r.code)+'\u0001'+normKey(r.name)+'\u0001'+normKey(r.feature);}
   /* 项目特征描述：保留原始换行（\r\n / \r / \n 统一为 \n），并把全角空格还原 */
   function keepBreaks(s){return String(s==null?'':s).replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ');}
@@ -1104,7 +1347,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if(rows[i].type==='section')last=rows[i].name;}return last;}
   function auditSectionOf(div,row){return sectionOfRows(div.auditRows,row);}
   function sendSectionOf(div,row){return sectionOfRows(div.rows,row);}
-  /* 对比匹配键：分部名 + 编码 + 名称 + 特征。
+  /* 对比匹配键：分部名 + 项目编码（前9位）+ 名称 + 特征。
      必须锁定同一分部：送审分部A 的行不得跨分部匹配到审定分部B 的同名行，
      否则不同分部的内容会混在一起（原行键只有编码+名称+特征，会跨分部误配）。 */
   function cmpKey(r,sec){return normKey(sec)+'\u0002'+rowKey(r);}
@@ -1153,7 +1396,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     /* 审定清单单独算分部层级：审定独有分部（送审没有）也要按自身层级展示 */
     if(auditRows.length)buildSecTree({rows:auditRows});
     var mapA={},mapB={},pairA=new Array(A.length),pairB=new Array(B.length);
-    /* 行归属分部：送审取送审分部，审定取审定分部；匹配键 = 分部名 + 编码 + 名称 + 特征 */
+    /* 行归属分部：送审取送审分部，审定取审定分部；匹配键 = 分部名 + 编码前9位 + 名称 + 特征 */
     var secOfA=A.map(function(r){return sendSectionOf(div,r);});
     var secOfB=B.map(function(r){return auditSectionOf(div,r);});
     A.forEach(function(r,i){var k=cmpKey(r,secOfA[i]);(mapA[k]=mapA[k]||[]).push(i);});
@@ -1474,7 +1717,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         '<span class="pill pill-mark">修改 <b>'+chgCnt+'</b></span>'+
         '<span class="pill pill-mark add">新增 <b>'+addCnt+'</b></span>'+
         '<span class="pill pill-mark del">删除 <b>'+delCnt+'</b></span>'+
-        '<span class="hint">匹配键：项目编码 + 项目名称 + 项目特征描述</span>';
+        '<span class="hint">匹配键：项目编码（前9位）+ 项目名称 + 项目特征描述</span>';
     }else h+='<span class="hint">尚未导入审定清单，当前显示送审清单原始数据</span>';
     h+='<span class="spacer"></span>'+
       '<label class="diff-toggle"><input type="checkbox" id="hideMeasure"'+
@@ -1783,6 +2026,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         var m=$('treeCtx');m.querySelectorAll('div[data-act]').forEach(function(it){it.style.display='';});
         if(type==='proj'){m.querySelector('[data-act="rename"]').textContent='重命名项目';m.querySelector('[data-act="del"]').textContent='删除项目';}
         else{m.querySelector('[data-act="rename"]').textContent='重命名单位工程';m.querySelector('[data-act="del"]').textContent='删除单位工程';}
+        /* 批量操作只在右键单位工程时出现（作用于同项目全部单位工程） */
+        ['batchRename','batchDel'].forEach(function(a){
+          var it=m.querySelector('[data-act="'+a+'"]');if(it)it.style.display=(type==='div')?'':'none';});
         m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.style.display='block';});});
     box.querySelectorAll('.tree-caret').forEach(function(c){
       c.addEventListener('click',function(e){e.stopPropagation();var pid=c.getAttribute('data-caret');if(!pid)return;
@@ -1890,8 +2136,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function applyTreeWidth(){var p=$('treePanel');if(p)p.style.width=Math.max(180,Math.min(620,state.treeWidth||280))+'px';}
   function applySecTreeWidth(){var p=$('secTreePanel');if(p)p.style.width=Math.max(160,Math.min(500,state.secTreeWidth||220))+'px';}
-  function applyTreeOn(){var p=$('treePanel'),sp=$('treeSplitter'),rail=$('treeRail'),on=!!state.treeOn;
-    if(p)p.classList.toggle('off',!on);if(sp)sp.classList.toggle('off',!on);if(rail)rail.classList.toggle('off',on);}
+  function applyTreeOn(){var p=$('treePanel'),sp=$('treeSplitter'),rail=$('treeRail'),
+    b=$('btnTreeToggle'),on=!!state.treeOn;
+    if(p)p.classList.toggle('off',!on);if(sp)sp.classList.toggle('off',!on);if(rail)rail.classList.toggle('off',on);
+    /* 箭头方向直接表达当前状态：展开=«（点击收起），折叠=»（点击展开） */
+    if(b){b.textContent=on?'«':'»';b.title=(on?'收起项目树':'展开项目树')+
+      '（单击切换，选项目后自动收起；双击切换并保持展开）';}}
   function applySecTreeOn(){var p=$('secTreePanel'),sp=$('secSplitter'),rail=$('secTreeRail'),on=!!state.secTreeOn;
     if(p)p.classList.toggle('off',!on);if(sp)sp.classList.toggle('off',!on);if(rail)rail.classList.toggle('off',on);}
   function toggleTreeOn(on){state.treeOn=(typeof on==='boolean')?on:!state.treeOn;applyTreeOn();if(state.treeOn)renderTree();save();}
@@ -1934,6 +2184,666 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if(state.activeDivisionId===d.id)state.activeDivisionId=p.divisions.length?p.divisions[0].id:null;
     state.activeNode=state.activeDivisionId?{type:'div',id:state.activeDivisionId}:(state.activeProjectId?{type:'proj',id:state.activeProjectId}:null);
     state.selection=[];save();render();}
+
+  /* 批量重命名 / 删除：右键单位工程时作用于同一项目下的全部单位工程 */
+  var divRenamePid=null,divRenameOrig=[];
+  function openBatchRename(pid){
+    var p=state.projects.find(function(x){return x.id===pid;});
+    if(!p||!(p.divisions||[]).length){toast('该项目没有单位工程');return;}
+    divRenamePid=pid;divRenameOrig=p.divisions.map(function(d){return d.name;});
+    var hint=$('drHint');if(hint)hint.textContent='项目「'+p.name+'」下共 '+p.divisions.length+
+      ' 个单位工程；可逐行修改，或用查找替换统一处理。';
+    var box=$('drList');if(!box)return;
+    box.innerHTML=p.divisions.map(function(d,i){
+      return '<div class="dr-row"><span class="dr-idx">'+(i+1)+'</span>'+
+        '<span class="dr-old" title="'+escapeHtml(d.name)+'">'+escapeHtml(d.name)+'</span>'+
+        '<span class="dr-arrow">→</span>'+
+        '<input type="text" data-i="'+i+'" value="'+escapeHtml(d.name)+'"></div>';
+    }).join('');
+    $('drFind').value='';$('drReplace').value='';
+    $('divRenameMask').classList.add('show');
+  }
+  function batchReplaceAll(){
+    var f=$('drFind').value,r=$('drReplace').value,box=$('drList');
+    if(!f){toast('请先填写查找文字');return;}
+    if(!box)return;
+    box.querySelectorAll('input[data-i]').forEach(function(inp){inp.value=inp.value.split(f).join(r);});
+    toast('已替换所有匹配文字');
+  }
+  function batchRestoreNames(){
+    var box=$('drList');if(!box)return;
+    box.querySelectorAll('input[data-i]').forEach(function(inp){
+      inp.value=divRenameOrig[Number(inp.getAttribute('data-i'))]||'';});
+    toast('已恢复原名称');
+  }
+  function applyBatchRename(){
+    var p=state.projects.find(function(x){return x.id===divRenamePid;}),box=$('drList');
+    if(!p||!box)return;
+    var names=[];
+    box.querySelectorAll('input[data-i]').forEach(function(inp){names.push(inp.value.trim());});
+    if(names.length!==p.divisions.length)return;
+    for(var i=0;i<names.length;i++){
+      if(!names[i]){toast('单位工程名称不能为空');return;}
+      if(names.indexOf(names[i])!==i){toast('单位工程名称不能重复：'+names[i]);return;}
+    }
+    names.forEach(function(n,i){p.divisions[i].name=n;});
+    $('divRenameMask').classList.remove('show');
+    save();render();toast('已批量重命名 '+names.length+' 个单位工程');
+  }
+  /* 批量删除：右键单位工程后打开勾选弹窗，手动选择要删除的单位工程（默认不勾选）。 */
+  var divDelPid=null;
+  function openBatchDel(pid){
+    var p=state.projects.find(function(x){return x.id===pid;});
+    if(!p||!(p.divisions||[]).length){toast('该项目没有单位工程');return;}
+    divDelPid=pid;
+    var hint=$('ddHint');if(hint)hint.textContent='项目「'+p.name+'」下共 '+p.divisions.length+
+      ' 个单位工程；勾选需要删除的单位工程（默认不勾选）。';
+    var box=$('ddList');if(!box)return;
+    box.innerHTML=p.divisions.map(function(d,i){
+      return '<label class="exp-item"><input type="checkbox" data-i="'+i+'">'+
+        '<span class="exp-dname" title="'+escapeHtml(d.name)+'">'+escapeHtml(d.name)+'</span></label>';
+    }).join('');
+    box.querySelectorAll('input[type=checkbox]').forEach(function(c){
+      c.addEventListener('change',updateDdCount);});
+    updateDdCount();
+    $('divDelMask').classList.add('show');
+  }
+  function updateDdCount(){
+    var box=$('ddList'),cnt=$('ddCount');if(!box||!cnt)return;
+    var all=box.querySelectorAll('input[type=checkbox]').length,
+        sel=box.querySelectorAll('input[type=checkbox]:checked').length;
+    cnt.textContent='已选择 '+sel+' / '+all+' 个单位工程';
+    var okBtn=$('ddOk');if(okBtn)okBtn.textContent='删除选中（'+sel+'）';
+  }
+  function ddSetAll(on){
+    var box=$('ddList');if(!box)return;
+    box.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=on;});
+    updateDdCount();
+  }
+  function applyBatchDel(){
+    var p=state.projects.find(function(x){return x.id===divDelPid;}),box=$('ddList');
+    if(!p||!box)return;
+    var idxs=[];
+    box.querySelectorAll('input[type=checkbox]:checked').forEach(function(c){
+      idxs.push(Number(c.getAttribute('data-i')));});
+    if(!idxs.length){toast('请先勾选要删除的单位工程');return;}
+    if(!confirm('确定删除选中的 '+idxs.length+' 个单位工程及其清单数据？此操作不可撤销。'))return;
+    var delIds=p.divisions.filter(function(d,i){return idxs.indexOf(i)>=0;}).map(function(d){return d.id;});
+    p.divisions=p.divisions.filter(function(d,i){return idxs.indexOf(i)<0;});
+    /* 若当前查看的单位工程被删除，重置到项目级，避免 active 指向不存在的节点 */
+    if(delIds.indexOf(state.activeDivisionId)>=0 ||
+       (state.activeNode&&state.activeNode.type==='div'&&delIds.indexOf(state.activeNode.id)>=0)){
+      state.activeProjectId=p.id;state.activeDivisionId=null;
+      state.activeNode={type:'proj',id:p.id};
+      state.selection=[];state.secTreeFilter=null;state.activeSection=null;
+    }
+    $('divDelMask').classList.remove('show');
+    save();render();toast('已删除 '+idxs.length+' 个单位工程');
+  }
+
+  /* ==================== 审减明细报表 ====================
+     数据来源与表格严格一致（buildCompare 的视图行）：
+       · 送审金额 = s_total，审定金额 = a_total，增减 = 审定 - 送审
+       · 负数写「审减金额」不带负号；正数写「审增金额」并标红
+       · 强制排除「措施项目」分部，仅分析分部分项，不含其他费用
+       · 只纳入已导入审定清单的单位工程；金额统一保留 2 位小数
+     序号：项目「一、」/ 单位工程「（一）、」/ 一级分部「（1）、」
+           / 二级分部「①、」/ 清单项「1、」（清单按父节点独立编号） */
+
+  /* ---- 生成范围：按项目 / 单位工程勾选（默认全部）----
+     adSel = {项目id:{单位工程id:1|0}}；null 表示尚未初始化。
+     新导入（可分析）的单位工程在初始化时自动纳入；手动取消记为 0，
+     不会被后续初始化重新勾上。 */
+  var adSel=null;
+  function adCanAnalyze(d){return !!(d&&d.auditDone&&(d.auditRows||[]).length);}
+  function adSelInit(){
+    if(!adSel)adSel={};
+    (state.projects||[]).forEach(function(p){
+      (p.divisions||[]).forEach(function(d){
+        if(!adCanAnalyze(d))return;
+        if(!adSel[p.id])adSel[p.id]={};
+        if(adSel[p.id][d.id]===undefined)adSel[p.id][d.id]=1;
+      });
+    });
+  }
+  function adInScope(pid,did){return !!(adSel&&adSel[pid]&&adSel[pid][did]===1);}
+  function adScopeGroups(){
+    var gs=[];
+    (state.projects||[]).forEach(function(p){
+      var ds=(p.divisions||[]).filter(adCanAnalyze);
+      if(ds.length)gs.push({p:p,divs:ds});
+    });
+    return gs;
+  }
+  /* 范围统计：total=可分析单位工程数、hit=勾选数、proj=有勾选项目的项目数 */
+  function adScopeStat(){
+    var t=0,h=0,pr=0;
+    adScopeGroups().forEach(function(g){
+      var on=0;
+      g.divs.forEach(function(d){t++;if(adInScope(g.p.id,d.id)){h++;on++;}});
+      if(on)pr++;
+    });
+    return {total:t,hit:h,proj:pr};
+  }
+  function renderAdScope(){
+    adSelInit();
+    var gs=adScopeGroups(),st=adScopeStat(),txt=$('adScopeTxt'),hint=$('adScopeHint');
+    if(txt)txt.textContent=!st.total?'暂无可分析的单位工程':
+      ((st.hit===st.total)?'全部项目 / 单位工程':
+      (st.hit?('已选 '+st.proj+' 个项目 · '+st.hit+' 个单位工程'):'未勾选任何单位工程'));
+    if(hint)hint.textContent=st.total?('共 '+gs.length+' 个项目 · '+st.total+' 个单位工程'):
+      '暂无可分析的单位工程';
+    var html='';
+    gs.forEach(function(g){
+      var items=g.divs.map(function(d){
+        return '<label class="ad-scope-row d"><input type="checkbox" data-pid="'+escapeHtml(g.p.id)+
+          '" data-did="'+escapeHtml(d.id)+'"'+(adInScope(g.p.id,d.id)?' checked':'')+'>'+
+          '<span class="nm" title="'+escapeHtml(d.name)+'">'+escapeHtml(d.name)+'</span></label>';
+      }).join('');
+      var on=g.divs.filter(function(d){return adInScope(g.p.id,d.id);}).length;
+      html+='<div class="ad-scope-group"><label class="ad-scope-row p">'+
+        '<input type="checkbox" data-ppid="'+escapeHtml(g.p.id)+'"'+
+        (on===g.divs.length?' checked':'')+'>'+
+        '<span class="nm" title="'+escapeHtml(g.p.name)+'">'+escapeHtml(g.p.name)+'</span>'+
+        '<span class="cnt">'+on+'/'+g.divs.length+'</span></label>'+items+'</div>';
+    });
+    var box=$('adScopeList');
+    if(!box)return;
+    box.innerHTML=html||'<div class="ad-scope-tip">暂无可分析的单位工程（需已导入审定清单）</div>';
+    [].forEach.call(box.querySelectorAll('.ad-scope-group'),function(g){
+      var kids=[].slice.call(g.querySelectorAll('input[data-did]'));
+      var on=kids.filter(function(c){return c.checked;}).length;
+      var pb=g.querySelector('input[data-ppid]');
+      if(pb){pb.checked=kids.length>0&&on===kids.length;pb.indeterminate=on>0&&on<kids.length;}
+    });
+  }
+  function adScopeSetAll(on){
+    adSelInit();
+    adScopeGroups().forEach(function(g){
+      adSel[g.p.id]=adSel[g.p.id]||{};
+      g.divs.forEach(function(d){adSel[g.p.id][d.id]=on?1:0;});
+    });
+    renderAdScope();renderAuditReport();
+  }
+  /* ---- 层级符号：按层级选择序号格式与顿号（页面 / 复制全文 / 导出 Excel 同源）---- */
+  function adSymSeqTxt(){
+    return AD_SYM_KEYS.map(function(k){return adSym(k,1);}).join('').replace(/[、.．，]+$/,'');
+  }
+  function renderAdSym(){
+    var box=$('adSymBody');
+    if(box){
+      var h='';
+      AD_SYM_KEYS.forEach(function(k){
+        var c=adSymCfg(k);
+        var opts=function(list,cur){
+          return list.map(function(o){
+            return '<option value="'+escapeHtml(o.k)+'"'+(o.k===cur?' selected':'')+'>'+
+              escapeHtml(o.t)+'</option>';
+          }).join('');
+        };
+        var pv=adSym(k,1)+'示例名称';
+        h+='<tr><td class="lv">'+escapeHtml(AD_SYM_TIP[k])+'</td>'+
+          '<td><select data-lvk="'+k+'" data-fld="f" title="选择序号格式">'+opts(AD_FMT,c.f)+'</select></td>'+
+          '<td><select data-lvk="'+k+'" data-fld="p" title="选择顿号">'+opts(AD_PUNC,c.p)+'</select></td>'+
+          '<td class="pv" title="'+escapeHtml(pv)+'">'+escapeHtml(pv)+'</td></tr>';
+      });
+      box.innerHTML=h;
+    }
+    var txt=$('adSymTxt'),hint=$('adSymHint');
+    if(txt)txt.textContent=(adSymIsDef()?'默认：':'自定义：')+adSymSeqTxt();
+    if(hint)hint.textContent=adSymIsDef()?'页面 / 复制 / 导出同步':'已自定义层级符号';
+  }
+  function adSymReset(){
+    AD_SYM=adSymDefaults();adSymSave();renderAdSym();renderAuditReport();
+  }
+  /* ---- 明细筛选（只作用于清单项）----
+     mode='all'  ：显示全部，但增减为 0 的清单项默认不显示
+     mode='nosum'：不含清单项，只保留项目 / 单位工程 / 分部（层级结构完整保留）
+     mode='gt'   ：仅显示审减金额 > 输入值（元）的清单项
+     mode='top'  ：仅显示审减金额全局排名前 N 的清单项
+     恒显示：项目 / 单位工程 / 一级分部 / 审增项；各级金额始终为真值，不随筛选变化。 */
+  function adFilterOpt(){
+    var sel=$('adFilterMode'),inp=$('adFilterVal');
+    var mode=sel?String(sel.value||'all'):'all',val=inp?num(inp.value):0;
+    if(mode!=='gt'&&mode!=='top'&&mode!=='nosum')mode='all';
+    if(isNaN(val)||val<0)val=0;
+    if(mode==='top'&&val<1)val=1;   /* 排名口径至少 1 项，避免填 0 时明细全空 */
+    return {mode:mode,val:val};
+  }
+  /* 全局审减额排名前 N 的清单项（跨项目统一排名，用于 mode='top'） */
+  function adTopList(divs,n){
+    var arr=[];
+    function scan(secs){
+      secs.forEach(function(sec){
+        sec.items.forEach(function(it){if(adDelta(it.s,it.a)<-TOL)arr.push(it);});
+        scan(sec.children);
+      });
+    }
+    divs.forEach(function(d){
+      scan(d.children);
+      d.items.forEach(function(it){if(adDelta(it.s,it.a)<-TOL)arr.push(it);});
+    });
+    arr.sort(function(x,y){return Math.abs(adDelta(y.s,y.a))-Math.abs(adDelta(x.s,x.a));});
+    return arr.slice(0,n);
+  }
+  /* 按筛选裁剪清单项：不含清单项时保留全部分部层级；
+     其余模式二级及更深分部若无可见项则收起（一级分部始终保留） */
+  function adPruneItems(divs,opt){
+    var top=(opt.mode==='top')?adTopList(divs,opt.val):null;
+    function keep(it){
+      if(opt.mode==='nosum')return false; /* 不含清单项：全部摘除 */
+      var d=adDelta(it.s,it.a);
+      if(d>TOL)return true;               /* 审增项始终显示 */
+      if(Math.abs(d)<=TOL)return false;   /* 增减为 0 默认不显示 */
+      var cut=Math.abs(d);
+      if(opt.mode==='gt')return cut>opt.val;
+      if(opt.mode==='top')return top.indexOf(it)>=0;
+      return true;
+    }
+    function hasItem(sec){
+      if(sec.items.length)return true;
+      return sec.children.some(hasItem);
+    }
+    /* dropEmpty：本次调用结束后是否把「无可见内容的子分部」收起。
+       一级分部自身由外层传入 true（它的下级为空则收起），一级分部自己永不被删。 */
+    function walk(sec,dropEmpty){
+      sec.items=sec.items.filter(keep);
+      sec.children.forEach(function(c){walk(c,dropEmpty);});
+      if(dropEmpty)sec.children=sec.children.filter(hasItem);
+    }
+    var drop=(opt.mode!=='nosum');   /* 只看汇总时不收起空分部 */
+    divs.forEach(function(d){
+      d.items=d.items.filter(keep);
+      d.children.forEach(function(c){walk(c,drop);});
+    });
+  }
+  /* 下拉/输入框联动：all 与 nosum 模式禁用输入框，单位随模式切换 */
+  function syncAdFilterUi(){
+    var sel=$('adFilterMode'),inp=$('adFilterVal'),unit=$('adFilterUnit');
+    if(!sel||!inp)return;
+    var mode=sel.value;
+    inp.disabled=(mode==='all'||mode==='nosum');
+    if(mode==='gt'){inp.title='填写金额（元），仅显示审减金额大于该值的清单项';if(unit)unit.textContent='元';}
+    else if(mode==='top'){inp.title='填写项数，仅显示审减金额排名前 N 的清单项';if(unit)unit.textContent='项';}
+    else if(mode==='nosum'){inp.title='当前不含清单项，只显示项目 / 单位工程 / 分部';if(unit)unit.textContent='';}
+    else {inp.title='当前显示全部清单项（为 0 的项不显示）';if(unit)unit.textContent='';}
+  }
+  /* 两种筛选各自的默认输入值：切到该模式时若输入框仍是「默认值」则自动换成对应默认 */
+  var AD_DEF={all:'',nosum:'',gt:'5000',top:'20'};
+  var AD_CN=['零','一','二','三','四','五','六','七','八','九','十'];
+  function adCnNum(n){
+    if(n<=10)return AD_CN[n];
+    if(n<20)return '十'+(n%10?AD_CN[n%10]:'');
+    var t=Math.floor(n/10),u=n%10;
+    return AD_CN[t]+'十'+(u?AD_CN[u]:'');
+  }
+  var AD_CIRCLE=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  function adMoney(v){var n=num(v);if(isNaN(n))n=0;return n.toFixed(2);}
+  function adDelta(s,a){var d=num(a)-num(s);return isNaN(d)?0:d;}
+  /* ---------- 层级序号符号（按层级可选：序号格式 + 顿号）----------
+     默认：项目 一、 / 单位工程 （一）、 / 一级分部 （1）、 / 二级分部 ①、 /
+           三级分部 ❶、 / 四级及更深 ⊖、 / 清单项 1、
+     选择结果保存在 localStorage，页面 / 复制全文 / 导出 Excel 三处同源。 */
+  var AD_CIRCF=['❶','❷','❸','❹','❺','❻','❼','❽','❾','❿'];
+  var AD_CIRCM=['⊖','⊘','⊗','⊕','⊙','⊛','⊜','⊝'];
+  var AD_SYM_KEYS=['proj','unit','s1','s2','s3','s4','item'];
+  var AD_SYM_TIP={proj:'项目',unit:'单位工程',s1:'一级分部',s2:'二级分部',
+    s3:'三级分部',s4:'四级及更深',item:'清单项'};
+  var AD_SYM_DEF={proj:{f:'cn',p:'、'},unit:{f:'cnp',p:'、'},s1:{f:'numf',p:'、'},
+    s2:{f:'circ',p:'、'},s3:{f:'circf',p:'、'},s4:{f:'cm',p:'、'},item:{f:'num',p:'、'}};
+  var AD_FMT=[{k:'cn',t:'一、二、三'},{k:'cnp',t:'（一）（二）'},{k:'num',t:'1、2、3'},
+    {k:'numf',t:'（1）（2）'},{k:'numh',t:'(1)(2)'},{k:'circ',t:'①②③'},
+    {k:'circf',t:'❶❷❸'},{k:'cm',t:'⊖'}];
+  var AD_PUNC=[{k:'、',t:'、'},{k:'.',t:'.'},{k:'．',t:'．'},{k:'，',t:'，'},{k:'',t:'（无）'}];
+  var AD_SYM_KEY='boq_ad_sym_v1',AD_SYM=null;
+  function adSymDefaults(){
+    var d={};
+    AD_SYM_KEYS.forEach(function(k){d[k]={f:AD_SYM_DEF[k].f,p:AD_SYM_DEF[k].p};});
+    return d;
+  }
+  function adSymLoad(){
+    var d=adSymDefaults();
+    try{
+      var o=JSON.parse(localStorage.getItem(AD_SYM_KEY)||'null');
+      if(o)AD_SYM_KEYS.forEach(function(k){
+        var it=o[k];if(!it)return;
+        var f=String(it.f===undefined?'':it.f),p=String(it.p===undefined?'、':it.p);
+        var fOk=AD_FMT.some(function(x){return x.k===f;});
+        var pOk=AD_PUNC.some(function(x){return x.k===p;});
+        if(fOk&&pOk)d[k]={f:f,p:p};
+      });
+    }catch(e){}
+    AD_SYM=d;return d;
+  }
+  function adSymCfg(k){if(!AD_SYM)adSymLoad();return AD_SYM[k]||AD_SYM_DEF[k];}
+  function adSymSave(){try{localStorage.setItem(AD_SYM_KEY,JSON.stringify(AD_SYM||adSymLoad()));}catch(e){}}
+  function adSymIsDef(){return AD_SYM_KEYS.every(function(k){
+    var c=adSymCfg(k);return c.f===AD_SYM_DEF[k].f&&c.p===AD_SYM_DEF[k].p;});}
+  /* 单个序号的字面量（不含顿号）：f 序号格式，n 该层级内的序号 */
+  function adSymChar(f,n){
+    var i=Math.max(1,Math.round(num(n))||1);
+    if(f==='cn')return adCnNum(i);
+    if(f==='cnp')return '（'+adCnNum(i)+'）';
+    if(f==='num')return String(i);
+    if(f==='numf')return '（'+i+'）';
+    if(f==='numh')return '('+i+')';
+    if(f==='circ')return AD_CIRCLE[(i-1)%AD_CIRCLE.length];
+    if(f==='circf')return AD_CIRCF[(i-1)%AD_CIRCF.length];
+    if(f==='cm')return AD_CIRCM[(i-1)%AD_CIRCM.length];
+    return String(i);
+  }
+  function adSym(k,n){var c=adSymCfg(k);return adSymChar(c.f,n)+(c.p||'');}
+  function adSymProj(n){return adSym('proj',n);}
+  function adSymUnit(n){return adSym('unit',n);}
+  function adSymItem(n){return adSym('item',n);}
+  /* 分部按深度取档：depth 2→一级 / 3→二级 / 4→三级 / ≥5→四级及更深 */
+  function adSymLv(depth,n){
+    return adSym(depth<=2?'s1':(depth===3?'s2':(depth===4?'s3':'s4')),n);
+  }
+  function adPrefix(depth,idx){return adSymLv(depth,idx);}
+  /* 报表专用视图行：只排除措施项目，不受「仅显示差异」影响（报表要全量） */
+  function adReportOut(div){
+    var out=buildCompare(div),kept=[],skipLvl=null;
+    out.forEach(function(o){
+      if(o.kind==='section'){
+        var ml=o.lvl||0;
+        if(skipLvl!==null&&ml>skipLvl)return;
+        skipLvl=null;
+        if(isMeasureSec(o.name)){skipLvl=ml;return;}
+        kept.push(o);
+      }else{
+        if(skipLvl!==null)return;
+        kept.push(o);
+      }
+    });
+    renumber(kept);sumSections(kept);
+    return kept;
+  }
+  /* 单个单位工程 → 分部树（含直属清单项） */
+  function adBuildDiv(div){
+    computeSecTree(div);
+    var out=adReportOut(div),root={children:[],items:[]},stack=[root];
+    out.forEach(function(o){
+      if(o.kind==='section'){
+        var lvl=o.lvl||0;
+        while(stack.length>1&&(stack[stack.length-1].lvl||0)>=lvl)stack.pop();
+        var nd={name:o.name,lvl:lvl,s:nz(o.sSum),a:nz(o.aSum),children:[],items:[]};
+        stack[stack.length-1].children.push(nd);stack.push(nd);
+      }else{
+        stack[stack.length-1].items.push({name:o.name,
+          s:nz(o.s_total!==undefined?o.s_total:o.total),a:nz(o.a_total),
+          note:String(o.d_note||'').trim(),
+          /* 导出 Excel 用：项目特征 / 编码 / 单位（界面不显示） */
+          feat:String(o.feature||'').trim(),code:String(o.code||''),unit:String(o.unit||'')});
+      }
+    });
+    var t=divTotals(out);
+    return {name:div.name,s:t.s,a:t.a,children:root.children,items:root.items};
+  }
+  /* 全部项目 → 报表数据；项目金额 = 其单位工程送审 / 审定金额汇总。
+     opt 为筛选配置（缺省=显示全部）；筛选只裁剪清单项，各层金额保持真值。 */
+  function adCollect(opt){
+    opt=opt||{mode:'all',val:0};
+    adSelInit();
+    var list=[],all=[];
+    (state.projects||[]).forEach(function(p){
+      var divs=[];
+      (p.divisions||[]).forEach(function(d){
+        if(!(d.auditDone&&(d.auditRows||[]).length))return;
+        if(!adInScope(p.id,d.id))return;   /* 生成范围：只统计勾选的单位工程 */
+        var rd=adBuildDiv(d);
+        if(Math.abs(rd.s)<=TOL&&Math.abs(rd.a)<=TOL)return;
+        divs.push(rd);all.push(rd);
+      });
+      if(!divs.length)return;
+      var ps=0,pa=0;divs.forEach(function(d){ps+=d.s;pa+=d.a;});
+      list.push({name:p.name,s:ps,a:pa,divs:divs});
+    });
+    adPruneItems(all,opt);
+    return list;
+  }
+  /* 增减金额片段（HTML）：审增标红、审减去负号；送审金额包 .ad-s 随层级配色 */
+  function adAmtHtml(s,a){
+    var d=adDelta(s,a),up=d>TOL;
+    var txt=(up?'审增金额'+adMoney(d):'审减金额'+adMoney(Math.abs(d)))+'元';
+    return '，<span class="ad-s">送审金额'+adMoney(s)+'元</span>，审定金额'+adMoney(a)+'元，'+
+      (up?'<span class="ad-up">'+txt+'</span>':txt);
+  }
+  /* 清单项金额片段（HTML）：送审金额段单独包一层（蓝色），审增标红、审减去负号 */
+  function adItemHtml(it){
+    var note=it.note?('，【审减原因-'+escapeHtml(it.note)+'】'):'';
+    var d=adDelta(it.s,it.a),up=d>TOL;
+    var txt=(up?'审增金额'+adMoney(d):'审减金额'+adMoney(Math.abs(d)))+'元';
+    return '<span class="ad-it-s">，送审金额'+adMoney(it.s)+'元</span>'+note+
+      '，审定金额'+adMoney(it.a)+'元，'+
+      (up?'<span class="ad-up">'+txt+'</span>':txt);
+  }
+  /* 清单项整行：名称与送审金额片段为蓝色（.ad-it-nm / .ad-it-s） */
+  function adItemLine(it,ii,depth){
+    return '<div class="ad-line l'+Math.min(depth+1,5)+'">'+
+      '<span class="ad-it-nm">'+escapeHtml(adSymItem(ii+1)+it.name)+'</span>'+
+      adItemHtml(it)+'；</div>';
+  }
+  function adSecHtml(sec,depth,idx){
+    var h='<div class="ad-line l'+Math.min(depth,5)+'">'+
+      '<span class="ad-nm">'+escapeHtml(adPrefix(depth,idx)+sec.name)+'</span>'+
+      adAmtHtml(sec.s,sec.a)+'；</div>';
+    sec.children.forEach(function(c,i){h+=adSecHtml(c,depth+1,i+1);});
+    sec.items.forEach(function(it,i){h+=adItemLine(it,i,depth);});
+    return h;
+  }
+  function adCountItems(projs){
+    var n=0;
+    function walk(secs){secs.forEach(function(s){n+=s.items.length;walk(s.children);});}
+    projs.forEach(function(p){p.divs.forEach(function(d){n+=d.items.length;walk(d.children);});});
+    return n;
+  }
+  function renderAuditReport(){
+    var box=$('adBody');if(!box)return;
+    syncAdFilterUi();
+    var opt=adFilterOpt(),projs=adCollect(opt);
+    if(!projs.length){
+      var s0=adScopeStat();
+      box.innerHTML='<div class="ad-empty">'+(s0.total&&!s0.hit
+        ? '未勾选任何项目 / 单位工程：请在上方「生成范围」中勾选后再生成明细。'
+        : '暂无可分析的数据：请先导入送审清单与审定清单（审定需已导入）。')+'</div>';
+      return;
+    }
+    var h='<div class="ad-line ad-note">仅对分部分项金额进行分析对比，不含其他费用</div>';
+    var sc=adScopeStat();
+    if(sc.total&&sc.hit<sc.total){
+      h+='<div class="ad-line ad-note ad-sum">'+
+        escapeHtml('范围：已勾选 '+sc.proj+' 个项目 · '+sc.hit+' / '+sc.total+' 个单位工程')+'</div>';
+    }
+    if(opt.mode!=='all'){
+      var tip,extra='';
+      if(opt.mode==='gt'){
+        tip='筛选：仅显示审减金额大于 '+adMoney(opt.val)+' 元的清单项';
+        extra='（命中 '+adCountItems(projs)+' 项；项目 / 单位工程 / 一级分部与审增项始终显示）';
+      }else if(opt.mode==='top'){
+        tip='筛选：仅显示审减金额排名前 '+opt.val+' 的清单项';
+        extra='（命中 '+adCountItems(projs)+' 项；项目 / 单位工程 / 一级分部与审增项始终显示）';
+      }else{
+        tip='筛选：不含清单项（仅显示项目 / 单位工程 / 分部）';
+      }
+      h+='<div class="ad-line ad-note ad-sum">'+escapeHtml(tip+extra)+'</div>';
+    }
+    projs.forEach(function(p,pi){
+      h+='<div class="ad-line l0"><span class="ad-nm">'+
+        escapeHtml(adSymProj(pi+1)+p.name)+'</span>'+adAmtHtml(p.s,p.a)+'</div>';
+      p.divs.forEach(function(d,di){
+        h+='<div class="ad-line l1"><span class="ad-nm">'+
+          escapeHtml(adSymUnit(di+1)+d.name)+'</span>'+adAmtHtml(d.s,d.a)+'；</div>';
+        d.children.forEach(function(sec,si){h+=adSecHtml(sec,2,si+1);});
+        d.items.forEach(function(it,ii){h+=adItemLine(it,ii,2);});
+      });
+    });
+    box.innerHTML=h;
+  }
+  /* 纯文本版（供复制到 Word / 邮件，序号与标点与展示一致，无标红；
+     应用与展示相同的筛选条件，但不含界面上的筛选提示行） */
+  function adFlatAmt(s,a){
+    var d=adDelta(s,a),up=d>TOL;
+    return '，送审金额'+adMoney(s)+'元，审定金额'+adMoney(a)+'元，'+
+      (up?'审增金额'+adMoney(d):'审减金额'+adMoney(Math.abs(d)))+'元';
+  }
+  function adFlatItem(it){
+    var note=it.note?('，【审减原因-'+it.note+'】'):'';
+    var d=adDelta(it.s,it.a),up=d>TOL;
+    return '，送审金额'+adMoney(it.s)+'元'+note+'，审定金额'+adMoney(it.a)+'元，'+
+      (up?'审增金额'+adMoney(d):'审减金额'+adMoney(Math.abs(d)))+'元';
+  }
+  function auditReportText(){
+    var projs=adCollect(adFilterOpt()),L=[];
+    if(!projs.length){
+      var s0=adScopeStat();
+      return (s0.total&&!s0.hit)?'未勾选任何项目 / 单位工程：请先勾选后再复制。':
+        '暂无可分析的数据：请先导入送审清单与审定清单（审定需已导入）。';
+    }
+    L.push('仅对分部分项金额进行分析对比，不含其他费用');
+    var sc=adScopeStat();
+    if(sc.total&&sc.hit<sc.total)
+      L.push('范围：已勾选 '+sc.proj+' 个项目 · '+sc.hit+' / '+sc.total+' 个单位工程');
+    projs.forEach(function(p,pi){
+      L.push(adSymProj(pi+1)+p.name+adFlatAmt(p.s,p.a));
+      p.divs.forEach(function(d,di){
+        L.push(adSymUnit(di+1)+d.name+adFlatAmt(d.s,d.a)+'；');
+        (function walk(secs,depth){
+          secs.forEach(function(sec,si){
+            L.push(adPrefix(depth,si+1)+sec.name+adFlatAmt(sec.s,sec.a)+'；');
+            walk(sec.children,depth+1);
+            sec.items.forEach(function(it,ii){L.push(adSymItem(ii+1)+it.name+adFlatItem(it)+'；');});
+          });
+        })(d.children,2);
+        d.items.forEach(function(it,ii){L.push(adSymItem(ii+1)+it.name+adFlatItem(it)+'；');});
+      });
+    });
+    return L.join('\n');
+  }
+  function adFallbackCopy(txt,cb){
+    var ta=document.createElement('textarea');ta.value=txt;
+    ta.style.position='fixed';ta.style.left='-9999px';ta.style.top='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);cb&&cb();
+  }
+  function copyAuditReport(){
+    var txt=auditReportText(),done=function(){toast('已复制全文');};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done,function(){adFallbackCopy(txt,done);});
+    }else adFallbackCopy(txt,done);
+  }
+  /* ---------- 导出 Excel：报表每行一条（项目 / 单位工程 / 分部 / 清单项），
+     最后一列为「项目特征描述」（仅清单项有值），便于在 Excel 里对照特征改清单名称。
+     导出内容与当前筛选一致（所见即所得）。
+     同时产出第二个工作表「审减报告」：每行一句，文字全部由公式引用「审减明细」
+     的 A/C/D/E/F/G/H 列拼装——在明细表里改清单名称或金额，报告页自动联动。 ---------- */
+  /* 报告行公式（不含前导 =，OOXML 的 <f> 内不写等号） */
+  function adRepFormula(r,isItem,semi){
+    var at=function(c){return '审减明细!'+c+(r+1);};
+    var f=at('A')+'&'+at('C')+'&"，送审金额"&TEXT('+at('D')+',"0.00")&"元"';
+    if(isItem)f+='&IF('+at('H')+'="","","，【审减原因-"&'+at('H')+'&"】")';
+    f+='&"，审定金额"&TEXT('+at('E')+',"0.00")&"元，"'+
+      '&IF('+at('F')+'>0,"审减金额"&TEXT('+at('F')+',"0.00"),'+
+      'IF('+at('G')+'>0,"审增金额"&TEXT('+at('G')+',"0.00"),"审减金额0.00"))&"元"';
+    if(semi)f+='&"；"';
+    return f;
+  }
+  /* 层级 → 样式索引：0项目 1单位工程 2一级分部 3二级分部 4三级及更深，清单项单独一套。
+     name=名称/报告正文（左对齐带底色）、sum=送审金额（同底色右对齐）、cell=层级列（同底色居中） */
+  var AD_ST_LV=[32,33,34,35,36],AD_ST_LVSUM=[38,39,40,41,42],AD_ST_LVCELL=[44,45,46,47,48];
+  function adStName(lv,isItem){return isItem?37:AD_ST_LV[Math.min(lv,4)];}
+  function adStSum(lv,isItem){return isItem?43:AD_ST_LVSUM[Math.min(lv,4)];}
+  function adStLvCell(lv,isItem){return isItem?49:AD_ST_LVCELL[Math.min(lv,4)];}
+  function adStDir(dir){return dir==='up'?50:(dir==='cut'?51:52);}
+  function adDirText(dir){return dir==='up'?'审增':(dir==='cut'?'审减':'持平');}
+  /* 审减报告：正文 + 层级 + 增减（审增红底 / 审减绿底），正文与层级沿用明细的层级底色 */
+  function adReportSheet(rep){
+    var rows=[{cells:[{v:'仅对分部分项金额进行分析对比，不含其他费用',s:4},
+        {v:'',s:4},{v:'',s:4}],h:22,lv:0}];
+    rows.push({cells:[{v:'审减内容',s:53},{v:'层级',s:53},{v:'增减',s:53}],h:24,lv:0});
+    (rep||[]).forEach(function(o){
+      rows.push({cells:[
+        {v:o.txt,t:'f',f:o.f,s:adStName(o.lv,o.isItem)},
+        {v:o.kind||'',s:adStLvCell(o.lv,o.isItem)},
+        {v:adDirText(o.dir),s:adStDir(o.dir)}
+      ],h:19,lv:0});
+    });
+    return {name:'审减报告',cols:[112,16,10],rows:rows,merges:[],freeze:2,maxLv:0};
+  }
+  function adExportSheet(){
+    var opt=adFilterOpt(),projs=adCollect(opt);
+    if(!projs.length)return null;
+    var cols=[10,12,40,15,15,15,15,18,50],W=cols.length;
+    var head=['序号','层级','名称','送审金额','审定金额','审减金额','审增金额','审减原因','项目特征描述'];
+    var rows=[],merges=[],maxLv=0,rep=[];
+    function blank(st){var a=[];for(var i=0;i<W;i++)a.push({v:'',s:st||0});return a;}
+    rows.push({cells:blank(25),h:34,lv:0});rows[0].cells[0].v='审减明细';
+    merges.push({r1:0,c1:0,r2:0,c2:W-1});
+    var sub='仅对分部分项金额进行分析对比，不含其他费用';
+    if(opt.mode==='gt')sub+='；筛选：审减金额大于 '+adMoney(opt.val)+' 元的清单项';
+    else if(opt.mode==='top')sub+='；筛选：审减金额排名前 '+opt.val+' 的清单项';
+    else if(opt.mode==='nosum')sub+='；不含清单项（仅项目 / 单位工程 / 分部）';
+    var sc=adScopeStat();
+    if(sc.total&&sc.hit<sc.total)sub+='；范围：已勾选 '+sc.hit+' / '+sc.total+' 个单位工程';
+    sub+='；生成时间：'+stamp();
+    rows.push({cells:blank(4),lv:0});rows[1].cells[0].v=sub;
+    merges.push({r1:1,c1:0,r2:1,c2:W-1});
+    rows.push({cells:head.map(function(t){return {v:t,s:1};}),h:26,lv:0});
+    function add(seq,kind,name,s,a,note,feat,lv,h){
+      var d=adDelta(s,a),cut=(d<-TOL)?Math.abs(d):0,inc=(d>TOL)?d:0;
+      if(lv>maxLv)maxLv=lv;
+      var isItem=(kind==='清单项'),semi=(kind!=='项目');
+      var ri=rows.length;                 /* 0 基行号：供审减报告公式定位 */
+      /* 名称列与送审金额列按层级上底色（项目/单位工程/分部逐层、清单项浅蓝+蓝字） */
+      rows.push({cells:[
+        {v:seq,s:4},{v:kind,s:5},{v:name,s:adStName(lv,isItem)},
+        {v:nz(s),t:'n',s:adStSum(lv,isItem)},{v:nz(a),t:'n',s:6},
+        {v:cut,t:'n',s:(cut>0?8:6)},{v:inc,t:'n',s:(inc>0?7:6)},
+        {v:note||'',s:4},{v:feat||'',s:24}
+      ],h:h||20,lv:lv});
+      /* 同一步登记审减报告行：文本由公式拼装（引用本表各列），
+         txt 仅作公式缓存值，便于不支持重算的阅读器也能看到内容；
+         lv/isItem 决定报告页底色，dir 决定「增减」列配色 */
+      var tail=isItem?adFlatItem({s:s,a:a,note:note}):adFlatAmt(s,a);
+      rep.push({r:ri,f:adRepFormula(ri,isItem,semi),txt:seq+name+tail+(semi?'；':''),
+        lv:lv,isItem:isItem,kind:kind,dir:(d>TOL?'up':(d<-TOL?'cut':'flat'))});
+    }
+    function itemRow(it,ii,lv){
+      var h=it.feat?Math.min(240,oxWrapLines(it.feat,50)*15+8):20;
+      add(adSymItem(ii+1),'清单项',it.name,it.s,it.a,it.note,it.feat,lv,h);
+    }
+    projs.forEach(function(p,pi){
+      add(adSymProj(pi+1),'项目',p.name,p.s,p.a,'','',0,24);
+      p.divs.forEach(function(d,di){
+        add(adSymUnit(di+1),'单位工程',d.name,d.s,d.a,'','',1,22);
+        (function walk(secs,depth){
+          secs.forEach(function(sec,si){
+            add(adPrefix(depth,si+1),adCnNum(depth-1)+'级分部',sec.name,
+              sec.s,sec.a,'','',depth,22);
+            walk(sec.children,depth+1);
+            sec.items.forEach(function(it,ii){itemRow(it,ii,depth+1);});
+          });
+        })(d.children,2);
+        d.items.forEach(function(it,ii){itemRow(it,ii,2);});
+      });
+    });
+    return {name:'审减明细',cols:cols,rows:rows,merges:merges,freeze:3,maxLv:maxLv,tabSelected:true,
+      repRows:rep};
+  }
+  function exportAuditXlsx(){
+    try{
+      var sh=adExportSheet();
+      if(!sh){toast('暂无可导出的数据');return;}
+      var buf=oxBuildXlsx([sh,adReportSheet(sh.repRows)]);
+      var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var a=document.createElement('a'),url=URL.createObjectURL(blob);
+      a.href=url;a.download='审减明细_'+stamp()+'.xlsx';
+      document.body.appendChild(a);a.click();
+      setTimeout(function(){try{URL.revokeObjectURL(url);document.body.removeChild(a);}catch(e){}},0);
+      toast('已导出审减明细 Excel');
+    }catch(err){console.error(err);toast('导出失败：'+((err&&err.message)||err));}
+  }
 
   /* ==================== 清单分部树 ==================== */
   function stIcon(kind){
@@ -2508,6 +3418,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&apos;')
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');}
+  /* 公式内容转义：只处理 XML 元字符，引号保持原样（公式里需要 " 作为字符串定界） */
+  function oxFEsc(s){return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');}
   function oxU8(s){
     s=String(s);
     if(typeof TextEncoder!=='undefined'){try{return new TextEncoder().encode(s);}catch(e){}}
@@ -2559,10 +3473,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
      18加粗浅蓝底数字（汇总行正数） 19加粗浅红底数字（汇总行负数）
      20删(红) 21增(蓝) 22改(黄) 类型列居中带淡底；23分部行类型居中；24特征自动换行
      25目录大标题 26目录蓝色链接文字 27整数计数（numFmtId=1，格式 0，不带小数）
+     32~37 审减明细「名称」列层级底色（项目/单位工程/一级/二级/三级及更深/清单项）
+     38~43 同层「送审金额」列（与名称列同底色，右对齐金额格式）
+     44~49 审减报告「层级」列（同层底色，居中）
+     50审增(红底) 51审减(绿底) 52持平(灰底) 53报告表头
      所有金额样式 numFmtId=2（0.00，无千分位） */
   var OX_STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +'<fonts count="12">'
+    +'<fonts count="15">'
     +'<font><sz val="11"/><color rgb="FF1F1F1F"/><name val="微软雅黑"/></font>'
     +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="微软雅黑"/></font>'
     +'<font><b/><sz val="11"/><color rgb="FF1F4E79"/><name val="微软雅黑"/></font>'
@@ -2577,8 +3495,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<font><b/><sz val="11"/><color rgb="FF8A6A00"/><name val="微软雅黑"/></font>'
     /* 11=目录大标题 白字加粗 14px */
     +'<font><b/><sz val="14"/><color rgb="FFFFFFFF"/><name val="微软雅黑"/></font>'
+    /* 12=一级分部 棕加粗  13=二级分部 石板灰加粗  14=三级及更深 浅灰 */
+    +'<font><b/><sz val="11"/><color rgb="FF8A5A00"/><name val="微软雅黑"/></font>'
+    +'<font><b/><sz val="11"/><color rgb="FF54616E"/><name val="微软雅黑"/></font>'
+    +'<font><sz val="11"/><color rgb="FF6B7787"/><name val="微软雅黑"/></font>'
     +'</fonts>'
-    +'<fills count="12">'
+    +'<fills count="18">'
     +'<fill><patternFill patternType="none"/></fill>'
     +'<fill><patternFill patternType="gray125"/></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FF4472C4"/><bgColor indexed="64"/></patternFill></fill>'
@@ -2592,13 +3514,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFEBF1FE"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFFCEDEB"/><bgColor indexed="64"/></patternFill></fill>'
     +'<fill><patternFill patternType="solid"><fgColor rgb="FFFFF6D9"/><bgColor indexed="64"/></patternFill></fill>'
+    /* 12 一级分部杏底 13 二级石板浅底 14 三级+更浅灰 15 清单项极浅蓝
+       16 审增浅红底 17 审减浅绿底 */
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFFDF1DD"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFEDF1F6"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFF5F6F8"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFF4F8FF"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFFBDDD8"/><bgColor indexed="64"/></patternFill></fill>'
+    +'<fill><patternFill patternType="solid"><fgColor rgb="FFDCEFE2"/><bgColor indexed="64"/></patternFill></fill>'
     +'</fills>'
     +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
     +'<border><left style="thin"><color rgb="FFD9D9D9"/></left><right style="thin"><color rgb="FFD9D9D9"/></right>'
     +'<top style="thin"><color rgb="FFD9D9D9"/></top><bottom style="thin"><color rgb="FFD9D9D9"/></bottom>'
     +'<diagonal/></border></borders>'
     +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    +'<cellXfs count="32">'
+    +'<cellXfs count="54">'
     +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'
     +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
     +'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
@@ -2637,6 +3567,31 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     +'<xf numFmtId="2" fontId="8" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'<xf numFmtId="2" fontId="9" fillId="7" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
     +'<xf numFmtId="2" fontId="8" fillId="7" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    /* 32~37 审减明细「名称」列：按层级给底色与字色（项目/单位工程/一级/二级/三级+/清单项）；
+       38~43 同层「送审金额」列，底色一致、金额右对齐；44~49 报告「层级」列，同底色居中 */
+    +'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="12" fillId="12" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="13" fillId="13" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="14" fillId="14" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="0" fontId="5" fillId="15" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
+    +'<xf numFmtId="2" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="3" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="12" fillId="12" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="13" fillId="13" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="14" fillId="14" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="2" fontId="5" fillId="15" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="12" fillId="12" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="13" fillId="13" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="14" fillId="14" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="5" fillId="15" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    /* 50=审增（红字浅红底） 51=审减（绿字浅绿底） 52=持平（灰字浅灰底） 53=报告表头 */
+    +'<xf numFmtId="0" fontId="8" fillId="16" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="3" fillId="17" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="7" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
+    +'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
     +'</cellXfs>'
     +'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     +'</styleSheet>';
@@ -2675,7 +3630,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         +(row.h?' ht="'+row.h+'" customHeight="1"':'')+'>';
       row.cells.forEach(function(c,ci){
         var ref=oxCol(ci)+(ri+1),s=c.s||0,v=c.v;
-        if(c.t==='n'&&v!==''&&v!==null&&v!==undefined&&isFinite(v)){
+        /* 公式单元格：<f> 内写不带等号的公式，<v> 存缓存结果（t="str" 表示文本结果）；
+           workbook 里另有 fullCalcOnLoad，Excel 打开即按当前数据重算 */
+        if(typeof c.f==='string'&&c.f){
+          x+='<c r="'+ref+'" s="'+s+'" t="str"><f>'+oxFEsc(c.f)+'</f>'+
+            ((v===''||v===null||v===undefined)?'':'<v>'+oxFEsc(v)+'</v>')+'</c>';
+        }else if(c.t==='n'&&v!==''&&v!==null&&v!==undefined&&isFinite(v)){
           x+='<c r="'+ref+'" s="'+s+'"><v>'+v+'</v></c>';
         }else if(v===''||v===null||v===undefined){x+='<c r="'+ref+'" s="'+s+'"/>';}
         else{x+='<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+
@@ -2719,7 +3679,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       +'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
       +'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
       +sheets.map(function(s,i){return '<sheet name="'+oxEsc(s.name)+'" sheetId="'+(i+1)+
-        '" r:id="rId'+(i+1)+'"/>';}).join('')+'</sheets></workbook>';
+        '" r:id="rId'+(i+1)+'"/>';}).join('')+'</sheets>'
+      /* 打开即全量重算：审减报告行是公式，需按用户当前数据算一遍 */
+      +'<calcPr calcId="152511" fullCalcOnLoad="1"/></workbook>';
     var wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       +sheets.map(function(s,i){return '<Relationship Id="rId'+(i+1)+
@@ -2847,7 +3809,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       projCount=0,secCount=0,totalAmt=0,totalS=0,totalA=0;
     var blank6=function(s){return [{v:'',s:s},{v:'',s:s},{v:'',s:s},
       {v:'',s:s},{v:'',s:s},{v:'',s:s}];};
-    rows.push({cells:[{v:'目录',s:25},{v:'',s:25},{v:'',s:25},
+    rows.push({cells:[{v:'目录（仅对分部分项金额进行对比）',s:25},{v:'',s:25},{v:'',s:25},
       {v:'',s:25},{v:'',s:25},{v:'',s:25}],h:38,lv:0});
     merges.push({r1:0,c1:0,r2:0,c2:5});
     rows.push({cells:['序号','项目','单位工程 / 清单分部','送审合价','审定合价','增减金额']
@@ -2880,8 +3842,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       {v:projCount+' 个项目 · '+toc.length+' 个单位工程 · '+secCount+' 个分部',s:14},
       {v:totalS,t:'n',s:6},{v:totalA,t:'n',s:6},{v:totalAmt,t:'n',s:oxAmtStyle(totalAmt)}
     ],h:26,lv:0});
-    rows.push({cells:blank6(0),h:10,lv:0});
-    /* 说明 / 备注 / 生成时间各占独立一行，均合并 A:F */
+    /* 说明 / 备注 / 生成时间各占独立一行，均合并 A:F（合计行后不再插入空行） */
     var nr=rows.length;
     var note='说明：蓝色名称为内部链接，点击跳转到对应工作表 / 分部行；'+
       '单位工程内点击A1单元格返回目录；分部行可用左上角分级按钮折叠。';
@@ -3033,8 +3994,105 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   /* ==================== 事件绑定 ==================== */
   function pickFile(){var f=$('fileInput');if(f)f.click();}
   function startImport(side,mode){pendingSide=side;importMode=mode||'batch';treeImportTarget=null;pickFile();}
-  $('btnImportSend').addEventListener('click',function(){startImport('send','batch');});
-  $('btnImportAudit').addEventListener('click',function(){startImport('audit','batch');});
+  /* 顶栏导入：一级「导入」按钮展开二级菜单；菜单两项复用 btnImportSend / btnImportAudit 原 id，
+     既作为二级选项，也保持既有自动化脚本直接点这两个 id 触发导入的能力。 */
+  function closeImportMenu(){var m=$('importMenu');if(m)m.classList.remove('show');}
+  $('btnImport').addEventListener('click',function(e){e.stopPropagation();
+    var m=$('importMenu');if(m)m.classList.toggle('show');});
+  $('btnImportSend').addEventListener('click',function(){closeImportMenu();startImport('send','batch');});
+  $('btnImportAudit').addEventListener('click',function(){closeImportMenu();startImport('audit','batch');});
+  document.addEventListener('click',function(e){
+    if(!(e.target.closest&&e.target.closest('.imp-wrap')))closeImportMenu();});
+  /* 审减明细：打开时刷新生成范围（新导入的单位工程自动纳入）与报表 */
+  $('btnAuditDetail').addEventListener('click',function(){
+    $('adScopePop').classList.remove('show');
+    $('adScopeBtn').setAttribute('aria-expanded','false');
+    if($('adSymPop'))$('adSymPop').classList.remove('show');
+    if($('adSymBtn'))$('adSymBtn').setAttribute('aria-expanded','false');
+    renderAdScope();renderAdSym();syncAdFilterUi();renderAuditReport();
+    $('auditDetailMask').classList.add('show');
+  });
+  /* 生成范围：下拉面板 + 项目/单位工程勾选（勾选即重算报表） */
+  $('adScopeBtn').addEventListener('click',function(e){
+    e.stopPropagation();
+    var pop=$('adScopePop'),on=pop.classList.toggle('show');
+    this.setAttribute('aria-expanded',on?'true':'false');
+    if(on){
+      if($('adSymPop'))$('adSymPop').classList.remove('show');
+      if($('adSymBtn'))$('adSymBtn').setAttribute('aria-expanded','false');
+      renderAdScope();
+    }
+  });
+  $('adScopeAll').addEventListener('click',function(){adScopeSetAll(true);});
+  $('adScopeNone').addEventListener('click',function(){adScopeSetAll(false);});
+  $('adScopeList').addEventListener('change',function(e){
+    var t=e.target;if(!t||t.tagName!=='INPUT')return;
+    adSelInit();
+    var ppid=t.getAttribute('data-ppid'),pid=t.getAttribute('data-pid'),did=t.getAttribute('data-did');
+    if(ppid){                                   /* 项目：整组勾选/取消 */
+      adSel[ppid]=adSel[ppid]||{};
+      adScopeGroups().forEach(function(g){
+        if(g.p.id!==ppid)return;
+        g.divs.forEach(function(d){adSel[ppid][d.id]=t.checked?1:0;});
+      });
+    }else if(pid&&did){                         /* 单位工程：单个勾选/取消 */
+      adSel[pid]=adSel[pid]||{};
+      adSel[pid][did]=t.checked?1:0;
+    }else return;
+    renderAdScope();renderAuditReport();
+  });
+  /* 点面板以外区域收起 */
+  document.addEventListener('click',function(e){
+    var box=$('adScope'),pop=$('adScopePop');
+    if(box&&pop&&pop.classList.contains('show')&&!box.contains(e.target)){
+      pop.classList.remove('show');$('adScopeBtn').setAttribute('aria-expanded','false');
+    }
+    var sbox=$('adSym'),spop=$('adSymPop');
+    if(sbox&&spop&&spop.classList.contains('show')&&!sbox.contains(e.target)){
+      spop.classList.remove('show');$('adSymBtn').setAttribute('aria-expanded','false');
+    }
+  });
+  /* 层级符号：下拉面板 + 逐层选择序号格式 / 顿号（改完即重算报表并保存） */
+  $('adSymBtn').addEventListener('click',function(e){
+    e.stopPropagation();
+    if(!$('adSymPop'))return;
+    if(!AD_SYM)adSymLoad();
+    var pop=$('adSymPop'),on=pop.classList.toggle('show');
+    this.setAttribute('aria-expanded',on?'true':'false');
+    if(on){
+      var sp=$('adScopePop');
+      if(sp){sp.classList.remove('show');$('adScopeBtn').setAttribute('aria-expanded','false');}
+      renderAdSym();
+    }
+  });
+  $('adSymBody').addEventListener('change',function(e){
+    var t=e.target;
+    if(!t||t.tagName!=='SELECT')return;
+    var k=t.getAttribute('data-lvk'),fld=t.getAttribute('data-fld');
+    if(!k||!fld||!AD_SYM_DEF[k])return;
+    if(!AD_SYM)adSymLoad();
+    AD_SYM[k]=AD_SYM[k]||{f:AD_SYM_DEF[k].f,p:AD_SYM_DEF[k].p};
+    AD_SYM[k][fld]=t.value;
+    adSymSave();renderAdSym();renderAuditReport();
+  });
+  $('adSymReset').addEventListener('click',adSymReset);
+  /* 审减明细筛选：切换模式或修改数值即重算报表（只影响清单项，金额汇总不变） */
+  $('adFilterMode').addEventListener('change',function(){
+    /* 切模式时若输入框仍是某个模式的默认值，则自动换成当前模式的默认（审减>5000 / 排名前 20） */
+    var inp=$('adFilterVal');
+    if(inp){
+      var dv=String(inp.value||'').trim(),isDef=false;
+      Object.keys(AD_DEF).forEach(function(k){if(AD_DEF[k]===dv)isDef=true;});
+      if(!dv||isDef)inp.value=AD_DEF[this.value]||'';
+    }
+    syncAdFilterUi();renderAuditReport();
+  });
+  $('adFilterVal').addEventListener('input',function(){renderAuditReport();});
+  $('adCopy').addEventListener('click',copyAuditReport);
+  $('adExport').addEventListener('click',exportAuditXlsx);
+  $('adClose').addEventListener('click',function(){$('auditDetailMask').classList.remove('show');});
+  $('auditDetailMask').addEventListener('click',function(e){
+    if(e.target===this)this.classList.remove('show');});
   $('globalExpand').addEventListener('change',function(){state.globalExpand=this.value||'all';applyGlobalExpand();save();render();
     toast(this.value==='all'?'已全部展开':('已展开到'+this.options[this.selectedIndex].text));});
   $('btnExport').addEventListener('click',openExportModal);
@@ -3132,6 +4190,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     else if(act==='newDiv')newDivision(t?(t.type==='proj'?t.id:t.pid):null);
     else if(act==='rename'){if(t&&t.type==='div')renameDivision(t.id);else if(t)renameProject(t.id);}
     else if(act==='del'){if(t&&t.type==='div')delDivision(t.id);else if(t)delProject(t.id);}
+    else if(act==='batchRename'){if(t&&t.type==='div')openBatchRename(t.pid);}
+    else if(act==='batchDel'){if(t&&t.type==='div')openBatchDel(t.pid);}
     else if(act==='importSend'||act==='importAudit'){
       if(t&&t.type!=='root'){
         if(t.type==='div'){state.activeProjectId=t.pid;state.activeDivisionId=t.id;}
@@ -3140,6 +4200,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }else treeImportTarget=null;
       save();render();startImport(act==='importSend'?'send':'audit','batch');}
   });
+  $('drReplaceAll').addEventListener('click',batchReplaceAll);
+  $('drRestore').addEventListener('click',batchRestoreNames);
+  $('drCancel').addEventListener('click',function(){$('divRenameMask').classList.remove('show');});
+  $('drOk').addEventListener('click',applyBatchRename);
+  $('ddAll').addEventListener('click',function(){ddSetAll(true);});
+  $('ddNone').addEventListener('click',function(){ddSetAll(false);});
+  $('ddCancel').addEventListener('click',function(){$('divDelMask').classList.remove('show');});
+  $('ddOk').addEventListener('click',applyBatchDel);
   $('batchAll').addEventListener('click',function(){batchSetAll(true);});
   $('batchNone').addEventListener('click',function(){batchSetAll(false);});
   $('batchSearch').addEventListener('input',filterBatchList);
